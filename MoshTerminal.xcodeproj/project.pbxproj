@@ -16,7 +16,21 @@
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */; };
+		C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */; };
+		C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */; };
+		C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */; };
+		C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C1C1C1C1C1C1C1C1C1C1C1F6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1A1A1A1A1A1A1A1A1A1A1B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1A1A1A1A1A1A1A1A1A1A1B5;
+			remoteInfo = MoshTerminal;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		3F63A1BE2F28F98800ACE2AA /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
@@ -30,6 +44,11 @@
 		A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostProfile.swift; sourceTree = "<group>"; };
+		C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKey.swift; sourceTree = "<group>"; };
+		C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStore.swift; sourceTree = "<group>"; };
+		C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStoreTests.swift; sourceTree = "<group>"; };
+		C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = MoshTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +60,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C1C1C1C1C1C1C1C1C1C1C1F2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -48,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				A1A1A1A1A1A1A1A1A1A1A1B3 /* MoshTerminal */,
+				C1C1C1C1C1C1C1C1C1C1C1E3 /* MoshTerminalTests */,
 				A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */,
 				3F63A1BE2F28F98800ACE2AA /* .gitignore */,
 			);
@@ -63,16 +90,44 @@
 				A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */,
+				C1C1C1C1C1C1C1C1C1C1C1E1 /* Model */,
+				C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */,
 				A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */,
 				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
 			);
 			path = MoshTerminal;
 			sourceTree = "<group>";
 		};
+		C1C1C1C1C1C1C1C1C1C1C1E1 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */,
+				C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		C1C1C1C1C1C1C1C1C1C1C1E3 /* MoshTerminalTests */ = {
+			isa = PBXGroup;
+			children = (
+				C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */,
+			);
+			path = MoshTerminalTests;
+			sourceTree = "<group>";
+		};
 		A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */,
+				C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */,
 			);
 			path = Products;
 			sourceTree = "<group>";
@@ -100,6 +155,24 @@
 			productReference = A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C1C1C1C1C1C1C1C1C1C1C1F4 /* MoshTerminalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C1C1C1C1C1C1C1C1C1C1C1F7 /* Build configuration list for PBXNativeTarget "MoshTerminalTests" */;
+			buildPhases = (
+				C1C1C1C1C1C1C1C1C1C1C1F1 /* Sources */,
+				C1C1C1C1C1C1C1C1C1C1C1F3 /* Resources */,
+				C1C1C1C1C1C1C1C1C1C1C1F2 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C1C1C1C1C1C1C1C1C1C1C1F5 /* PBXTargetDependency */,
+			);
+			name = MoshTerminalTests;
+			productName = MoshTerminalTests;
+			productReference = C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -111,6 +184,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					A1A1A1A1A1A1A1A1A1A1A1B5 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					C1C1C1C1C1C1C1C1C1C1C1F4 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -132,6 +208,7 @@
 			projectRoot = "";
 			targets = (
 				A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */,
+				C1C1C1C1C1C1C1C1C1C1C1F4 /* MoshTerminalTests */,
 			);
 		};
 /* End PBXProject section */
@@ -142,6 +219,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C1C1C1C1C1C1C1C1C1C1C1F3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -159,10 +243,29 @@
 				A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C1C1C1C1C1C1C1C1C1C1C1F1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C1C1C1C1C1C1C1C1C1C1C1F5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */;
+			targetProxy = C1C1C1C1C1C1C1C1C1C1C1F6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
@@ -328,6 +431,51 @@
 			};
 			name = Release;
 		};
+		C1C1C1C1C1C1C1C1C1C1C1F8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = JVMXE5G542;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MoshTerminalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MoshTerminal.app/MoshTerminal";
+			};
+			name = Debug;
+		};
+		C1C1C1C1C1C1C1C1C1C1C1F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = JVMXE5G542;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MoshTerminalTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MoshTerminal.app/MoshTerminal";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -336,6 +484,15 @@
 			buildConfigurations = (
 				A1A1A1A1A1A1A1A1A1A1A1BB /* Debug */,
 				A1A1A1A1A1A1A1A1A1A1A1BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1C1C1C1C1C1C1C1C1C1C1F7 /* Build configuration list for PBXNativeTarget "MoshTerminalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1C1C1C1C1C1C1C1C1C1C1F8 /* Debug */,
+				C1C1C1C1C1C1C1C1C1C1C1F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
