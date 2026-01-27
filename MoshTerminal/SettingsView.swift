@@ -1,19 +1,28 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var autoReconnect = true
-    @State private var preferControlEscape = true
-    @State private var useHaptics = false
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         Form {
-            Section("Connection") {
-                Toggle("Auto-reconnect", isOn: $autoReconnect)
-                Toggle("Haptics", isOn: $useHaptics)
+            Section("Appearance") {
+                Picker("Theme", selection: $settings.themeMode) {
+                    ForEach(AppSettings.ThemeMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                Stepper(value: $settings.fontSize, in: 10...24, step: 1) {
+                    HStack {
+                        Text("Font Size")
+                        Spacer()
+                        Text("\(Int(settings.fontSize))")
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
-            Section("Input") {
-                Toggle("Ctrl/Esc helpers", isOn: $preferControlEscape)
+            Section("Session") {
+                Toggle("Keep Awake", isOn: $settings.keepAwake)
             }
 
             Section("Keys") {
@@ -36,4 +45,5 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
+    .environmentObject(AppSettings())
 }

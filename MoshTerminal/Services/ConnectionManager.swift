@@ -1,0 +1,356 @@
+import Combine
+import Foundation
+
+@MainActor
+final class ConnectionManager: ObservableObject {
+    enum State: Equatable {
+        case idle
+        case bootstrappingSSH
+        case connectingUDP
+        case connected
+        case reconnecting
+        case failed(message: String)
+    }
+
+    @Published private(set) var state: State = .idle
+    @Published private(set) var activeHostId: UUID?
+    @Published private(set) var lastErrorMessage: String?
+
+    private let keyStore: KeychainPrivateKeyStore
+    private let moshBootstrapper: MoshBootstrapper
+    private let moshEngineFactory: MoshEngineFactory
+    private let appLifecycleService: AppLifecycleService
+    private let networkPathService: NetworkPathService
+
+    private var activeHost: HostProfile?
+    private var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
+    private weak var controller: TerminalSessionController?
+
+    private var engine: MoshEngine?
+    private var lastConnectInfo: MoshConnectInfo?
+
+    private var connectTask: Task<Void, Never>?
+    private var connectToken = UUID()
+
+    private var connectWaiterToken: UUID?
+    private var connectWaiter: CheckedContinuation<Bool, Never>?
+
+    private var cancellables: Set<AnyCancellable> = []
+
+    init(
+        keyStore: KeychainPrivateKeyStore,
+        moshBootstrapper: MoshBootstrapper,
+        moshEngineFactory: @escaping MoshEngineFactory,
+        appLifecycleService: AppLifecycleService,
+        networkPathService: NetworkPathService
+    ) {
+        self.keyStore = keyStore
+        self.moshBootstrapper = moshBootstrapper
+        self.moshEngineFactory = moshEngineFactory
+        self.appLifecycleService = appLifecycleService
+        self.networkPathService = networkPathService
+
+        appLifecycleService.events
+            .sink { [weak self] event in
+                guard let self else { return }
+                switch event {
+                case .foreground:
+                    self.requestReconnect(reason: .foreground)
+                case .background:
+                    Task { await self.handleBackground() }
+                }
+            }
+            .store(in: &cancellables)
+
+        networkPathService.$pathInfo
+            .removeDuplicates()
+            .sink { [weak self] info in
+                guard let self else { return }
+                if info.status == .satisfied {
+                    self.requestReconnect(reason: .networkSatisfied)
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    func connect(
+        host: HostProfile,
+        controller: TerminalSessionController,
+        hostKeyPrompter: SSHHostKeyPrompting
+    ) {
+        self.activeHost = host
+        self.activeHostId = host.id
+        self.controller = controller
+        self.hostKeyPrompter = hostKeyPrompter
+        lastErrorMessage = nil
+
+        if state == .connected, activeHostId == host.id, let engine {
+            attachEngine(engine, controller: controller)
+            return
+        }
+
+        startConnection(isReconnect: false)
+    }
+
+    func disconnect(clearSession: Bool) async {
+        cancelConnectTask()
+        await stopEngine()
+        state = .idle
+        lastErrorMessage = nil
+
+        if clearSession {
+            activeHost = nil
+            activeHostId = nil
+            lastConnectInfo = nil
+        }
+    }
+
+    func clearLastError() {
+        lastErrorMessage = nil
+    }
+
+    private enum ReconnectReason {
+        case foreground
+        case networkSatisfied
+        case engineDisconnected
+    }
+
+    private func requestReconnect(reason: ReconnectReason) {
+        guard activeHost != nil else { return }
+        guard networkPathService.isSatisfied else { return }
+        guard appLifecycleService.state == .foreground else { return }
+        guard connectTask == nil else { return }
+        guard !isConnecting else { return }
+        guard state != .connected else { return }
+
+        startConnection(isReconnect: true)
+    }
+
+    private var isConnecting: Bool {
+        switch state {
+        case .bootstrappingSSH, .connectingUDP, .reconnecting:
+            return true
+        case .idle, .connected, .failed:
+            return false
+        }
+    }
+
+    private func startConnection(isReconnect: Bool) {
+        cancelConnectTask()
+        let token = UUID()
+        connectToken = token
+        connectTask = Task { [weak self] in
+            await self?.runConnectionAttempt(isReconnect: isReconnect, token: token)
+        }
+    }
+
+    private func runConnectionAttempt(isReconnect: Bool, token: UUID) async {
+        defer {
+            if connectToken == token {
+                connectTask = nil
+            }
+        }
+        guard let host = activeHost else { return }
+        let controller = self.controller
+        lastErrorMessage = nil
+        await stopEngine()
+
+        if isReconnect {
+            state = .reconnecting
+            if let connectInfo = lastConnectInfo {
+                let resumed = await attemptEngineStart(
+                    connectInfo: connectInfo,
+                    controller: controller,
+                    waitForConnection: true,
+                    token: token
+                )
+                if resumed { return }
+                await stopEngine()
+            }
+        }
+
+        state = .bootstrappingSSH
+        do {
+            let privateKey = try keyStore.loadPrivateKeyData(keyRefId: host.keyRefId)
+            let connectInfo = try await moshBootstrapper.bootstrap(
+                host: host,
+                privateKey: privateKey,
+                passphrase: nil,
+                hostKeyPrompter: hostKeyPrompter
+            )
+            guard connectToken == token else { return }
+            lastConnectInfo = connectInfo
+            state = .connectingUDP
+            _ = await attemptEngineStart(
+                connectInfo: connectInfo,
+                controller: controller,
+                waitForConnection: false,
+                token: token
+            )
+        } catch {
+            if connectToken != token { return }
+            handleConnectionFailure(error)
+        }
+    }
+
+    private func attemptEngineStart(
+        connectInfo: MoshConnectInfo,
+        controller: TerminalSessionController?,
+        waitForConnection: Bool,
+        token: UUID
+    ) async -> Bool {
+        guard connectToken == token else { return false }
+        let engine = moshEngineFactory()
+        self.engine = engine
+        attachEngine(engine, controller: controller)
+
+        let size = controller?.currentSize ?? TerminalSize(cols: 80, rows: 24)
+        state = .connectingUDP
+        do {
+            try await engine.start(connectInfo: connectInfo, initialTerminalSize: size)
+        } catch {
+            if connectToken != token { return false }
+            handleConnectionFailure(error)
+            return false
+        }
+
+        guard waitForConnection else { return true }
+        let connected = await waitForConnected(timeoutNanoseconds: 1_500_000_000, token: token)
+        if !connected {
+            return false
+        }
+        return true
+    }
+
+    private func waitForConnected(timeoutNanoseconds: UInt64, token: UUID) async -> Bool {
+        if state == .connected { return true }
+        return await withCheckedContinuation { continuation in
+            let waiterToken = UUID()
+            connectWaiterToken = waiterToken
+            connectWaiter = continuation
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+                guard connectToken == token else { return }
+                guard connectWaiterToken == waiterToken else { return }
+                connectWaiterToken = nil
+                connectWaiter = nil
+                continuation.resume(returning: false)
+            }
+        }
+    }
+
+    private func attachEngine(_ engine: MoshEngine, controller: TerminalSessionController?) {
+        engine.onOutput = { [weak self, weak controller, weak engine] data in
+            Task { @MainActor in
+                guard let self, let controller, self.engine === engine else { return }
+                controller.feedOutput(data)
+            }
+        }
+
+        engine.onStateChange = { [weak self, weak engine] engineState in
+            Task { @MainActor in
+                guard let self, self.engine === engine else { return }
+                self.handleEngineState(engineState)
+            }
+        }
+
+        if let controller {
+            attachController(controller)
+        }
+    }
+
+    private func attachController(_ controller: TerminalSessionController) {
+        controller.onInput = { [weak self] data in
+            Task { await self?.engine?.sendInput(data) }
+        }
+        controller.onSizeChange = { [weak self] size in
+            Task { await self?.engine?.updateTerminalSize(cols: size.cols, rows: size.rows) }
+        }
+    }
+
+    private func handleEngineState(_ engineState: MoshEngineState) {
+        switch engineState {
+        case .idle:
+            state = .idle
+        case .starting:
+            state = .connectingUDP
+        case .connected:
+            state = .connected
+            resumeConnectWaiter(connected: true)
+        case .disconnected:
+            state = .failed(message: "Disconnected")
+            resumeConnectWaiter(connected: false)
+            requestReconnect(reason: .engineDisconnected)
+        case .failed(let error):
+            state = .failed(message: error.localizedDescription)
+            lastErrorMessage = error.localizedDescription
+            resumeConnectWaiter(connected: false)
+            requestReconnect(reason: .engineDisconnected)
+        }
+    }
+
+    private func resumeConnectWaiter(connected: Bool) {
+        guard let continuation = connectWaiter else { return }
+        connectWaiter = nil
+        connectWaiterToken = nil
+        continuation.resume(returning: connected)
+    }
+
+    private func handleConnectionFailure(_ error: Error) {
+        let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        state = .failed(message: message)
+        lastErrorMessage = message
+    }
+
+    private func cancelConnectTask() {
+        connectTask?.cancel()
+        connectTask = nil
+    }
+
+    private func stopEngine() async {
+        if let engine {
+            await engine.stop()
+        }
+        engine = nil
+    }
+
+    private func handleBackground() async {
+        await disconnect(clearSession: false)
+    }
+}
+
+extension ConnectionManager.State {
+    var statusText: String {
+        switch self {
+        case .idle:
+            return "Idle"
+        case .bootstrappingSSH:
+            return "Starting SSH"
+        case .connectingUDP:
+            return "Connecting"
+        case .connected:
+            return "Connected"
+        case .reconnecting:
+            return "Reconnecting"
+        case .failed(let message):
+            return "Failed: \(message)"
+        }
+    }
+
+    var shortStatusText: String {
+        switch self {
+        case .idle:
+            return "Idle"
+        case .bootstrappingSSH:
+            return "SSH"
+        case .connectingUDP:
+            return "Connecting"
+        case .connected:
+            return "Connected"
+        case .reconnecting:
+            return "Reconnecting"
+        case .failed:
+            return "Failed"
+        }
+    }
+}

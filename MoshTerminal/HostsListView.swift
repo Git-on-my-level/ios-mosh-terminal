@@ -55,19 +55,16 @@ struct HostsListView: View {
 
     private let hostRepository: HostRepository
     private let keyStore: KeychainPrivateKeyStore
-    private let moshBootstrapper: MoshBootstrapper
-    private let moshEngineFactory: MoshEngineFactory
+    @ObservedObject private var connectionManager: ConnectionManager
 
     init(
         hostRepository: HostRepository,
         keyStore: KeychainPrivateKeyStore,
-        moshBootstrapper: MoshBootstrapper,
-        moshEngineFactory: MoshEngineFactory
+        connectionManager: ConnectionManager
     ) {
         self.hostRepository = hostRepository
         self.keyStore = keyStore
-        self.moshBootstrapper = moshBootstrapper
-        self.moshEngineFactory = moshEngineFactory
+        _connectionManager = ObservedObject(wrappedValue: connectionManager)
         _viewModel = StateObject(wrappedValue: HostsListViewModel(hostRepository: hostRepository))
     }
 
@@ -82,13 +79,14 @@ struct HostsListView: View {
                         TerminalView(
                             host: host,
                             dependencies: TerminalSessionDependencies(
-                                keyStore: keyStore,
-                                moshBootstrapper: moshBootstrapper,
-                                moshEngineFactory: moshEngineFactory
+                                connectionManager: connectionManager
                             )
                         )
                     } label: {
-                        HostRowView(host: host)
+                        HostRowView(
+                            host: host,
+                            connectionState: connectionManager.activeHostId == host.id ? connectionManager.state : nil
+                        )
                     }
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
@@ -142,6 +140,7 @@ struct HostsListView: View {
 
 private struct HostRowView: View {
     let host: HostProfile
+    let connectionState: ConnectionManager.State?
 
     private var lastConnectedText: String? {
         guard let date = host.lastConnectedAt else {
@@ -152,8 +151,19 @@ private struct HostRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(host.resolvedDisplayName)
-                .font(.headline)
+            HStack(spacing: 8) {
+                Text(host.resolvedDisplayName)
+                    .font(.headline)
+                if let connectionState {
+                    Text(connectionState.shortStatusText)
+                        .font(.caption2)
+                        .foregroundStyle(statusColor(for: connectionState))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(statusColor(for: connectionState).opacity(0.15))
+                        .clipShape(Capsule())
+                }
+            }
             Text("\(host.username)@\(host.hostname)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -164,6 +174,19 @@ private struct HostRowView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func statusColor(for state: ConnectionManager.State) -> Color {
+        switch state {
+        case .connected:
+            return .green
+        case .bootstrappingSSH, .connectingUDP, .reconnecting:
+            return .orange
+        case .failed:
+            return .red
+        case .idle:
+            return .secondary
+        }
     }
 }
 
@@ -191,11 +214,21 @@ private struct HostEditorContext: Identifiable {
         let store = JSONStore()
         let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
         let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
+        let keyStore = KeychainPrivateKeyStore()
+        let moshBootstrapper = MoshBootstrapper(sshClientFactory: sshClientFactory)
+        let appLifecycleService = AppLifecycleService()
+        let networkPathService = NetworkPathService()
+        let connectionManager = ConnectionManager(
+            keyStore: keyStore,
+            moshBootstrapper: moshBootstrapper,
+            moshEngineFactory: { LoopbackMoshEngine() },
+            appLifecycleService: appLifecycleService,
+            networkPathService: networkPathService
+        )
         HostsListView(
             hostRepository: HostRepository(store: store),
-            keyStore: KeychainPrivateKeyStore(),
-            moshBootstrapper: MoshBootstrapper(sshClientFactory: sshClientFactory),
-            moshEngineFactory: { LoopbackMoshEngine() }
+            keyStore: keyStore,
+            connectionManager: connectionManager
         )
     }
 }

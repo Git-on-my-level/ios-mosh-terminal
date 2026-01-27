@@ -3,12 +3,15 @@ import SwiftUI
 @main
 struct MoshTerminalApp: App {
     @StateObject private var environment = AppEnvironment()
+    @StateObject private var settings = AppSettings()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(environment)
+                .environmentObject(settings)
                 .tint(AppTheme.tintColor)
+                .preferredColorScheme(settings.themeMode.preferredColorScheme)
         }
     }
 }
@@ -22,8 +25,7 @@ private struct RootView: View {
                 HostsListView(
                     hostRepository: environment.dependencies.hostRepository,
                     keyStore: environment.dependencies.keyStore,
-                    moshBootstrapper: environment.dependencies.moshBootstrapper,
-                    moshEngineFactory: environment.dependencies.moshEngineFactory
+                    connectionManager: environment.dependencies.connectionManager
                 )
             }
             .tabItem {

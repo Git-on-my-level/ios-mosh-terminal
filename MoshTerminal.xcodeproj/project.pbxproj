@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* MoshTerminalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A3 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1D1 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */; };
 		E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */; };
@@ -21,6 +22,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
+		F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B5 /* MoshBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F305 /* MoshBootstrapper.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B7 /* MoshEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F307 /* MoshEngine.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B6 /* MoshClientEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F306 /* MoshClientEngine.swift */; };
@@ -56,6 +58,7 @@
 		3F63A1BE2F28F98800ACE2AA /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshTerminalApp.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostsListView.swift; sourceTree = "<group>"; };
 		E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostEditorView.swift; sourceTree = "<group>"; };
@@ -70,6 +73,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathService.swift; sourceTree = "<group>"; };
+		F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F305 /* MoshBootstrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshBootstrapper.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F307 /* MoshEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshEngine.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F306 /* MoshClientEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientEngine.swift; sourceTree = "<group>"; };
@@ -125,6 +129,7 @@
 			children = (
 				A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */,
 				E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */,
@@ -150,6 +155,7 @@
 			children = (
 				F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */,
+				F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */,
 				F3F3F3F3F3F3F3F3F3F3F305 /* MoshBootstrapper.swift */,
 				F3F3F3F3F3F3F3F3F3F3F307 /* MoshEngine.swift */,
 				F3F3F3F3F3F3F3F3F3F3F306 /* MoshClientEngine.swift */,
@@ -314,6 +320,7 @@
 			files = (
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* MoshTerminalApp.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A3 /* AppEnvironment.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1D1 /* AppSettings.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */,
 				E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */,
@@ -326,6 +333,7 @@
 				F3F3F3F3F3F3F3F3F3F3F3B3 /* TerminalSessionViewModel.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */,
+				F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B5 /* MoshBootstrapper.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B7 /* MoshEngine.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B6 /* MoshClientEngine.swift in Sources */,
