@@ -18,6 +18,10 @@
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
+		E2E2E2E2E2E2E2E2E2E2E2A1 /* SSHClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2B1 /* SSHClient.swift */; };
+		E2E2E2E2E2E2E2E2E2E2E2A2 /* SSHHostKeyVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2B2 /* SSHHostKeyVerifier.swift */; };
+		E2E2E2E2E2E2E2E2E2E2E2A3 /* UnavailableSSHClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2B3 /* UnavailableSSHClient.swift */; };
+		E2E2E2E2E2E2E2E2E2E2E2A4 /* LibSSH2Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2B4 /* LibSSH2Client.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */; };
@@ -54,6 +58,10 @@
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathService.swift; sourceTree = "<group>"; };
+		E2E2E2E2E2E2E2E2E2E2E2B1 /* SSHClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHClient.swift; sourceTree = "<group>"; };
+		E2E2E2E2E2E2E2E2E2E2E2B2 /* SSHHostKeyVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHHostKeyVerifier.swift; sourceTree = "<group>"; };
+		E2E2E2E2E2E2E2E2E2E2E2B3 /* UnavailableSSHClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnavailableSSHClient.swift; sourceTree = "<group>"; };
+		E2E2E2E2E2E2E2E2E2E2E2B4 /* LibSSH2Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibSSH2Client.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManagementView.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainPrivateKeyStore.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidator.swift; sourceTree = "<group>"; };
@@ -121,6 +129,10 @@
 			children = (
 				F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */,
+				E2E2E2E2E2E2E2E2E2E2E2B1 /* SSHClient.swift */,
+				E2E2E2E2E2E2E2E2E2E2E2B2 /* SSHHostKeyVerifier.swift */,
+				E2E2E2E2E2E2E2E2E2E2E2B4 /* LibSSH2Client.swift */,
+				E2E2E2E2E2E2E2E2E2E2E2B3 /* UnavailableSSHClient.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -284,6 +296,10 @@
 				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */,
+				E2E2E2E2E2E2E2E2E2E2E2A1 /* SSHClient.swift in Sources */,
+				E2E2E2E2E2E2E2E2E2E2E2A2 /* SSHHostKeyVerifier.swift in Sources */,
+				E2E2E2E2E2E2E2E2E2E2E2A4 /* LibSSH2Client.swift in Sources */,
+				E2E2E2E2E2E2E2E2E2E2E2A3 /* UnavailableSSHClient.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
