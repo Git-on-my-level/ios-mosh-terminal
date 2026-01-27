@@ -14,10 +14,15 @@ struct MoshTerminalApp: App {
 }
 
 private struct RootView: View {
+    @EnvironmentObject private var environment: AppEnvironment
+
     var body: some View {
         TabView {
             NavigationStack {
-                HostsListView()
+                HostsListView(
+                    hostRepository: environment.dependencies.hostRepository,
+                    keyStore: environment.dependencies.keyStore
+                )
             }
             .tabItem {
                 Label("Hosts", systemImage: "server.rack")

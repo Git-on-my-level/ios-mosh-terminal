@@ -11,10 +11,15 @@
 		A1A1A1A1A1A1A1A1A1A1A1A3 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */; };
+		E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
+		D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */; };
 		C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */; };
@@ -38,12 +43,17 @@
 		A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostsListView.swift; sourceTree = "<group>"; };
+		E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostEditorView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManagementView.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainPrivateKeyStore.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidator.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidatorTests.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostProfile.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKey.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStore.swift; sourceTree = "<group>"; };
@@ -87,11 +97,14 @@
 				A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */,
+				E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */,
 				C1C1C1C1C1C1C1C1C1C1C1E1 /* Model */,
 				C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */,
+				D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */,
 				A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */,
 				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
 			);
@@ -115,10 +128,20 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
+		D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
 		C1C1C1C1C1C1C1C1C1C1C1E3 /* MoshTerminalTests */ = {
 			isa = PBXGroup;
 			children = (
 				C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */,
 			);
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
@@ -240,12 +263,16 @@
 				A1A1A1A1A1A1A1A1A1A1A1A3 /* AppEnvironment.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */,
+				E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -254,6 +281,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

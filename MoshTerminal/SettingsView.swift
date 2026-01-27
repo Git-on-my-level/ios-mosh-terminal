@@ -16,6 +16,12 @@ struct SettingsView: View {
                 Toggle("Ctrl/Esc helpers", isOn: $preferControlEscape)
             }
 
+            Section("Keys") {
+                NavigationLink("Manage Keys") {
+                    KeyManagementView()
+                }
+            }
+
             Section("About") {
                 NavigationLink("Licenses") {
                     LicensesView()

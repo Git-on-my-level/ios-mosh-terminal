@@ -27,3 +27,10 @@ struct HostProfile: Identifiable, Codable, Equatable {
         self.lastConnectedAt = lastConnectedAt
     }
 }
+
+extension HostProfile {
+    var resolvedDisplayName: String {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? hostname : trimmed
+    }
+}
