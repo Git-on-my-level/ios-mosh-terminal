@@ -4,6 +4,8 @@ final class AppEnvironment: ObservableObject {
     struct Dependencies {
         let hostRepository: HostRepository
         let keyStore: KeychainPrivateKeyStore
+        let appLifecycleService: AppLifecycleService
+        let networkPathService: NetworkPathService
     }
 
     let dependencies: Dependencies
@@ -12,7 +14,9 @@ final class AppEnvironment: ObservableObject {
         let store = JSONStore()
         self.dependencies = Dependencies(
             hostRepository: HostRepository(store: store),
-            keyStore: KeychainPrivateKeyStore()
+            keyStore: KeychainPrivateKeyStore(),
+            appLifecycleService: AppLifecycleService(),
+            networkPathService: NetworkPathService()
         )
     }
 }
