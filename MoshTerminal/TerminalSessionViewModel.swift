@@ -8,7 +8,7 @@ final class TerminalSessionViewModel: ObservableObject {
         let hostKey: SSHHostKey
     }
 
-    @Published var alertMessage: String?
+    @Published var failure: ConnectionFailure?
     @Published var hostKeyPrompt: HostKeyPromptState?
 
     private let host: HostProfile
@@ -22,9 +22,9 @@ final class TerminalSessionViewModel: ObservableObject {
         self.host = host
         self.connectionManager = dependencies.connectionManager
         self.controller = controller
-        connectionManager.$lastErrorMessage
+        connectionManager.$failure
             .sink { [weak self] message in
-                self?.alertMessage = message
+                self?.failure = message
             }
             .store(in: &cancellables)
     }
@@ -53,9 +53,14 @@ final class TerminalSessionViewModel: ObservableObject {
         continuation.resume(returning: shouldTrust)
     }
 
-    func dismissAlert() {
-        alertMessage = nil
-        connectionManager.clearLastError()
+    func dismissFailure() {
+        failure = nil
+        connectionManager.clearFailure()
+    }
+
+    func retry() {
+        dismissFailure()
+        connect()
     }
 
     private func connect() {

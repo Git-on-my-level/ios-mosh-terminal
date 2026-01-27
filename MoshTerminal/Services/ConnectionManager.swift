@@ -14,7 +14,7 @@ final class ConnectionManager: ObservableObject {
 
     @Published private(set) var state: State = .idle
     @Published private(set) var activeHostId: UUID?
-    @Published private(set) var lastErrorMessage: String?
+    @Published private(set) var failure: ConnectionFailure?
 
     private let keyStore: KeychainPrivateKeyStore
     private let moshBootstrapper: MoshBootstrapper
@@ -82,7 +82,7 @@ final class ConnectionManager: ObservableObject {
         self.activeHostId = host.id
         self.controller = controller
         self.hostKeyPrompter = hostKeyPrompter
-        lastErrorMessage = nil
+        failure = nil
 
         if state == .connected, activeHostId == host.id, let engine {
             attachEngine(engine, controller: controller)
@@ -96,7 +96,7 @@ final class ConnectionManager: ObservableObject {
         cancelConnectTask()
         await stopEngine()
         state = .idle
-        lastErrorMessage = nil
+        failure = nil
 
         if clearSession {
             activeHost = nil
@@ -105,8 +105,8 @@ final class ConnectionManager: ObservableObject {
         }
     }
 
-    func clearLastError() {
-        lastErrorMessage = nil
+    func clearFailure() {
+        failure = nil
     }
 
     private enum ReconnectReason {
@@ -152,7 +152,7 @@ final class ConnectionManager: ObservableObject {
         }
         guard let host = activeHost else { return }
         let controller = self.controller
-        lastErrorMessage = nil
+        failure = nil
         await stopEngine()
 
         if isReconnect {
@@ -184,7 +184,7 @@ final class ConnectionManager: ObservableObject {
             _ = await attemptEngineStart(
                 connectInfo: connectInfo,
                 controller: controller,
-                waitForConnection: false,
+                waitForConnection: true,
                 token: token
             )
         } catch {
@@ -215,8 +215,12 @@ final class ConnectionManager: ObservableObject {
         }
 
         guard waitForConnection else { return true }
-        let connected = await waitForConnected(timeoutNanoseconds: 1_500_000_000, token: token)
+        let connected = await waitForConnected(timeoutNanoseconds: 5_000_000_000, token: token)
         if !connected {
+            if connectToken == token {
+                handleConnectionFailure(ConnectionFailureReason.udpUnreachable)
+            }
+            await stopEngine()
             return false
         }
         return true
@@ -276,14 +280,26 @@ final class ConnectionManager: ObservableObject {
             state = .connectingUDP
         case .connected:
             state = .connected
+            failure = nil
             resumeConnectWaiter(connected: true)
         case .disconnected:
-            state = .failed(message: "Disconnected")
+            let mappedFailure = ConnectionErrorMapper.map(
+                error: ConnectionFailureReason.disconnected,
+                host: activeHost,
+                networkSatisfied: networkPathService.isSatisfied
+            )
+            state = .failed(message: mappedFailure.title)
+            failure = mappedFailure
             resumeConnectWaiter(connected: false)
             requestReconnect(reason: .engineDisconnected)
         case .failed(let error):
-            state = .failed(message: error.localizedDescription)
-            lastErrorMessage = error.localizedDescription
+            let mappedFailure = ConnectionErrorMapper.map(
+                error: error,
+                host: activeHost,
+                networkSatisfied: networkPathService.isSatisfied
+            )
+            state = .failed(message: mappedFailure.title)
+            failure = mappedFailure
             resumeConnectWaiter(connected: false)
             requestReconnect(reason: .engineDisconnected)
         }
@@ -297,9 +313,13 @@ final class ConnectionManager: ObservableObject {
     }
 
     private func handleConnectionFailure(_ error: Error) {
-        let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        state = .failed(message: message)
-        lastErrorMessage = message
+        let mappedFailure = ConnectionErrorMapper.map(
+            error: error,
+            host: activeHost,
+            networkSatisfied: networkPathService.isSatisfied
+        )
+        state = .failed(message: mappedFailure.title)
+        failure = mappedFailure
     }
 
     private func cancelConnectTask() {
@@ -332,8 +352,8 @@ extension ConnectionManager.State {
             return "Connected"
         case .reconnecting:
             return "Reconnecting"
-        case .failed(let message):
-            return "Failed: \(message)"
+        case .failed:
+            return "Disconnected"
         }
     }
 
@@ -350,7 +370,7 @@ extension ConnectionManager.State {
         case .reconnecting:
             return "Reconnecting"
         case .failed:
-            return "Failed"
+            return "Disconnected"
         }
     }
 }

@@ -11,6 +11,7 @@ struct TerminalView: View {
     @StateObject private var controller: TerminalSessionController
     @StateObject private var viewModel: TerminalSessionViewModel
     @EnvironmentObject private var settings: AppSettings
+    @Environment(\.dismiss) private var dismiss
     @State private var isVisible = false
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
@@ -50,18 +51,20 @@ struct TerminalView: View {
                 updateIdleTimer()
             }
             .safeAreaInset(edge: .top) {
-                TerminalStatusBar(state: connectionManager.state)
-            }
-            .alert(
-                "Terminal",
-                isPresented: Binding(
-                    get: { viewModel.alertMessage != nil },
-                    set: { _ in viewModel.dismissAlert() }
-                )
-            ) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(viewModel.alertMessage ?? "")
+                VStack(spacing: 0) {
+                    TerminalStatusBar(state: connectionManager.state)
+                    if let failure = viewModel.failure {
+                        TerminalErrorBanner(
+                            failure: failure,
+                            onRetry: { viewModel.retry() },
+                            onBack: {
+                                viewModel.dismissFailure()
+                                viewModel.stop()
+                                dismiss()
+                            }
+                        )
+                    }
+                }
             }
             .alert(item: $viewModel.hostKeyPrompt) { prompt in
                 Alert(
@@ -195,6 +198,40 @@ private struct TerminalStatusBar: View {
         case .idle:
             return .secondary
         }
+    }
+}
+
+private struct TerminalErrorBanner: View {
+    let failure: ConnectionFailure
+    let onRetry: () -> Void
+    let onBack: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(failure.title)
+                .font(.caption)
+                .foregroundStyle(.white)
+                .bold()
+            Text(failure.message)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.9))
+            HStack(spacing: 8) {
+                if failure.allowsRetry {
+                    Button("Retry", action: onRetry)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.white.opacity(0.9))
+                }
+                Button("Back", action: onBack)
+                    .buttonStyle(.bordered)
+                    .tint(.white.opacity(0.9))
+                Spacer()
+            }
+            .font(.caption2)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.red.opacity(0.85))
     }
 }
 
