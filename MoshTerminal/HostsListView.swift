@@ -55,10 +55,19 @@ struct HostsListView: View {
 
     private let hostRepository: HostRepository
     private let keyStore: KeychainPrivateKeyStore
+    private let moshBootstrapper: MoshBootstrapper
+    private let moshEngineFactory: MoshEngineFactory
 
-    init(hostRepository: HostRepository, keyStore: KeychainPrivateKeyStore) {
+    init(
+        hostRepository: HostRepository,
+        keyStore: KeychainPrivateKeyStore,
+        moshBootstrapper: MoshBootstrapper,
+        moshEngineFactory: MoshEngineFactory
+    ) {
         self.hostRepository = hostRepository
         self.keyStore = keyStore
+        self.moshBootstrapper = moshBootstrapper
+        self.moshEngineFactory = moshEngineFactory
         _viewModel = StateObject(wrappedValue: HostsListViewModel(hostRepository: hostRepository))
     }
 
@@ -70,7 +79,14 @@ struct HostsListView: View {
             } else {
                 ForEach(viewModel.hosts) { host in
                     NavigationLink {
-                        TerminalView(host: host.resolvedDisplayName)
+                        TerminalView(
+                            host: host,
+                            dependencies: TerminalSessionDependencies(
+                                keyStore: keyStore,
+                                moshBootstrapper: moshBootstrapper,
+                                moshEngineFactory: moshEngineFactory
+                            )
+                        )
                     } label: {
                         HostRowView(host: host)
                     }
@@ -172,6 +188,14 @@ private struct HostEditorContext: Identifiable {
 
 #Preview {
     NavigationStack {
-        HostsListView(hostRepository: HostRepository(store: JSONStore()), keyStore: KeychainPrivateKeyStore())
+        let store = JSONStore()
+        let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
+        let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
+        HostsListView(
+            hostRepository: HostRepository(store: store),
+            keyStore: KeychainPrivateKeyStore(),
+            moshBootstrapper: MoshBootstrapper(sshClientFactory: sshClientFactory),
+            moshEngineFactory: { LoopbackMoshEngine() }
+        )
     }
 }

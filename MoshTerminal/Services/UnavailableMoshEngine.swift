@@ -1,0 +1,19 @@
+import Foundation
+
+final class UnavailableMoshEngine: MoshEngine, @unchecked Sendable {
+    var onOutput: (@Sendable (Data) -> Void)?
+    var onStateChange: (@Sendable (MoshEngineState) -> Void)?
+
+    func start(connectInfo: MoshConnectInfo, initialTerminalSize: TerminalSize) async throws {
+        onStateChange?(.failed(MoshEngineError.libraryUnavailable))
+        throw MoshEngineError.libraryUnavailable
+    }
+
+    func sendInput(_ bytes: Data) async {}
+
+    func updateTerminalSize(cols: Int, rows: Int) async {}
+
+    func stop() async {
+        onStateChange?(.disconnected)
+    }
+}

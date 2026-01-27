@@ -21,7 +21,9 @@ private struct RootView: View {
             NavigationStack {
                 HostsListView(
                     hostRepository: environment.dependencies.hostRepository,
-                    keyStore: environment.dependencies.keyStore
+                    keyStore: environment.dependencies.keyStore,
+                    moshBootstrapper: environment.dependencies.moshBootstrapper,
+                    moshEngineFactory: environment.dependencies.moshEngineFactory
                 )
             }
             .tabItem {
@@ -29,7 +31,11 @@ private struct RootView: View {
             }
 
             NavigationStack {
-                TerminalView(host: "Preview")
+                ContentUnavailableView(
+                    "Select a Host",
+                    systemImage: "server.rack",
+                    description: Text("Open a host from the Hosts tab.")
+                )
             }
             .tabItem {
                 Label("Terminal", systemImage: "terminal")

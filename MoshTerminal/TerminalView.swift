@@ -4,26 +4,67 @@ import SwiftTerm
 private typealias TerminalUIKitView = SwiftTerm.TerminalView
 
 struct TerminalView: View {
-    let host: String
-    @StateObject private var controller = TerminalLoopbackController()
+    let host: HostProfile
+    let autoConnect: Bool
+    @StateObject private var controller: TerminalSessionController
+    @StateObject private var viewModel: TerminalSessionViewModel
+
+    init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
+        self.host = host
+        self.autoConnect = autoConnect
+        let controller = TerminalSessionController()
+        _controller = StateObject(wrappedValue: controller)
+        _viewModel = StateObject(wrappedValue: TerminalSessionViewModel(host: host, dependencies: dependencies, controller: controller))
+    }
 
     var body: some View {
         TerminalContainerView(controller: controller)
             .onTapGesture {
                 controller.focus()
             }
-            .navigationTitle(host)
+            .navigationTitle(host.resolvedDisplayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     TerminalAccessoryRow(controller: controller)
                 }
             }
+            .onAppear {
+                if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
+                    viewModel.start(autoConnect: autoConnect)
+                }
+            }
+            .onDisappear {
+                viewModel.stop()
+            }
+            .alert(
+                "Terminal",
+                isPresented: Binding(
+                    get: { viewModel.alertMessage != nil },
+                    set: { _ in viewModel.alertMessage = nil }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.alertMessage ?? "")
+            }
+            .alert(item: $viewModel.hostKeyPrompt) { prompt in
+                Alert(
+                    title: Text("Trust Host Key?"),
+                    message: Text("\(prompt.hostKey.hostname):\(prompt.hostKey.port)\n\(prompt.hostKey.fingerprint)"),
+                    primaryButton: .default(Text("Trust")) {
+                        viewModel.respondToHostKeyPrompt(shouldTrust: true)
+                    },
+                    secondaryButton: .cancel {
+                        viewModel.respondToHostKeyPrompt(shouldTrust: false)
+                    }
+                )
+            }
     }
 }
 
 private struct TerminalContainerView: UIViewRepresentable {
-    @ObservedObject var controller: TerminalLoopbackController
+    @ObservedObject var controller: TerminalSessionController
 
     func makeUIView(context: Context) -> TerminalUIKitView {
         let view = TerminalUIKitView(
@@ -36,7 +77,6 @@ private struct TerminalContainerView: UIViewRepresentable {
         view.backgroundColor = UIColor.black
         controller.attach(view: view)
         DispatchQueue.main.async {
-            controller.seedIfNeeded()
             controller.focus()
         }
         return view
@@ -48,13 +88,13 @@ private struct TerminalContainerView: UIViewRepresentable {
         }
     }
 
-    func makeCoordinator() -> TerminalLoopbackController {
+    func makeCoordinator() -> TerminalSessionController {
         controller
     }
 }
 
 private struct TerminalAccessoryRow: View {
-    @ObservedObject var controller: TerminalLoopbackController
+    @ObservedObject var controller: TerminalSessionController
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -102,79 +142,17 @@ private struct TerminalAccessoryRow: View {
     }
 }
 
-final class TerminalLoopbackController: NSObject, ObservableObject, TerminalViewDelegate {
-    @Published var isCtrlActive = false
-    private var hasSeeded = false
-    weak var terminalView: TerminalUIKitView?
-
-    func attach(view: TerminalUIKitView) {
-        terminalView = view
-    }
-
-    func seedIfNeeded() {
-        guard let terminalView, !hasSeeded else {
-            return
-        }
-        hasSeeded = true
-        terminalView.feed(text: "Loopback mode: input echoes locally.\n")
-        terminalView.feed(text: "> ")
-    }
-
-    func focus() {
-        terminalView?.becomeFirstResponder()
-    }
-
-    func toggleCtrl() {
-        isCtrlActive.toggle()
-    }
-
-    func sendText(_ text: String) {
-        terminalView?.send(txt: text)
-    }
-
-    func sendControl(_ byte: UInt8) {
-        terminalView?.send([byte])
-    }
-
-    // MARK: - TerminalViewDelegate
-    func sizeChanged(source: TerminalUIKitView, newCols: Int, newRows: Int) {}
-    func setTerminalTitle(source: TerminalUIKitView, title: String) {}
-    func hostCurrentDirectoryUpdate(source: TerminalUIKitView, directory: String?) {}
-    func scrolled(source: TerminalUIKitView, position: Double) {}
-    func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {}
-    func bell(source: TerminalUIKitView) {}
-    func clipboardCopy(source: TerminalUIKitView, content: Data) {}
-    func iTermContent(source: TerminalUIKitView, content: ArraySlice<UInt8>) {}
-    func rangeChanged(source: TerminalUIKitView, startY: Int, endY: Int) {}
-
-    func send(source: TerminalUIKitView, data: ArraySlice<UInt8>) {
-        if let transformed = applyCtrlIfNeeded(data) {
-            source.feed(byteArray: transformed[...])
-        } else {
-            source.feed(byteArray: data)
-        }
-    }
-
-    private func applyCtrlIfNeeded(_ data: ArraySlice<UInt8>) -> [UInt8]? {
-        guard isCtrlActive, data.count == 1, let byte = data.first else {
-            return nil
-        }
-        guard let ctrlByte = controlByte(for: byte) else {
-            return nil
-        }
-        return [ctrlByte]
-    }
-
-    private func controlByte(for byte: UInt8) -> UInt8? {
-        if (byte >= 0x40 && byte <= 0x5F) || (byte >= 0x61 && byte <= 0x7A) {
-            return byte & 0x1F
-        }
-        return nil
-    }
-}
-
 #Preview {
+    let host = HostProfile(displayName: "Preview", hostname: "preview.local", username: "user", keyRefId: "preview-key")
+    let store = JSONStore()
+    let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
+    let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
+    let dependencies = TerminalSessionDependencies(
+        keyStore: KeychainPrivateKeyStore(),
+        moshBootstrapper: MoshBootstrapper(sshClientFactory: sshClientFactory),
+        moshEngineFactory: { LoopbackMoshEngine() }
+    )
     NavigationStack {
-        TerminalView(host: "Preview")
+        TerminalView(host: host, dependencies: dependencies, autoConnect: false)
     }
 }
