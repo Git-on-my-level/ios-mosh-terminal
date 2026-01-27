@@ -15,6 +15,12 @@ struct SettingsView: View {
             Section("Input") {
                 Toggle("Ctrl/Esc helpers", isOn: $preferControlEscape)
             }
+
+            Section("About") {
+                NavigationLink("Licenses") {
+                    LicensesView()
+                }
+            }
         }
         .navigationTitle("Settings")
     }

@@ -13,7 +13,9 @@
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
+		B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +26,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostsListView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -34,6 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,6 +61,7 @@
 				A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */,
 				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
@@ -87,6 +92,9 @@
 			);
 			dependencies = (
 			);
+			packageProductDependencies = (
+				B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */,
+			);
 			name = MoshTerminal;
 			productName = MoshTerminal;
 			productReference = A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */;
@@ -116,6 +124,9 @@
 				Base,
 			);
 			mainGroup = A1A1A1A1A1A1A1A1A1A1A1B2;
+			packageReferences = (
+				B1B1B1B1B1B1B1B1B1B1B1B1 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+			);
 			productRefGroup = A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -146,11 +157,31 @@
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B1B1B1B1B1B1B1B1B1B1B1B1 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1B1B1B1B1B1B1B1B1B1B1B1 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1A1A1A1A1A1A1A1A1A1A1BB /* Debug */ = {
