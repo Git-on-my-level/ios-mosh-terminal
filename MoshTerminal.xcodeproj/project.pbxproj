@@ -1,0 +1,263 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1A1A1A1A1A1A1A1A1A1A1A1 /* MoshTerminalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1A3 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshTerminalApp.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostsListView.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1A1A1A1A1A1A1A1A1A1A1B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1A1A1A1A1A1A1A1A1A1A1B2 = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A1A1A1A1A1A1A1A1B3 /* MoshTerminal */,
+				A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1A1A1A1A1A1A1A1A1A1A1B3 /* MoshTerminal */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */,
+				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
+			);
+			path = MoshTerminal;
+			sourceTree = "<group>";
+		};
+		A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */,
+			);
+			path = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1A1A1A1A1A1A1A1A1A1A1B6 /* Build configuration list for PBXNativeTarget "MoshTerminal" */;
+			buildPhases = (
+				A1A1A1A1A1A1A1A1A1A1A1B7 /* Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1B8 /* Resources */,
+				A1A1A1A1A1A1A1A1A1A1A1B1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MoshTerminal;
+			productName = MoshTerminal;
+			productReference = A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1A1A1A1A1A1A1A1A1A1A1B9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A1A1A1A1A1A1A1A1A1A1A1B5 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A1A1A1A1A1A1A1A1A1A1A1BA /* Build configuration list for PBXProject "MoshTerminal" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1A1A1A1A1A1A1A1A1A1A1B2;
+			productRefGroup = A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1A1A1A1A1A1A1A1A1A1A1B8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1A1A1A1A1A1A1A1A1A1A1B7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1A1A1A1A1A1A1A1A1A1A1A1 /* MoshTerminalApp.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A3 /* AppEnvironment.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A5 /* AppTheme.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1A1A1A1A1A1A1A1A1A1A1BB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MoshTerminal/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MoshTerminal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1A1A1A1A1A1A1A1A1A1A1BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MoshTerminal/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MoshTerminal;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1A1A1A1A1A1A1A1A1A1A1BD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MoshTerminal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1A1A1A1A1A1A1A1A1A1A1BE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MoshTerminal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1A1A1A1A1A1A1A1A1A1A1B6 /* Build configuration list for PBXNativeTarget "MoshTerminal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1A1A1A1A1A1A1A1A1A1A1BB /* Debug */,
+				A1A1A1A1A1A1A1A1A1A1A1BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1A1A1A1A1A1A1A1A1A1A1BA /* Build configuration list for PBXProject "MoshTerminal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1A1A1A1A1A1A1A1A1A1A1BD /* Debug */,
+				A1A1A1A1A1A1A1A1A1A1A1BE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1A1A1A1A1A1A1A1A1A1A1B9 /* Project object */;
+}
