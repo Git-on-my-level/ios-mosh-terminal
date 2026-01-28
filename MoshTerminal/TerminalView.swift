@@ -30,6 +30,11 @@ struct TerminalView: View {
             .navigationTitle(host.resolvedDisplayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Disconnect", role: .destructive) {
+                        viewModel.stop()
+                    }
+                }
                 ToolbarItemGroup(placement: .keyboard) {
                     TerminalAccessoryRow(controller: controller)
                 }
