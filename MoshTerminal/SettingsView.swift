@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var environment: AppEnvironment
 
     var body: some View {
         Form {
@@ -29,6 +30,9 @@ struct SettingsView: View {
                 NavigationLink("Manage Keys") {
                     KeyManagementView()
                 }
+                NavigationLink("Trusted Host Keys") {
+                    TrustedHostKeysView(repository: environment.dependencies.trustedHostKeyRepository)
+                }
             }
 
             Section("About") {
@@ -46,4 +50,5 @@ struct SettingsView: View {
         SettingsView()
     }
     .environmentObject(AppSettings())
+    .environmentObject(AppEnvironment())
 }
