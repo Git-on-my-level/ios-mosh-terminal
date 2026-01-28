@@ -187,6 +187,63 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(decoded, expected)
     }
 
+    func testFragmentEncodeDecodeRoundTrip() throws {
+        let fragment = Fragment(id: 42, number: 7, isFinal: true, body: Data([0xAA, 0xBB]))
+        let encoded = fragment.encode()
+        let decoded = try Fragment(decode: encoded)
+        XCTAssertEqual(decoded, fragment)
+    }
+
+    func testFragmentAssemblyInOrder() throws {
+        let payload = Data("hello-world".utf8)
+        let fragments = Fragmenter.makeFragments(instructionBytes: payload, mtu: 4, id: 1)
+        let assembly = FragmentAssembly()
+        var completed = false
+        for fragment in fragments {
+            completed = assembly.add(fragment)
+        }
+        XCTAssertTrue(completed)
+        let reassembled = try assembly.assembledBytes()
+        XCTAssertEqual(reassembled, payload)
+    }
+
+    func testFragmentAssemblyOutOfOrder() throws {
+        let payload = Data("fragment-test".utf8)
+        let fragments = Fragmenter.makeFragments(instructionBytes: payload, mtu: 5, id: 2)
+        let assembly = FragmentAssembly()
+        XCTAssertFalse(assembly.add(fragments[1]))
+        XCTAssertFalse(assembly.add(fragments[0]))
+        XCTAssertTrue(assembly.add(fragments[2]))
+        let reassembled = try assembly.assembledBytes()
+        XCTAssertEqual(reassembled, payload)
+    }
+
+    func testFragmentAssemblySwitchingIdsResets() throws {
+        let first = Fragmenter.makeFragments(instructionBytes: Data("first".utf8), mtu: 3, id: 10)
+        let secondPayload = Data("second-payload".utf8)
+        let second = Fragmenter.makeFragments(instructionBytes: secondPayload, mtu: 4, id: 11)
+        let assembly = FragmentAssembly()
+        _ = assembly.add(first[0])
+        for fragment in second {
+            _ = assembly.add(fragment)
+        }
+        let reassembled = try assembly.assembledBytes()
+        XCTAssertEqual(reassembled, secondPayload)
+    }
+
+    func testFragmentAssemblyDuplicateFragmentMatches() throws {
+        let payload = Data("duplicate".utf8)
+        let fragments = Fragmenter.makeFragments(instructionBytes: payload, mtu: 4, id: 3)
+        let assembly = FragmentAssembly()
+        XCTAssertFalse(assembly.add(fragments[0]))
+        XCTAssertFalse(assembly.add(fragments[0]))
+        for fragment in fragments.dropFirst() {
+            _ = assembly.add(fragment)
+        }
+        let reassembled = try assembly.assembledBytes()
+        XCTAssertEqual(reassembled, payload)
+    }
+
     private func randomData(count: Int, using rng: inout SystemRandomNumberGenerator) -> Data {
         var bytes = [UInt8]()
         bytes.reserveCapacity(count)
