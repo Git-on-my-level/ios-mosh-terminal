@@ -35,6 +35,7 @@ private actor NativeMoshEngineState {
 
 final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
 
     private let runtime = MoshRuntime()
@@ -52,6 +53,9 @@ final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
         await runtime.setHandlers(
             onOutput: { [weak self] data in
                 self?.onOutput?(data)
+            },
+            onRemoteResize: { [weak self] size in
+                self?.onRemoteResize?(size)
             },
             onEvent: { [weak self] event in
                 guard let self else { return }

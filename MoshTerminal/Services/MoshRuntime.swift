@@ -22,6 +22,7 @@ actor MoshRuntime {
     }
 
     var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onEvent: (@Sendable (Event) -> Void)?
 
     private let configuration: Configuration
@@ -41,9 +42,11 @@ actor MoshRuntime {
 
     func setHandlers(
         onOutput: (@Sendable (Data) -> Void)?,
+        onRemoteResize: (@Sendable (TerminalSize) -> Void)?,
         onEvent: (@Sendable (Event) -> Void)?
     ) async {
         self.onOutput = onOutput
+        self.onRemoteResize = onRemoteResize
         self.onEvent = onEvent
     }
 
@@ -64,7 +67,9 @@ actor MoshRuntime {
         let outputHandler: (Data) -> Void = { [weak self] data in
             Task { await self?.emitOutput(data) }
         }
-        let resizeHandler: (Int, Int) -> Void = { _, _ in }
+        let resizeHandler: (Int, Int) -> Void = { [weak self] cols, rows in
+            Task { await self?.emitRemoteResize(cols: cols, rows: rows) }
+        }
         let receiver = TransportReceiver(
             transportSender: sender,
             hostApplier: HostDiffApplier(
@@ -207,6 +212,12 @@ actor MoshRuntime {
 
     private func emitOutput(_ data: Data) {
         onOutput?(data)
+    }
+
+    private func emitRemoteResize(cols: Int, rows: Int) {
+        let size = TerminalSize(cols: cols, rows: rows)
+        lastSize = size
+        onRemoteResize?(size)
     }
 
     private func emitEvent(_ event: Event) {

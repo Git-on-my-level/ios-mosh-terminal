@@ -29,6 +29,7 @@ enum MoshEngineError: Error, LocalizedError, Equatable {
 
 protocol MoshEngine: AnyObject, Sendable {
     var onOutput: (@Sendable (Data) -> Void)? { get set }
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)? { get set }
     var onStateChange: (@Sendable (MoshEngineState) -> Void)? { get set }
 
     func start(connectInfo: MoshConnectInfo, initialTerminalSize: TerminalSize) async throws

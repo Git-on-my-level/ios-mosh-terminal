@@ -334,6 +334,13 @@ final class ConnectionManager: ObservableObject {
             }
         }
 
+        engine.onRemoteResize = { [weak self, weak controller, weak engine] size in
+            Task { @MainActor in
+                guard let self, let controller, self.engine === engine else { return }
+                controller.applyRemoteResize(cols: size.cols, rows: size.rows)
+            }
+        }
+
         engine.onStateChange = { [weak self, weak engine] engineState in
             Task { @MainActor in
                 guard let self, self.engine === engine else { return }
@@ -455,6 +462,7 @@ final class ConnectionManager: ObservableObject {
     private func stopEngine() async {
         guard let engine else { return }
         engine.onOutput = nil
+        engine.onRemoteResize = nil
         engine.onStateChange = nil
         self.engine = nil
         await engine.stop()

@@ -2,6 +2,7 @@ import Foundation
 
 final class LoopbackMoshEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
     private var started = false
 
