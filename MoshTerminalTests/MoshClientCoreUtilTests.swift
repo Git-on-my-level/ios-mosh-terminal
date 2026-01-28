@@ -70,4 +70,66 @@ final class MoshClientCoreUtilTests: XCTestCase {
             XCTAssertEqual(error as? ZlibCodecError, .outputTooLarge(max: maxOutput))
         }
     }
+
+    func testTransportInstructionRoundTripRandomized() throws {
+        var rng = SystemRandomNumberGenerator()
+        for _ in 0..<50 {
+            let diffSize = Int.random(in: 0...512, using: &rng)
+            let chaffSize = Int.random(in: 0...512, using: &rng)
+            let instruction = TransportInstruction(
+                protocolVersion: UInt32.random(in: 0...UInt32.max, using: &rng),
+                oldNum: UInt64.random(in: 0...UInt64.max, using: &rng),
+                newNum: UInt64.random(in: 0...UInt64.max, using: &rng),
+                ackNum: UInt64.random(in: 0...UInt64.max, using: &rng),
+                throwawayNum: UInt64.random(in: 0...UInt64.max, using: &rng),
+                diff: randomData(count: diffSize, using: &rng),
+                chaff: randomData(count: chaffSize, using: &rng)
+            )
+            let encoded = instruction.encode()
+            let decoded = try TransportInstruction(decode: encoded)
+            XCTAssertEqual(decoded, instruction)
+        }
+    }
+
+    func testTransportInstructionSkipsUnknownFields() throws {
+        var writer = ProtoWriter()
+        writer.writeKey(fieldNumber: 1, wireType: 0)
+        writer.writeVarint(2)
+        writer.writeKey(fieldNumber: 99, wireType: 0)
+        writer.writeVarint(12345)
+        let diff = Data([0x01, 0x02, 0x03])
+        writer.writeKey(fieldNumber: 6, wireType: 2)
+        writer.writeLengthDelimited(diff)
+        writer.writeKey(fieldNumber: 100, wireType: 2)
+        writer.writeLengthDelimited(Data([0xAA, 0xBB]))
+
+        let decoded = try TransportInstruction(decode: writer.data)
+        XCTAssertEqual(decoded.protocolVersion, 2)
+        XCTAssertEqual(decoded.diff, diff)
+    }
+
+    func testTransportInstructionLargePayloadRoundTrip() throws {
+        let diff = Data(repeating: 0xAB, count: 128 * 1024)
+        let chaff = Data(repeating: 0xCD, count: 128 * 1024)
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            oldNum: 1,
+            newNum: 2,
+            ackNum: 3,
+            throwawayNum: 4,
+            diff: diff,
+            chaff: chaff
+        )
+        let decoded = try TransportInstruction(decode: instruction.encode())
+        XCTAssertEqual(decoded, instruction)
+    }
+
+    private func randomData(count: Int, using rng: inout SystemRandomNumberGenerator) -> Data {
+        var bytes = [UInt8]()
+        bytes.reserveCapacity(count)
+        for _ in 0..<count {
+            bytes.append(UInt8.random(in: 0...UInt8.max, using: &rng))
+        }
+        return Data(bytes)
+    }
 }

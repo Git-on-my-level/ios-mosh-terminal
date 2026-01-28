@@ -56,6 +56,7 @@
 		C6C5AC7DCA2D4F87BD29A109 /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DD095043A54897BD02CC57 /* Clock.swift */; };
 		7B0AFDBF3A214D958A626557 /* SequenceCounter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9D5D20682C47D79CA035F1 /* SequenceCounter.swift */; };
 		B3EDDFB29DFA4D4D967C87BB /* ZlibCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB85C401F557476CA36637B7 /* ZlibCodec.swift */; };
+		EB52B07CD023C7F74660A5E0 /* ProtoCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */; };
 		8B642FAAC36241C8A9292828 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 799D328B877F4E8683C00000 /* libz.tbd */; };
 		C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */; };
 		0FE22A9F977F4DE5866962DB /* MoshClientCoreUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */; };
@@ -122,6 +123,7 @@
 		56DD095043A54897BD02CC57 /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
 		AE9D5D20682C47D79CA035F1 /* SequenceCounter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequenceCounter.swift; sourceTree = "<group>"; };
 		DB85C401F557476CA36637B7 /* ZlibCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZlibCodec.swift; sourceTree = "<group>"; };
+		2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtoCodec.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F405 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKey.swift; sourceTree = "<group>"; };
@@ -230,6 +232,7 @@
 				56DD095043A54897BD02CC57 /* Clock.swift */,
 				AE9D5D20682C47D79CA035F1 /* SequenceCounter.swift */,
 				DB85C401F557476CA36637B7 /* ZlibCodec.swift */,
+				2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */,
 			);
 			path = Util;
 			sourceTree = "<group>";
@@ -426,6 +429,7 @@
 				C6C5AC7DCA2D4F87BD29A109 /* Clock.swift in Sources */,
 				7B0AFDBF3A214D958A626557 /* SequenceCounter.swift in Sources */,
 				B3EDDFB29DFA4D4D967C87BB /* ZlibCodec.swift in Sources */,
+				EB52B07CD023C7F74660A5E0 /* ProtoCodec.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
