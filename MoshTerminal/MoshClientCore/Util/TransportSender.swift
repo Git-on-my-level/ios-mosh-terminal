@@ -17,11 +17,14 @@ final class TransportSender {
         static let maxSentStates = 32
     }
 
+    typealias RandomBytesProvider = (Int) -> [UInt8]
+
     var currentState = UserState()
     private(set) var sentStates: [TimestampedState<UserState>] = []
     private(set) var ackNum: UInt64 = 0
     var isConnected: Bool = false
 
+    private let randomBytes: RandomBytesProvider
     private var lastAckedState = UserState()
     private(set) var lastAckedStateNum: UInt64 = 0
     private var lastSentState = UserState()
@@ -31,6 +34,10 @@ final class TransportSender {
     private var nextAckTimeMillis: UInt64?
     private var nextSendTimeMillis: UInt64?
     private var ackDirty = false
+
+    init(randomBytes: @escaping RandomBytesProvider = SecureRandom.bytes) {
+        self.randomBytes = randomBytes
+    }
 
     func setConnected(_ connected: Bool, nowMillis: UInt64) {
         isConnected = connected
@@ -231,11 +238,11 @@ final class TransportSender {
     }
 
     private func randomChaff() -> Data {
-        let lengthByte = SecureRandom.bytes(count: 1).first ?? 0
+        let lengthByte = randomBytes(1).first ?? 0
         let length = Int(lengthByte % 17)
         if length == 0 {
             return Data()
         }
-        return Data(SecureRandom.bytes(count: length))
+        return Data(randomBytes(length))
     }
 }

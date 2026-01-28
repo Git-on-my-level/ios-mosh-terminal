@@ -482,6 +482,44 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(sender.sentStates.map(\.num), [2])
     }
 
+    func testTransportReceiverDisconnectsOnMaxNewNum() throws {
+        let sender = TransportSender()
+        let applier = TestHostDiffApplier()
+        var disconnected = false
+        let receiver = TransportReceiver(
+            transportSender: sender,
+            hostApplier: applier.asHostApplier(),
+            onDisconnect: { disconnected = true }
+        )
+
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            newNum: UInt64.max
+        )
+
+        try receiver.process(instruction)
+
+        XCTAssertTrue(disconnected)
+        XCTAssertTrue(applier.appliedEvents.isEmpty)
+    }
+
+    func testTransportReceiverRejectsInvalidProtocolVersion() {
+        let sender = TransportSender()
+        let applier = TestHostDiffApplier()
+        let receiver = TransportReceiver(
+            transportSender: sender,
+            hostApplier: applier.asHostApplier()
+        )
+
+        let instruction = TransportInstruction(
+            protocolVersion: 1
+        )
+
+        XCTAssertThrowsError(try receiver.process(instruction)) { error in
+            XCTAssertEqual(error as? TransportReceiveError, .invalidProtocolVersion(expected: 2, actual: 1))
+        }
+    }
+
     private func randomData(count: Int, using rng: inout SystemRandomNumberGenerator) -> Data {
         var bytes = [UInt8]()
         bytes.reserveCapacity(count)
