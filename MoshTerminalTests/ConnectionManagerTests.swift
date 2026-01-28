@@ -98,6 +98,36 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertEqual(engineFactory.createdEngines.count, 3)
     }
 
+    func testDisconnectDoesNotTriggerReconnectOrFailure() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let engines = [
+            TestMoshEngine(behavior: .autoConnect, stopState: .disconnected),
+            TestMoshEngine(behavior: .autoConnect, stopState: .disconnected)
+        ]
+        let engineFactory = TestEngineFactory(engines: engines)
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+
+        await awaitState(manager) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        await manager.disconnect(clearSession: false)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(manager.state, .idle)
+        XCTAssertNil(manager.failure)
+        XCTAssertEqual(engineFactory.createdEngines.count, 1)
+        XCTAssertEqual(bootstrapper.callCount, 1)
+    }
+
     private func makeManager(
         bootstrapper: TestBootstrapper,
         engineFactory: TestEngineFactory,
@@ -264,10 +294,12 @@ private final class TestMoshEngine: MoshEngine, @unchecked Sendable {
     var onStateChange: ((MoshEngineState) -> Void)?
 
     let behavior: Behavior
+    let stopState: MoshEngineState
     private(set) var startCalls = 0
 
-    init(behavior: Behavior) {
+    init(behavior: Behavior, stopState: MoshEngineState = .idle) {
         self.behavior = behavior
+        self.stopState = stopState
     }
 
     func start(connectInfo: MoshConnectInfo, initialTerminalSize: TerminalSize) async throws {
@@ -287,7 +319,7 @@ private final class TestMoshEngine: MoshEngine, @unchecked Sendable {
     func updateTerminalSize(cols: Int, rows: Int) async {}
 
     func stop() async {
-        emit(.idle)
+        emit(stopState)
     }
 
     func emit(_ state: MoshEngineState) {

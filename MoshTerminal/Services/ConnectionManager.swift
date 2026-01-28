@@ -392,10 +392,11 @@ final class ConnectionManager: ObservableObject {
     }
 
     private func stopEngine() async {
-        if let engine {
-            await engine.stop()
-        }
-        engine = nil
+        guard let engine else { return }
+        engine.onOutput = nil
+        engine.onStateChange = nil
+        self.engine = nil
+        await engine.stop()
     }
 
     private func handleBackground() async {

@@ -14,6 +14,6 @@ final class UnavailableMoshEngine: MoshEngine, @unchecked Sendable {
     func updateTerminalSize(cols: Int, rows: Int) async {}
 
     func stop() async {
-        onStateChange?(.disconnected)
+        onStateChange?(.idle)
     }
 }

@@ -21,6 +21,6 @@ final class LoopbackMoshEngine: MoshEngine, @unchecked Sendable {
     func updateTerminalSize(cols: Int, rows: Int) async {}
 
     func stop() async {
-        onStateChange?(.disconnected)
+        onStateChange?(.idle)
     }
 }
