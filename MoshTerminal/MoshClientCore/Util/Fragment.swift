@@ -6,6 +6,8 @@ enum FragmentError: Error, Equatable {
 }
 
 struct Fragment: Equatable {
+    static let headerBytes = 10
+
     let id: UInt64
     let number: UInt16
     let isFinal: Bool

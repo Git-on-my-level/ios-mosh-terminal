@@ -244,6 +244,71 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(reassembled, payload)
     }
 
+    func testTransportFramingOutboundInboundRoundTrip() throws {
+        let framing = TransportFraming(packetCodec: IdentityPacketCodec())
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            oldNum: 1,
+            newNum: 2,
+            ackNum: 3,
+            throwawayNum: 4,
+            diff: Data("ping".utf8),
+            chaff: Data("chaff".utf8)
+        )
+
+        let datagrams = try framing.makeOutboundDatagrams(instruction: instruction, mtu: 1200)
+        XCTAssertFalse(datagrams.isEmpty)
+
+        var decoded: TransportInstruction?
+        for (index, datagram) in datagrams.enumerated() {
+            let result = try framing.processInboundDatagram(datagram)
+            if index < datagrams.count - 1 {
+                XCTAssertNil(result)
+            } else {
+                decoded = result
+            }
+        }
+
+        XCTAssertEqual(decoded, instruction)
+    }
+
+    func testTransportFramingMultiFragmentReassembly() throws {
+        let framing = TransportFraming(packetCodec: IdentityPacketCodec())
+        var bytes = [UInt8](repeating: 0, count: 4096)
+        for index in 0..<bytes.count {
+            bytes[index] = UInt8(truncatingIfNeeded: index)
+        }
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            diff: Data(bytes)
+        )
+
+        let datagrams = try framing.makeOutboundDatagrams(instruction: instruction, mtu: 200)
+        XCTAssertGreaterThan(datagrams.count, 1)
+
+        var decoded: TransportInstruction?
+        for datagram in datagrams {
+            decoded = try framing.processInboundDatagram(datagram) ?? decoded
+        }
+        XCTAssertEqual(decoded, instruction)
+    }
+
+    func testTransportFramingRejectsTruncatedDatagram() {
+        let framing = TransportFraming(packetCodec: IdentityPacketCodec())
+        let truncated = Data([0x01, 0x02, 0x03])
+        XCTAssertThrowsError(try framing.processInboundDatagram(truncated)) { error in
+            XCTAssertNotNil(error as? FragmentError)
+        }
+    }
+
+    func testTransportFramingRejectsInvalidProtocolVersion() {
+        let framing = TransportFraming(packetCodec: IdentityPacketCodec())
+        let instruction = TransportInstruction(protocolVersion: 1, diff: Data([0x01]))
+        XCTAssertThrowsError(try framing.makeOutboundDatagrams(instruction: instruction, mtu: 1200)) { error in
+            XCTAssertEqual(error as? TransportFramingError, .invalidProtocolVersion(expected: 2, actual: 1))
+        }
+    }
+
     func testOCBSessionRoundTripSizes() throws {
         let key = [UInt8](0..<16)
         let session = try OCBSession(key16: key)
@@ -392,5 +457,15 @@ final class MoshClientCoreUtilTests: XCTestCase {
             index = nextIndex
         }
         return bytes
+    }
+
+    private struct IdentityPacketCodec: PacketCodec {
+        func encode(payload: Data, direction: PacketDirection) throws -> Data {
+            payload
+        }
+
+        func decode(datagram: Data, expectedDirection: PacketDirection) throws -> Data {
+            datagram
+        }
     }
 }
