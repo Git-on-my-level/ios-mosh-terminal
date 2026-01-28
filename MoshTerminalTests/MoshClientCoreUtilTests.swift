@@ -40,4 +40,34 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(counter.next(), 1)
         XCTAssertEqual(counter.next(), 2)
     }
+
+    func testZlibRoundTripSizes() throws {
+        let sizes = [0, 1, 1024, 64 * 1024]
+        for size in sizes {
+            var bytes = [UInt8](repeating: 0, count: size)
+            for index in 0..<size {
+                bytes[index] = UInt8(truncatingIfNeeded: index)
+            }
+            let input = Data(bytes)
+            let compressed = try ZlibCodec.compress(input)
+            let decompressed = try ZlibCodec.decompress(compressed)
+            XCTAssertEqual(decompressed, input)
+        }
+    }
+
+    func testZlibRejectsRandomBytes() {
+        let random = Data(repeating: 0xFF, count: 64)
+        XCTAssertThrowsError(try ZlibCodec.decompress(random)) { error in
+            XCTAssertNotNil(error as? ZlibCodecError)
+        }
+    }
+
+    func testZlibRejectsOutputOverLimit() throws {
+        let maxOutput = 1024
+        let payload = Data(repeating: 0, count: maxOutput * 2)
+        let compressed = try ZlibCodec.compress(payload)
+        XCTAssertThrowsError(try ZlibCodec.decompress(compressed, maxOutputBytes: maxOutput)) { error in
+            XCTAssertEqual(error as? ZlibCodecError, .outputTooLarge(max: maxOutput))
+        }
+    }
 }
