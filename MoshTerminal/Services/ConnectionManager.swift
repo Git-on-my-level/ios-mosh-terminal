@@ -25,6 +25,10 @@ protocol PrivateKeyStoring {
     func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata?
 }
 
+protocol HostPersisting {
+    func upsert(_ host: HostProfile) throws
+}
+
 extension AppLifecycleService: AppLifecycleProviding {
     var eventsPublisher: AnyPublisher<AppLifecycleService.Event, Never> {
         events.eraseToAnyPublisher()
@@ -40,6 +44,8 @@ extension NetworkPathService: NetworkPathProviding {
 extension MoshBootstrapper: MoshBootstrapping {}
 
 extension KeychainPrivateKeyStore: PrivateKeyStoring {}
+
+extension HostRepository: HostPersisting {}
 
 @MainActor
 final class ConnectionManager: ObservableObject {
@@ -57,6 +63,7 @@ final class ConnectionManager: ObservableObject {
     @Published private(set) var failure: ConnectionFailure?
 
     private let keyStore: PrivateKeyStoring
+    private let hostRepository: HostPersisting
     private let moshBootstrapper: MoshBootstrapping
     private let moshEngineFactory: MoshEngineFactory
     private let appLifecycleService: AppLifecycleProviding
@@ -83,6 +90,7 @@ final class ConnectionManager: ObservableObject {
 
     init(
         keyStore: PrivateKeyStoring,
+        hostRepository: HostPersisting,
         moshBootstrapper: MoshBootstrapping,
         moshEngineFactory: @escaping MoshEngineFactory,
         appLifecycleService: AppLifecycleProviding,
@@ -93,6 +101,7 @@ final class ConnectionManager: ObservableObject {
         sleep: @Sendable @escaping (UInt64) async throws -> Void = Task.sleep
     ) {
         self.keyStore = keyStore
+        self.hostRepository = hostRepository
         self.moshBootstrapper = moshBootstrapper
         self.moshEngineFactory = moshEngineFactory
         self.appLifecycleService = appLifecycleService
@@ -356,6 +365,7 @@ final class ConnectionManager: ObservableObject {
             failure = nil
             reconnectBackoff.recordSuccess()
             resumeConnectWaiter(connected: true)
+            recordLastConnected()
         case .disconnected:
             reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
@@ -421,6 +431,17 @@ final class ConnectionManager: ObservableObject {
             return nil
         }
         return passphrase
+    }
+
+    private func recordLastConnected() {
+        guard var host = activeHost else { return }
+        host.lastConnectedAt = Date()
+        activeHost = host
+        do {
+            try hostRepository.upsert(host)
+        } catch {
+            return
+        }
     }
 
     private func cancelConnectTask() {

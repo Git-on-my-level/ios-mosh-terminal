@@ -280,8 +280,10 @@ private struct TerminalErrorBanner: View {
     let moshBootstrapper = MoshBootstrapper(sshClientFactory: sshClientFactory)
     let appLifecycleService = AppLifecycleService()
     let networkPathService = NetworkPathService()
+    let hostRepository = HostRepository(store: store)
     let connectionManager = ConnectionManager(
         keyStore: keyStore,
+        hostRepository: hostRepository,
         moshBootstrapper: moshBootstrapper,
         moshEngineFactory: { LoopbackMoshEngine() },
         appLifecycleService: appLifecycleService,

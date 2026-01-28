@@ -128,15 +128,44 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertEqual(bootstrapper.callCount, 1)
     }
 
+    func testConnectUpdatesLastConnectedAt() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
+        let hostRepository = TestHostRepository()
+        let manager = makeManager(
+            bootstrapper: bootstrapper,
+            engineFactory: engineFactory,
+            hostRepository: hostRepository
+        )
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+
+        await awaitState(manager) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        let updatedHost = hostRepository.upsertedHosts.last
+        XCTAssertEqual(updatedHost?.id, host.id)
+        XCTAssertNotNil(updatedHost?.lastConnectedAt)
+    }
+
     private func makeManager(
         bootstrapper: TestBootstrapper,
         engineFactory: TestEngineFactory,
         lifecycle: TestAppLifecycleService = TestAppLifecycleService(),
         network: TestNetworkPathService = TestNetworkPathService(status: .satisfied),
-        connectionTimeoutNanoseconds: UInt64 = 200_000_000
+        connectionTimeoutNanoseconds: UInt64 = 200_000_000,
+        hostRepository: TestHostRepository = TestHostRepository()
     ) -> ConnectionManager {
         ConnectionManager(
             keyStore: TestKeyStore(),
+            hostRepository: hostRepository,
             moshBootstrapper: bootstrapper,
             moshEngineFactory: { engineFactory.make() },
             appLifecycleService: lifecycle,
@@ -241,6 +270,14 @@ private struct TestKeyStore: PrivateKeyStoring {
             requiresPassphrase: false,
             addedAt: Date()
         )
+    }
+}
+
+private final class TestHostRepository: HostPersisting {
+    private(set) var upsertedHosts: [HostProfile] = []
+
+    func upsert(_ host: HostProfile) throws {
+        upsertedHosts.append(host)
     }
 }
 

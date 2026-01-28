@@ -25,15 +25,17 @@ final class AppEnvironment: ObservableObject {
         let moshEngineFactory = DefaultMoshEngineFactory.make()
         let appLifecycleService = AppLifecycleService()
         let networkPathService = NetworkPathService()
+        let hostRepository = HostRepository(store: store)
         let connectionManager = ConnectionManager(
             keyStore: keyStore,
+            hostRepository: hostRepository,
             moshBootstrapper: moshBootstrapper,
             moshEngineFactory: moshEngineFactory,
             appLifecycleService: appLifecycleService,
             networkPathService: networkPathService
         )
         self.dependencies = Dependencies(
-            hostRepository: HostRepository(store: store),
+            hostRepository: hostRepository,
             keyStore: keyStore,
             trustedHostKeyRepository: trustedHostKeyRepository,
             sshClientFactory: sshClientFactory,
