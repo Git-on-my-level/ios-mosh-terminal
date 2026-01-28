@@ -13,7 +13,7 @@ enum ZlibCodec {
 
     static func compress(_ data: Data) throws -> Data {
         let sourceCount = data.count
-        let bound = compressBound(uLong(sourceCount))
+        let bound = zlib.compressBound(uLong(sourceCount))
         var destination = Data(count: Int(bound))
         var destinationLength = uLongf(bound)
 
@@ -21,7 +21,7 @@ enum ZlibCodec {
             return data.withUnsafeBytes { sourceBytes -> Int32 in
                 let sourcePointer = sourceBytes.baseAddress?.assumingMemoryBound(to: Bytef.self)
                 let destinationPointer = destinationBytes.baseAddress?.assumingMemoryBound(to: Bytef.self)
-                return compress(destinationPointer, &destinationLength, sourcePointer, uLong(sourceCount))
+                return zlib.compress(destinationPointer, &destinationLength, sourcePointer, uLong(sourceCount))
             }
         }
 

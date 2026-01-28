@@ -419,7 +419,7 @@ final class MoshClientCoreUtilTests: XCTestCase {
             diff: diff
         )
 
-        try receiver.process(instruction)
+        try receiver.process(instruction, nowMillis: 0)
 
         XCTAssertEqual(receiver.remoteStateTracker.lastAppliedRemoteNum, 1)
         XCTAssertEqual(sender.ackNum, 1)
@@ -447,7 +447,7 @@ final class MoshClientCoreUtilTests: XCTestCase {
             diff: diff
         )
 
-        try receiver.process(instruction)
+        try receiver.process(instruction, nowMillis: 0)
 
         XCTAssertEqual(receiver.remoteStateTracker.lastAppliedRemoteNum, 0)
         XCTAssertEqual(sender.ackNum, 0)
@@ -477,7 +477,7 @@ final class MoshClientCoreUtilTests: XCTestCase {
             ackNum: 1
         )
 
-        try receiver.process(instruction)
+        try receiver.process(instruction, nowMillis: 0)
 
         XCTAssertEqual(sender.sentStates.map(\.num), [2])
     }
@@ -497,7 +497,7 @@ final class MoshClientCoreUtilTests: XCTestCase {
             newNum: UInt64.max
         )
 
-        try receiver.process(instruction)
+        try receiver.process(instruction, nowMillis: 0)
 
         XCTAssertTrue(disconnected)
         XCTAssertTrue(applier.appliedEvents.isEmpty)
@@ -515,7 +515,7 @@ final class MoshClientCoreUtilTests: XCTestCase {
             protocolVersion: 1
         )
 
-        XCTAssertThrowsError(try receiver.process(instruction)) { error in
+        XCTAssertThrowsError(try receiver.process(instruction, nowMillis: 0)) { error in
             XCTAssertEqual(error as? TransportReceiveError, .invalidProtocolVersion(expected: 2, actual: 1))
         }
     }

@@ -10,29 +10,68 @@ enum OCBSessionError: Error, Equatable {
     case authenticationFailed
 }
 
+@_silgen_name("ae_allocate")
+private func ocb_ae_allocate(_ misc: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ae_free")
+private func ocb_ae_free(_ ctx: UnsafeMutableRawPointer?)
+@_silgen_name("ae_clear")
+private func ocb_ae_clear(_ ctx: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("ae_init")
+private func ocb_ae_init(_ ctx: UnsafeMutableRawPointer?,
+                         _ key: UnsafeRawPointer?,
+                         _ keyLen: Int32,
+                         _ nonceLen: Int32,
+                         _ tagLen: Int32) -> Int32
+@_silgen_name("ae_encrypt")
+private func ocb_ae_encrypt(_ ctx: UnsafeMutableRawPointer?,
+                            _ nonce: UnsafeRawPointer?,
+                            _ pt: UnsafeRawPointer?,
+                            _ ptLen: Int32,
+                            _ ad: UnsafeRawPointer?,
+                            _ adLen: Int32,
+                            _ ct: UnsafeMutableRawPointer?,
+                            _ tag: UnsafeMutableRawPointer?,
+                            _ final: Int32) -> Int32
+@_silgen_name("ae_decrypt")
+private func ocb_ae_decrypt(_ ctx: UnsafeMutableRawPointer?,
+                            _ nonce: UnsafeRawPointer?,
+                            _ ct: UnsafeRawPointer?,
+                            _ ctLen: Int32,
+                            _ ad: UnsafeRawPointer?,
+                            _ adLen: Int32,
+                            _ pt: UnsafeMutableRawPointer?,
+                            _ tag: UnsafeRawPointer?,
+                            _ final: Int32) -> Int32
+
+private enum OCBConstants {
+    static let success: Int32 = 0
+    static let invalid: Int32 = -1
+    static let finalize: Int32 = 1
+}
+
 final class OCBSession {
-    private let ctx: UnsafeMutablePointer<ae_ctx>
+    private let ctx: UnsafeMutableRawPointer
 
     init(key16: [UInt8]) throws {
         guard key16.count == 16 else {
             throw OCBSessionError.invalidKeyLength
         }
-        guard let rawCtx = ae_allocate(nil) else {
+        guard let rawCtx = ocb_ae_allocate(nil) else {
             throw OCBSessionError.contextAllocationFailed
         }
         let initResult = key16.withUnsafeBytes { keyBytes in
-            ae_init(rawCtx, keyBytes.baseAddress, Int32(key16.count), 12, 16)
+            ocb_ae_init(rawCtx, keyBytes.baseAddress, Int32(key16.count), 12, 16)
         }
-        guard initResult == AE_SUCCESS else {
-            ae_free(rawCtx)
+        guard initResult == OCBConstants.success else {
+            ocb_ae_free(rawCtx)
             throw OCBSessionError.initializationFailed
         }
         ctx = rawCtx
     }
 
     deinit {
-        _ = ae_clear(ctx)
-        ae_free(ctx)
+        _ = ocb_ae_clear(ctx)
+        ocb_ae_free(ctx)
     }
 
     func encrypt(nonceVal: UInt64, plaintext: Data) throws -> Data {
@@ -46,7 +85,7 @@ final class OCBSession {
             plaintextBytes.withUnsafeBytes { ptBytes in
                 ciphertext.withUnsafeMutableBytes { ctBytes in
                     tag.withUnsafeMutableBytes { tagBytes in
-                        ae_encrypt(
+                        ocb_ae_encrypt(
                             ctx,
                             nonceBytes.baseAddress,
                             ptBytes.baseAddress,
@@ -55,7 +94,7 @@ final class OCBSession {
                             0,
                             ctBytes.baseAddress,
                             tagBytes.baseAddress,
-                            AE_FINALIZE
+                            OCBConstants.finalize
                         )
                     }
                 }
@@ -93,7 +132,7 @@ final class OCBSession {
             ctBytes.withUnsafeBytes { ctPtr in
                 tagBytes.withUnsafeBytes { tagPtr in
                     plaintext.withUnsafeMutableBytes { ptPtr in
-                        ae_decrypt(
+                        ocb_ae_decrypt(
                             ctx,
                             noncePtr.baseAddress,
                             ctPtr.baseAddress,
@@ -102,14 +141,14 @@ final class OCBSession {
                             0,
                             ptPtr.baseAddress,
                             tagPtr.baseAddress,
-                            AE_FINALIZE
+                            OCBConstants.finalize
                         )
                     }
                 }
             }
         }
 
-        if result == AE_INVALID {
+        if result == OCBConstants.invalid {
             throw OCBSessionError.authenticationFailed
         }
         guard result >= 0, Int(result) == ctBytes.count else {
