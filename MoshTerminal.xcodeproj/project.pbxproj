@@ -25,6 +25,7 @@
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
 		57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */; };
+		67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B5 /* MoshBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F305 /* MoshBootstrapper.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B7 /* MoshEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F307 /* MoshEngine.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B6 /* MoshClientEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F306 /* MoshClientEngine.swift */; };
@@ -41,6 +42,7 @@
 		A9F2CF4273AA43B8A220FD35 /* MoshBootstrapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */; };
 		B656783C53F748E3B8A84134 /* ConnectionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111671E9D83E43D9A0C0C7D1 /* ConnectionManagerTests.swift */; };
 		1452E163F5D344E295B6A360 /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */; };
+		BCF918674E6143BCB7E14C5C /* ReconnectBackoffPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EB1BDED3FF4596BF25B4BA /* ReconnectBackoffPolicyTests.swift */; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */; };
 		C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */; };
@@ -81,6 +83,7 @@
 		F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathService.swift; sourceTree = "<group>"; };
 		419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFailure.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoff.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F305 /* MoshBootstrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshBootstrapper.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F307 /* MoshEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshEngine.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F306 /* MoshClientEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientEngine.swift; sourceTree = "<group>"; };
@@ -97,6 +100,7 @@
 		1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshBootstrapperTests.swift; sourceTree = "<group>"; };
 		111671E9D83E43D9A0C0C7D1 /* ConnectionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManagerTests.swift; sourceTree = "<group>"; };
 		B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
+		11EB1BDED3FF4596BF25B4BA /* ReconnectBackoffPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoffPolicyTests.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostProfile.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F309 /* MoshConnectInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshConnectInfo.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKey.swift; sourceTree = "<group>"; };
@@ -168,6 +172,7 @@
 				F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */,
 				419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */,
+				2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */,
 				F3F3F3F3F3F3F3F3F3F3F305 /* MoshBootstrapper.swift */,
 				F3F3F3F3F3F3F3F3F3F3F307 /* MoshEngine.swift */,
 				F3F3F3F3F3F3F3F3F3F3F306 /* MoshClientEngine.swift */,
@@ -214,6 +219,7 @@
 				C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */,
 				1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */,
 				111671E9D83E43D9A0C0C7D1 /* ConnectionManagerTests.swift */,
+				11EB1BDED3FF4596BF25B4BA /* ReconnectBackoffPolicyTests.swift */,
 				B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */,
 				D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */,
 			);
@@ -351,6 +357,7 @@
 				F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */,
 				57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */,
+				67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B5 /* MoshBootstrapper.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B7 /* MoshEngine.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B6 /* MoshClientEngine.swift in Sources */,
@@ -376,6 +383,7 @@
 				C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */,
 				A9F2CF4273AA43B8A220FD35 /* MoshBootstrapperTests.swift in Sources */,
 				B656783C53F748E3B8A84134 /* ConnectionManagerTests.swift in Sources */,
+				BCF918674E6143BCB7E14C5C /* ReconnectBackoffPolicyTests.swift in Sources */,
 				1452E163F5D344E295B6A360 /* RepositoryTests.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */,
 			);

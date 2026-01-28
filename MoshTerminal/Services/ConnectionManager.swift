@@ -61,6 +61,7 @@ final class ConnectionManager: ObservableObject {
     private let appLifecycleService: AppLifecycleProviding
     private let networkPathService: NetworkPathProviding
     private let connectionTimeoutNanoseconds: UInt64
+    private let sleep: @Sendable (UInt64) async throws -> Void
 
     private var activeHost: HostProfile?
     private var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
@@ -76,6 +77,7 @@ final class ConnectionManager: ObservableObject {
     private var connectWaiter: CheckedContinuation<Bool, Never>?
 
     private var cancellables: Set<AnyCancellable> = []
+    private var reconnectBackoff: ReconnectBackoffState
 
     init(
         keyStore: PrivateKeyStoring,
@@ -83,7 +85,10 @@ final class ConnectionManager: ObservableObject {
         moshEngineFactory: @escaping MoshEngineFactory,
         appLifecycleService: AppLifecycleProviding,
         networkPathService: NetworkPathProviding,
-        connectionTimeoutNanoseconds: UInt64 = 5_000_000_000
+        connectionTimeoutNanoseconds: UInt64 = 5_000_000_000,
+        reconnectBackoffPolicy: ReconnectBackoffPolicy = .default,
+        reconnectRandomUnit: @escaping () -> Double = { Double.random(in: 0...1) },
+        sleep: @Sendable @escaping (UInt64) async throws -> Void = Task.sleep
     ) {
         self.keyStore = keyStore
         self.moshBootstrapper = moshBootstrapper
@@ -91,6 +96,11 @@ final class ConnectionManager: ObservableObject {
         self.appLifecycleService = appLifecycleService
         self.networkPathService = networkPathService
         self.connectionTimeoutNanoseconds = connectionTimeoutNanoseconds
+        self.reconnectBackoff = ReconnectBackoffState(
+            policy: reconnectBackoffPolicy,
+            randomUnit: reconnectRandomUnit
+        )
+        self.sleep = sleep
 
         appLifecycleService.eventsPublisher
             .sink { [weak self] event in
@@ -139,6 +149,7 @@ final class ConnectionManager: ObservableObject {
         await stopEngine()
         state = .idle
         failure = nil
+        reconnectBackoff.recordSuccess()
 
         if clearSession {
             activeHost = nil
@@ -197,6 +208,10 @@ final class ConnectionManager: ObservableObject {
         failure = nil
         await stopEngine()
         guard connectToken == token else { return }
+
+        if !await applyReconnectBackoffIfNeeded(isReconnect: isReconnect, token: token) {
+            return
+        }
 
         if isReconnect {
             state = .reconnecting
@@ -324,8 +339,10 @@ final class ConnectionManager: ObservableObject {
         case .connected:
             state = .connected
             failure = nil
+            reconnectBackoff.recordSuccess()
             resumeConnectWaiter(connected: true)
         case .disconnected:
+            reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
                 error: ConnectionFailureReason.disconnected,
                 host: activeHost,
@@ -336,6 +353,7 @@ final class ConnectionManager: ObservableObject {
             resumeConnectWaiter(connected: false)
             requestReconnect(reason: .engineDisconnected)
         case .failed(let error):
+            reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
                 error: error,
                 host: activeHost,
@@ -356,6 +374,7 @@ final class ConnectionManager: ObservableObject {
     }
 
     private func handleConnectionFailure(_ error: Error) {
+        reconnectBackoff.recordFailure()
         let mappedFailure = ConnectionErrorMapper.map(
             error: error,
             host: activeHost,
@@ -381,6 +400,19 @@ final class ConnectionManager: ObservableObject {
 
     private func handleBackground() async {
         await disconnect(clearSession: false)
+    }
+
+    private func applyReconnectBackoffIfNeeded(isReconnect: Bool, token: UUID) async -> Bool {
+        guard isReconnect else { return true }
+        let delaySeconds = reconnectBackoff.nextDelay()
+        guard delaySeconds > 0 else { return true }
+        let nanoseconds = UInt64(delaySeconds * 1_000_000_000)
+        do {
+            try await sleep(nanoseconds)
+        } catch {
+            return false
+        }
+        return connectToken == token
     }
 }
 
