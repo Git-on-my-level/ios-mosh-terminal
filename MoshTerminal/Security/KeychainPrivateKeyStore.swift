@@ -78,7 +78,7 @@ final class KeychainPrivateKeyStore {
             kSecAttrAccount as String: keyRefId,
             kSecAttrLabel as String: label,
             kSecAttrComment as String: comment,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecValueData as String: data,
         ]
         let status = SecItemAdd(query as CFDictionary, nil)
