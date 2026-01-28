@@ -12,6 +12,11 @@ This document freezes the dependency approach for v1 and captures licensing/comp
 - Mosh crypto: **CryptoKit** (Apple) or a permissively licensed library if required.
 - Upstream Mosh GPL code is **not used**.
 
+## Pinned Versions (XCFramework pipeline)
+
+- OpenSSL: **3.0.14** (git tag `openssl-3.0.14`)
+- libssh2: **1.11.0** (git tag `libssh2-1.11.0`)
+
 ## Dependency Matrix
 
 | Dependency | Purpose | License | Integration | Notes |
@@ -42,8 +47,8 @@ This document freezes the dependency approach for v1 and captures licensing/comp
 
 ### libssh2 + OpenSSL (XCFramework)
 - Build static XCFrameworks for libssh2 and OpenSSL and vendor under `Frameworks/`.
+- Pipeline script: `scripts/build_xcframeworks.sh` (pinned versions above).
 - Provide a thin Swift wrapper module for session/channel management.
-- Build pipeline stub lives at `scripts/build_xcframeworks.sh`.
 
 ### MoshEngine (in-repo module)
 - Implement a clean-room Mosh protocol client under a permissive license.
@@ -52,5 +57,4 @@ This document freezes the dependency approach for v1 and captures licensing/comp
 
 ## Deferred Items
 
-- Exact version pinning (to be decided when integrations begin).
 - `About → Licenses` population automation.
