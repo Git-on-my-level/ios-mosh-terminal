@@ -9,6 +9,7 @@ struct TerminalView: View {
     @StateObject private var controller: TerminalSessionController
     @StateObject private var viewModel: TerminalSessionViewModel
     @EnvironmentObject private var settings: AppSettings
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var isVisible = false
     @State private var passphraseInput = ""
@@ -23,7 +24,8 @@ struct TerminalView: View {
     }
 
     var body: some View {
-        TerminalContainerView(controller: controller, fontSize: settings.fontSize)
+        let palette = AppTheme.terminalPalette(for: colorScheme)
+        TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette)
             .onTapGesture {
                 controller.focus()
             }
@@ -56,7 +58,7 @@ struct TerminalView: View {
             }
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
-                    TerminalStatusBar(state: connectionManager.state)
+                    TerminalStatusBar(state: connectionManager.state, palette: palette)
                     if let failure = viewModel.failure {
                         TerminalErrorBanner(
                             failure: failure,
@@ -129,6 +131,7 @@ struct TerminalView: View {
 private struct TerminalContainerView: UIViewRepresentable {
     @ObservedObject var controller: TerminalSessionController
     let fontSize: Double
+    let palette: AppTheme.TerminalPalette
 
     func makeUIView(context: Context) -> TerminalUIKitView {
         let view = TerminalUIKitView(
@@ -136,9 +139,7 @@ private struct TerminalContainerView: UIViewRepresentable {
             font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         )
         view.terminalDelegate = context.coordinator
-        view.nativeBackgroundColor = UIColor.black
-        view.nativeForegroundColor = UIColor.white
-        view.backgroundColor = UIColor.black
+        applyPalette(palette, to: view)
         controller.attach(view: view)
         DispatchQueue.main.async {
             controller.focus()
@@ -153,10 +154,25 @@ private struct TerminalContainerView: UIViewRepresentable {
         if uiView.font.pointSize != CGFloat(fontSize) {
             uiView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
+        applyPalette(palette, to: uiView)
     }
 
     func makeCoordinator() -> TerminalSessionController {
         controller
+    }
+
+    private func applyPalette(_ palette: AppTheme.TerminalPalette, to view: TerminalUIKitView) {
+        let background = UIColor(palette.background)
+        let foreground = UIColor(palette.foreground)
+        if view.nativeBackgroundColor != background {
+            view.nativeBackgroundColor = background
+        }
+        if view.nativeForegroundColor != foreground {
+            view.nativeForegroundColor = foreground
+        }
+        if view.backgroundColor != background {
+            view.backgroundColor = background
+        }
     }
 }
 
@@ -211,6 +227,7 @@ private struct TerminalAccessoryRow: View {
 
 private struct TerminalStatusBar: View {
     let state: ConnectionManager.State
+    let palette: AppTheme.TerminalPalette
 
     var body: some View {
         HStack(spacing: 8) {
@@ -225,7 +242,7 @@ private struct TerminalStatusBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
-        .background(SwiftUI.Color.black.opacity(0.7))
+        .background(palette.statusBarBackground)
     }
 
     private var statusColor: SwiftUI.Color {
