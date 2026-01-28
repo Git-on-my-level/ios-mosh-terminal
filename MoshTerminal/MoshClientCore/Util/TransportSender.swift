@@ -23,7 +23,7 @@ final class TransportSender {
     var isConnected: Bool = false
 
     private var lastAckedState = UserState()
-    private var lastAckedStateNum: UInt64 = 0
+    private(set) var lastAckedStateNum: UInt64 = 0
     private var lastSentState = UserState()
     private var lastSentStateNum: UInt64 = 0
     private var lastSendMillis: UInt64?

@@ -66,9 +66,9 @@ final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
                 case .disconnected:
                     Task { await self.state.markIdle() }
                     self.onStateChange?(.disconnected)
-                case .failed(let message):
+                case .failed(let error):
                     Task { await self.state.markIdle() }
-                    self.onStateChange?(.failed(.startFailed(message: message)))
+                    self.onStateChange?(.failed(error))
                 }
             }
         )

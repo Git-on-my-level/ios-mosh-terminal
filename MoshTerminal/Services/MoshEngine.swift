@@ -16,6 +16,8 @@ enum MoshEngineState: Sendable {
 enum MoshEngineError: Error, LocalizedError, Equatable {
     case libraryUnavailable
     case startFailed(message: String)
+    case udpUnreachable
+    case integrityFailure
 
     var errorDescription: String? {
         switch self {
@@ -23,6 +25,10 @@ enum MoshEngineError: Error, LocalizedError, Equatable {
             return "Mosh client engine is unavailable."
         case .startFailed(let message):
             return "Mosh client failed to start: \(message)"
+        case .udpUnreachable:
+            return "UDP appears blocked or unreachable."
+        case .integrityFailure:
+            return "Too many invalid packets were received."
         }
     }
 }

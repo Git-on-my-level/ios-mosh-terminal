@@ -1,18 +1,29 @@
+import Darwin
 import Foundation
 
 actor MoshRuntime {
     enum Event: Sendable {
         case connected
         case disconnected
-        case failed(message: String)
+        case failed(MoshEngineError)
     }
 
     struct Configuration: Sendable {
+        struct LivenessPolicy: Sendable {
+            /// Disconnect if we have seen no inbound UDP packets for this long.
+            var inboundSilenceMillis: UInt64 = 15_000
+            /// Fail the session after this many consecutive corrupted packets.
+            var corruptPacketThreshold: Int = 6
+            /// Fail the session after this many consecutive UDP unreachable send errors.
+            var unreachableSendThreshold: Int = 3
+        }
+
         var mtu: Int = 1400
         var socketFactory: @Sendable (String, UInt16) throws -> DatagramSocket = { host, port in
             try RoamingDatagramSocket(host: host, port: port)
         }
         var idleTickSleepMillis: UInt64 = 250
+        var livenessPolicy: LivenessPolicy = LivenessPolicy()
     }
 
     private enum State {
@@ -35,6 +46,10 @@ actor MoshRuntime {
     private var tickTask: Task<Void, Never>?
     private var hasEmittedConnected = false
     private var lastSize: TerminalSize?
+    private var lastHeardMillis: UInt64?
+    private var lastRoundtripSuccessMillis: UInt64?
+    private var consecutiveCorruptPackets: Int = 0
+    private var consecutiveUnreachableSends: Int = 0
 
     init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -55,6 +70,10 @@ actor MoshRuntime {
         state = .running
         hasEmittedConnected = false
         lastSize = initialSize
+        lastHeardMillis = Clock.nowMillis()
+        lastRoundtripSuccessMillis = nil
+        consecutiveCorruptPackets = 0
+        consecutiveUnreachableSends = 0
 
         let sessionKey = try SessionKey.decode(key)
         let ocbSession = try OCBSession(key16: sessionKey)
@@ -117,6 +136,7 @@ actor MoshRuntime {
         case user
         case remote
         case failure
+        case liveness
     }
 
     private func stopInternal(reason: StopReason) async {
@@ -134,7 +154,7 @@ actor MoshRuntime {
         receiver = nil
         state = .idle
 
-        if reason == .remote {
+        if reason == .remote || reason == .liveness {
             emitEvent(.disconnected)
         }
     }
@@ -144,10 +164,18 @@ actor MoshRuntime {
         while !Task.isCancelled {
             do {
                 let datagram = try await socket.receive()
+                let now = Clock.nowMillis()
+                lastHeardMillis = now
                 guard let instruction = try framing?.processInboundDatagram(datagram) else {
                     continue
                 }
+                let previousAck = sender?.lastAckedStateNum ?? 0
                 try receiver?.process(instruction)
+                let currentAck = sender?.lastAckedStateNum ?? previousAck
+                if currentAck > previousAck {
+                    lastRoundtripSuccessMillis = now
+                }
+                consecutiveCorruptPackets = 0
                 if !hasEmittedConnected {
                     hasEmittedConnected = true
                     emitEvent(.connected)
@@ -156,7 +184,19 @@ actor MoshRuntime {
                 if Task.isCancelled || state != .running {
                     break
                 }
-                emitEvent(.failed(message: error.localizedDescription))
+                let now = Clock.nowMillis()
+                if shouldCountCorrupt(error) {
+                    consecutiveCorruptPackets += 1
+                    if consecutiveCorruptPackets >= configuration.livenessPolicy.corruptPacketThreshold {
+                        emitEvent(.failed(.integrityFailure))
+                        await stopInternal(reason: .failure)
+                        break
+                    }
+                    lastHeardMillis = now
+                    continue
+                }
+
+                emitEvent(.failed(.startFailed(message: error.localizedDescription)))
                 await stopInternal(reason: .failure)
                 break
             }
@@ -166,6 +206,9 @@ actor MoshRuntime {
     private func runTickLoop() async {
         while !Task.isCancelled {
             guard state == .running else { break }
+            if await checkLiveness() {
+                break
+            }
             let now = Clock.nowMillis()
             let wait = sender?.waitTime(nowMillis: now) ?? Int.max
             let sleepMillis: UInt64
@@ -197,14 +240,17 @@ actor MoshRuntime {
                     )
                     for datagram in datagrams {
                         try socket.send(datagram)
+                        consecutiveUnreachableSends = 0
                     }
                 } catch {
                     if Task.isCancelled || state != .running {
                         return
                     }
-                    emitEvent(.failed(message: error.localizedDescription))
-                    await stopInternal(reason: .failure)
-                    return
+                    if let failure = handleSendError(error) {
+                        emitEvent(.failed(failure))
+                        await stopInternal(reason: .failure)
+                        return
+                    }
                 }
             }
         }
@@ -227,5 +273,57 @@ actor MoshRuntime {
     private func handleRemoteDisconnect() async {
         guard state == .running else { return }
         await stopInternal(reason: .remote)
+    }
+
+    private func checkLiveness() async -> Bool {
+        guard state == .running else { return true }
+        let now = Clock.nowMillis()
+        if let lastHeardMillis {
+            if now > lastHeardMillis + configuration.livenessPolicy.inboundSilenceMillis {
+                await stopInternal(reason: .liveness)
+                return true
+            }
+        }
+        return false
+    }
+
+    private func shouldCountCorrupt(_ error: Error) -> Bool {
+        switch error {
+        case is PacketCodecError,
+             is OCBSessionError,
+             is TransportFramingError,
+             is FragmentError,
+             is FragmentAssemblyError,
+             is ZlibCodecError,
+             is ProtoCodecError,
+             is TransportReceiveError:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func handleSendError(_ error: Error) -> MoshEngineError? {
+        if let socketError = error as? DatagramSocketError {
+            if case .sendFailed(let errno) = socketError {
+                if isUnreachableErrno(errno) {
+                    consecutiveUnreachableSends += 1
+                    if consecutiveUnreachableSends >= configuration.livenessPolicy.unreachableSendThreshold {
+                        return .udpUnreachable
+                    }
+                    return nil
+                }
+            }
+        }
+        return .startFailed(message: error.localizedDescription)
+    }
+
+    private func isUnreachableErrno(_ value: Int32) -> Bool {
+        switch value {
+        case ENETUNREACH, EHOSTUNREACH, ENETDOWN, EHOSTDOWN, EADDRNOTAVAIL:
+            return true
+        default:
+            return false
+        }
     }
 }
