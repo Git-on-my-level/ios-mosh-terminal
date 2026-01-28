@@ -37,9 +37,8 @@ final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
 
-    private let runtime = MoshCoreRuntime()
+    private let runtime = MoshRuntime()
     private let state = NativeMoshEngineState()
-    private let banner = "Native engine scaffolding active. Protocol runtime pending.\n"
 
     deinit {
         let runtime = self.runtime
@@ -50,20 +49,38 @@ final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
         guard await state.beginStart() else { return }
         onStateChange?(.starting)
 
-        let coreInfo = MoshCoreConnectInfo(
-            host: connectInfo.serverAddress,
-            port: UInt16(connectInfo.udpPort),
-            sessionKey: connectInfo.sessionKey
-        )
-        let coreSize = MoshCoreTerminalSize(
-            cols: initialTerminalSize.cols,
-            rows: initialTerminalSize.rows
+        await runtime.setHandlers(
+            onOutput: { [weak self] data in
+                self?.onOutput?(data)
+            },
+            onEvent: { [weak self] event in
+                guard let self else { return }
+                switch event {
+                case .connected:
+                    Task { await self.state.markConnected() }
+                    self.onStateChange?(.connected)
+                case .disconnected:
+                    Task { await self.state.markIdle() }
+                    self.onStateChange?(.disconnected)
+                case .failed(let message):
+                    Task { await self.state.markIdle() }
+                    self.onStateChange?(.failed(.startFailed(message: message)))
+                }
+            }
         )
 
-        await runtime.start(connectInfo: coreInfo, initialSize: coreSize)
-        await state.markConnected()
-        onStateChange?(.connected)
-        onOutput?(Data(banner.utf8))
+        do {
+            try await runtime.start(
+                serverHost: connectInfo.serverAddress,
+                udpPort: UInt16(connectInfo.udpPort),
+                key: connectInfo.sessionKey,
+                initialSize: initialTerminalSize
+            )
+        } catch {
+            await state.markIdle()
+            onStateChange?(.failed(.startFailed(message: error.localizedDescription)))
+            throw error
+        }
     }
 
     func sendInput(_ bytes: Data) async {
@@ -71,8 +88,7 @@ final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
     }
 
     func updateTerminalSize(cols: Int, rows: Int) async {
-        let size = MoshCoreTerminalSize(cols: cols, rows: rows)
-        await runtime.updateTerminalSize(size)
+        await runtime.resize(cols: cols, rows: rows)
     }
 
     func stop() async {
