@@ -33,17 +33,6 @@ private struct RootView: View {
             }
 
             NavigationStack {
-                ContentUnavailableView(
-                    "Select a Host",
-                    systemImage: "server.rack",
-                    description: Text("Open a host from the Hosts tab.")
-                )
-            }
-            .tabItem {
-                Label("Terminal", systemImage: "terminal")
-            }
-
-            NavigationStack {
                 SettingsView()
             }
             .tabItem {
