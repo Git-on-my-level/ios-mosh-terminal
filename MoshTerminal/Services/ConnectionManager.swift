@@ -99,7 +99,7 @@ final class ConnectionManager: ObservableObject {
         connectionTimeoutNanoseconds: UInt64 = 5_000_000_000,
         reconnectBackoffPolicy: ReconnectBackoffPolicy = .default,
         reconnectRandomUnit: @escaping () -> Double = { Double.random(in: 0...1) },
-        sleep: @Sendable @escaping (UInt64) async throws -> Void = Task.sleep
+        sleep: @Sendable @escaping (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) }
     ) {
         self.keyStore = keyStore
         self.hostRepository = hostRepository
@@ -223,7 +223,7 @@ final class ConnectionManager: ObservableObject {
         await stopEngine()
         guard connectToken == token else { return }
 
-        if !await applyReconnectBackoffIfNeeded(isReconnect: isReconnect, token: token) {
+        if !(await applyReconnectBackoffIfNeeded(isReconnect: isReconnect, token: token)) {
             return
         }
 

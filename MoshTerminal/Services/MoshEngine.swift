@@ -39,16 +39,8 @@ protocol MoshEngine: AnyObject, Sendable {
 
 typealias MoshEngineFactory = @Sendable () -> MoshEngine
 
-#if canImport(MoshClient)
 struct DefaultMoshEngineFactory {
     static func make() -> MoshEngineFactory {
-        { MoshClientEngine() }
+        { NativeMoshEngine() }
     }
 }
-#else
-struct DefaultMoshEngineFactory {
-    static func make() -> MoshEngineFactory {
-        { UnavailableMoshEngine() }
-    }
-}
-#endif
