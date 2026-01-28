@@ -68,4 +68,20 @@ final class MoshBootstrapperTests: XCTestCase {
             }
         }
     }
+
+    func testRejectsInvalidPort() {
+        let result = SSHCommandResult(
+            stdout: "MOSH CONNECT 70000 key=\n",
+            stderr: "",
+            exitStatus: 0
+        )
+
+        XCTAssertThrowsError(try MoshBootstrapper.parseConnectInfo(from: result, serverAddress: "host")) { error in
+            if case .unexpectedOutput = error as? MoshBootstrapError {
+                XCTAssertTrue(true)
+            } else {
+                XCTFail("Expected unexpectedOutput error")
+            }
+        }
+    }
 }

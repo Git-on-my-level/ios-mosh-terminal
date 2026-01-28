@@ -2,8 +2,6 @@ import SwiftUI
 import SwiftTerm
 import UIKit
 
-private typealias TerminalUIKitView = SwiftTerm.TerminalView
-
 struct TerminalView: View {
     let host: HostProfile
     let autoConnect: Bool
@@ -109,7 +107,7 @@ private struct TerminalContainerView: UIViewRepresentable {
         if controller.terminalView !== uiView {
             controller.attach(view: uiView)
         }
-        if uiView.font?.pointSize != fontSize {
+        if uiView.font.pointSize != CGFloat(fontSize) {
             uiView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
     }
@@ -184,19 +182,19 @@ private struct TerminalStatusBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
-        .background(Color.black.opacity(0.7))
+        .background(SwiftUI.Color.black.opacity(0.7))
     }
 
-    private var statusColor: Color {
+    private var statusColor: SwiftUI.Color {
         switch state {
         case .connected:
-            return .green
+            return SwiftUI.Color.green
         case .bootstrappingSSH, .connectingUDP, .reconnecting:
-            return .orange
+            return SwiftUI.Color.orange
         case .failed:
-            return .red
+            return SwiftUI.Color.red
         case .idle:
-            return .secondary
+            return SwiftUI.Color.secondary
         }
     }
 }

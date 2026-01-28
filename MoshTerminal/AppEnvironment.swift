@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class AppEnvironment: ObservableObject {
     struct Dependencies {
         let hostRepository: HostRepository

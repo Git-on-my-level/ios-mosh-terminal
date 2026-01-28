@@ -1,7 +1,7 @@
 import Foundation
 import SwiftTerm
 
-private typealias TerminalUIKitView = SwiftTerm.TerminalView
+typealias TerminalUIKitView = SwiftTerm.TerminalView
 
 final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
     @Published var isCtrlActive = false
