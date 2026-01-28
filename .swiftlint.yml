@@ -1,0 +1,11 @@
+only_rules:
+  - colon
+  - comma
+  - control_statement
+  - final_newline
+  - leading_whitespace
+  - line_length
+  - trailing_whitespace
+  - vertical_whitespace
+
+line_length: 200

@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      - name: Lint
+        run: swiftlint --config .swiftlint.yml
+      - name: Build (Simulator)
+        run: ./scripts/build_sim.sh
+      - name: Test (Simulator)
+        run: ./scripts/test_sim.sh
