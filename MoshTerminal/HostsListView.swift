@@ -182,7 +182,7 @@ private struct HostRowView: View {
             return .green
         case .bootstrappingSSH, .connectingUDP, .reconnecting:
             return .orange
-        case .failed:
+        case .failed, .disconnected:
             return .red
         case .idle:
             return .secondary

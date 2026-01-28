@@ -51,6 +51,7 @@ extension HostRepository: HostPersisting {}
 final class ConnectionManager: ObservableObject {
     enum State: Equatable {
         case idle
+        case disconnected
         case bootstrappingSSH
         case connectingUDP
         case connected
@@ -196,7 +197,7 @@ final class ConnectionManager: ObservableObject {
         switch state {
         case .bootstrappingSSH, .connectingUDP, .reconnecting:
             return true
-        case .idle, .connected, .failed:
+        case .idle, .disconnected, .connected, .failed:
             return false
         }
     }
@@ -460,7 +461,11 @@ final class ConnectionManager: ObservableObject {
     }
 
     private func handleBackground() async {
-        await disconnect(clearSession: false)
+        cancelConnectTask()
+        await stopEngine()
+        state = .disconnected
+        failure = nil
+        reconnectBackoff.recordSuccess()
     }
 
     private func applyReconnectBackoffIfNeeded(isReconnect: Bool, token: UUID) async -> Bool {
@@ -482,6 +487,8 @@ extension ConnectionManager.State {
         switch self {
         case .idle:
             return "Idle"
+        case .disconnected:
+            return "Disconnected"
         case .bootstrappingSSH:
             return "Starting SSH"
         case .connectingUDP:
@@ -499,6 +506,8 @@ extension ConnectionManager.State {
         switch self {
         case .idle:
             return "Idle"
+        case .disconnected:
+            return "Disconnected"
         case .bootstrappingSSH:
             return "SSH"
         case .connectingUDP:

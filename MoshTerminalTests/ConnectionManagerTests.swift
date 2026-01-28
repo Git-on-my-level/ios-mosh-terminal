@@ -128,6 +128,54 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertEqual(bootstrapper.callCount, 1)
     }
 
+    func testBackgroundMarksDisconnectedWithoutFailureAndReconnectsOnForeground() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let engines = [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .autoConnect)
+        ]
+        let engineFactory = TestEngineFactory(engines: engines)
+        let lifecycle = TestAppLifecycleService()
+        let network = TestNetworkPathService(status: .satisfied)
+        let manager = makeManager(
+            bootstrapper: bootstrapper,
+            engineFactory: engineFactory,
+            lifecycle: lifecycle,
+            network: network
+        )
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+
+        await awaitState(manager) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        lifecycle.send(.background)
+
+        await awaitState(manager) { state in
+            if case .disconnected = state { return true }
+            return false
+        }
+
+        XCTAssertNil(manager.failure)
+
+        lifecycle.send(.foreground)
+
+        await awaitState(manager) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        XCTAssertEqual(engineFactory.createdEngines.count, 2)
+        XCTAssertEqual(bootstrapper.callCount, 1)
+    }
+
     func testConnectUpdatesLastConnectedAt() async {
         let host = makeHost()
         let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])

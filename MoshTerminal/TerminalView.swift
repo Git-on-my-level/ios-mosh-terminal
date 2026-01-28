@@ -229,7 +229,7 @@ private struct TerminalStatusBar: View {
             return SwiftUI.Color.green
         case .bootstrappingSSH, .connectingUDP, .reconnecting:
             return SwiftUI.Color.orange
-        case .failed:
+        case .failed, .disconnected:
             return SwiftUI.Color.red
         case .idle:
             return SwiftUI.Color.secondary
