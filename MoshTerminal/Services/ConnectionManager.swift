@@ -89,6 +89,13 @@ final class ConnectionManager: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var reconnectBackoff: ReconnectBackoffState
 
+    struct DebugSnapshot: Sendable, Equatable {
+        let lastHeardAgeMillis: UInt64?
+        let sendIntervalMillis: UInt64?
+        let rtoMillis: UInt64?
+        let localPort: UInt16?
+    }
+
     init(
         keyStore: PrivateKeyStoring,
         hostRepository: HostPersisting,
@@ -174,6 +181,17 @@ final class ConnectionManager: ObservableObject {
 
     func clearFailure() {
         failure = nil
+    }
+
+    func debugSnapshot() async -> DebugSnapshot? {
+        guard let engine = engine as? MoshEngineDebugProviding else { return nil }
+        let snapshot = await engine.debugSnapshot()
+        return DebugSnapshot(
+            lastHeardAgeMillis: snapshot.lastHeardAgeMillis,
+            sendIntervalMillis: snapshot.sendIntervalMillis,
+            rtoMillis: snapshot.rtoMillis,
+            localPort: snapshot.localPort
+        )
     }
 
     private enum ReconnectReason {

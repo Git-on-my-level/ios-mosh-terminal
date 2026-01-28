@@ -44,6 +44,17 @@ protocol MoshEngine: AnyObject, Sendable {
     func stop() async
 }
 
+struct MoshEngineDebugSnapshot: Sendable, Equatable {
+    let lastHeardAgeMillis: UInt64?
+    let sendIntervalMillis: UInt64?
+    let rtoMillis: UInt64?
+    let localPort: UInt16?
+}
+
+protocol MoshEngineDebugProviding: AnyObject, Sendable {
+    func debugSnapshot() async -> MoshEngineDebugSnapshot
+}
+
 typealias MoshEngineFactory = @Sendable () -> MoshEngine
 
 struct DefaultMoshEngineFactory {

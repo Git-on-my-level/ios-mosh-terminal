@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import SwiftTerm
 import UIKit
@@ -40,6 +41,15 @@ struct TerminalView: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     TerminalAccessoryRow(controller: controller)
                 }
+            }
+            .overlay(alignment: .bottomTrailing) {
+#if DEBUG
+                if settings.debugOverlayEnabled {
+                    TerminalDebugOverlay(connectionManager: connectionManager)
+                        .padding(.trailing, 12)
+                        .padding(.bottom, 12)
+                }
+#endif
             }
             .onAppear {
                 isVisible = true
@@ -127,6 +137,55 @@ struct TerminalView: View {
         return "\(context.keyLabel)\n\(context.hostDisplayName)\n\(hostLine)"
     }
 }
+
+#if DEBUG
+private struct TerminalDebugOverlay: View {
+    @ObservedObject var connectionManager: ConnectionManager
+    @State private var snapshot: ConnectionManager.DebugSnapshot?
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Debug")
+                .font(.caption2)
+                .bold()
+            Text("State: \(connectionManager.state.statusText)")
+            Text("Last heard: \(formatAge(snapshot?.lastHeardAgeMillis))")
+            Text("Send interval: \(formatMillis(snapshot?.sendIntervalMillis))")
+            Text("RTO: \(formatMillis(snapshot?.rtoMillis))")
+            Text("Local UDP: \(snapshot?.localPort.map(String.init) ?? "n/a")")
+        }
+        .font(.caption2)
+        .padding(8)
+        .background(Color.black.opacity(0.7))
+        .foregroundStyle(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .onAppear {
+            refresh()
+        }
+        .onReceive(timer) { _ in
+            refresh()
+        }
+    }
+
+    private func refresh() {
+        Task { @MainActor in
+            snapshot = await connectionManager.debugSnapshot()
+        }
+    }
+
+    private func formatAge(_ millis: UInt64?) -> String {
+        guard let millis else { return "n/a" }
+        let seconds = Double(millis) / 1000.0
+        return "\(String(format: "%.1f", seconds))s"
+    }
+
+    private func formatMillis(_ millis: UInt64?) -> String {
+        guard let millis else { return "n/a" }
+        return "\(millis)ms"
+    }
+}
+#endif
 
 private struct TerminalContainerView: UIViewRepresentable {
     @ObservedObject var controller: TerminalSessionController

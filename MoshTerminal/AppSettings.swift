@@ -35,6 +35,9 @@ final class AppSettings: ObservableObject {
         static let fontSize = "settings.fontSize"
         static let themeMode = "settings.themeMode"
         static let keepAwake = "settings.keepAwake"
+#if DEBUG
+        static let debugOverlayEnabled = "settings.debugOverlayEnabled"
+#endif
     }
 
     private let defaults: UserDefaults
@@ -57,6 +60,14 @@ final class AppSettings: ObservableObject {
         }
     }
 
+#if DEBUG
+    @Published var debugOverlayEnabled: Bool {
+        didSet {
+            defaults.set(debugOverlayEnabled, forKey: Keys.debugOverlayEnabled)
+        }
+    }
+#endif
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let storedFontSize = defaults.object(forKey: Keys.fontSize) as? Double ?? 14
@@ -68,6 +79,10 @@ final class AppSettings: ObservableObject {
             themeMode = .system
         }
         keepAwake = defaults.object(forKey: Keys.keepAwake) as? Bool ?? false
+
+#if DEBUG
+        debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false
+#endif
     }
 }
 

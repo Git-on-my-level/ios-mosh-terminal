@@ -274,3 +274,9 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         return Entry(id: UUID(), socket: socket, openedAt: openedAt, localPort: localPort, receiverTask: nil)
     }
 }
+
+extension RoamingDatagramSocket: DatagramSocketPortProviding {
+    var localPort: UInt16 {
+        currentLocalPort() ?? 0
+    }
+}

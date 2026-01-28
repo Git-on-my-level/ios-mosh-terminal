@@ -132,6 +132,20 @@ actor MoshRuntime {
         await stopInternal(reason: .user)
     }
 
+    func debugSnapshot(nowMillis: UInt64 = Clock.nowMillis()) -> MoshEngineDebugSnapshot {
+        let lastHeardAge = lastHeardMillis.map { nowMillis >= $0 ? nowMillis - $0 : 0 }
+        let sendInterval = sender?.debugSendIntervalMillis(nowMillis: nowMillis)
+        let rto = sender?.debugRtoMillis
+        let port = (socket as? DatagramSocketPortProviding)?.localPort
+        let normalizedPort: UInt16? = (port == 0) ? nil : port
+        return MoshEngineDebugSnapshot(
+            lastHeardAgeMillis: lastHeardAge,
+            sendIntervalMillis: sendInterval,
+            rtoMillis: rto,
+            localPort: normalizedPort
+        )
+    }
+
     private enum StopReason {
         case user
         case remote
@@ -170,7 +184,7 @@ actor MoshRuntime {
                     continue
                 }
                 let previousAck = sender?.lastAckedStateNum ?? 0
-                try receiver?.process(instruction)
+                try receiver?.process(instruction, nowMillis: now)
                 let currentAck = sender?.lastAckedStateNum ?? previousAck
                 if currentAck > previousAck {
                     lastRoundtripSuccessMillis = now

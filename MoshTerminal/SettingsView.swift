@@ -40,6 +40,12 @@ struct SettingsView: View {
                     LicensesView()
                 }
             }
+
+#if DEBUG
+            Section("Debug") {
+                Toggle("Show Debug Overlay", isOn: $settings.debugOverlayEnabled)
+            }
+#endif
         }
         .navigationTitle("Settings")
     }

@@ -33,7 +33,7 @@ private actor NativeMoshEngineState {
     }
 }
 
-final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
+final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
@@ -100,5 +100,9 @@ final class NativeMoshEngine: MoshEngine, @unchecked Sendable {
         await runtime.stop()
         await state.markIdle()
         onStateChange?(.idle)
+    }
+
+    func debugSnapshot() async -> MoshEngineDebugSnapshot {
+        await runtime.debugSnapshot()
     }
 }

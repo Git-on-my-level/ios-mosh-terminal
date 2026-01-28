@@ -29,11 +29,15 @@ final class TransportSender {
     private(set) var lastAckedStateNum: UInt64 = 0
     private var lastSentState = UserState()
     private var lastSentStateNum: UInt64 = 0
+    private var lastSentStateTimestampMillis: UInt64?
     private var lastSendMillis: UInt64?
     private var lastActivityMillis: UInt64?
     private var nextAckTimeMillis: UInt64?
     private var nextSendTimeMillis: UInt64?
     private var ackDirty = false
+    private var srttMillis: Double?
+    private var rttvarMillis: Double?
+    private var rtoMillis: UInt64?
 
     init(randomBytes: @escaping RandomBytesProvider = SecureRandom.bytes) {
         self.randomBytes = randomBytes
@@ -46,6 +50,9 @@ final class TransportSender {
         } else {
             nextAckTimeMillis = nil
             nextSendTimeMillis = nil
+            srttMillis = nil
+            rttvarMillis = nil
+            rtoMillis = nil
         }
     }
 
@@ -56,17 +63,26 @@ final class TransportSender {
         }
     }
 
-    func processAckThrough(_ ack: UInt64) {
+    func processAckThrough(_ ack: UInt64, nowMillis: UInt64) {
         guard ack >= lastAckedStateNum else {
             return
         }
 
+        let previousAck = lastAckedStateNum
+        let ackAdvanced = ack > previousAck
+
         if let matched = sentStates.last(where: { $0.num <= ack }) {
             lastAckedState = matched.state
             lastAckedStateNum = matched.num
+            if ackAdvanced {
+                updateRtt(sampleMillis: nowMillis - matched.timestampMillis)
+            }
         } else if ack >= lastSentStateNum {
             lastAckedState = lastSentState
             lastAckedStateNum = lastSentStateNum
+            if ackAdvanced, let timestamp = lastSentStateTimestampMillis {
+                updateRtt(sampleMillis: nowMillis - timestamp)
+            }
         }
 
         sentStates.removeAll { $0.num <= ack }
@@ -120,6 +136,7 @@ final class TransportSender {
         if includeStateDiff && hasNewState {
             lastSentState = currentState
             lastSentStateNum = newNum
+            lastSentStateTimestampMillis = nowMillis
             let timestamped = TimestampedState(num: newNum, state: currentState, timestampMillis: nowMillis)
             sentStates.append(timestamped)
             if sentStates.count > Constants.maxSentStates {
@@ -177,6 +194,21 @@ final class TransportSender {
 
         let delta = earliest - nowMillis
         return delta > UInt64(Int.max) ? Int.max : Int(delta)
+    }
+
+    func debugSendIntervalMillis(nowMillis: UInt64) -> UInt64? {
+        guard isConnected else { return nil }
+        if let nextSend = nextSendTimeMillis {
+            return nextSend > nowMillis ? nextSend - nowMillis : 0
+        }
+        if let lastSend = lastSendMillis {
+            return Constants.maxSendIntervalMillis > 0 ? Constants.maxSendIntervalMillis : max(0, nowMillis - lastSend)
+        }
+        return nil
+    }
+
+    var debugRtoMillis: UInt64? {
+        rtoMillis
     }
 
     private func scheduleIfNeeded(nowMillis: UInt64) {
@@ -244,5 +276,24 @@ final class TransportSender {
             return Data()
         }
         return Data(randomBytes(length))
+    }
+
+    private func updateRtt(sampleMillis: UInt64) {
+        let sample = Double(sampleMillis)
+        if let srtt = srttMillis, let rttvar = rttvarMillis {
+            let newRttvar = (1.0 - 0.25) * rttvar + 0.25 * abs(srtt - sample)
+            let newSrtt = (1.0 - 0.125) * srtt + 0.125 * sample
+            srttMillis = newSrtt
+            rttvarMillis = newRttvar
+        } else {
+            srttMillis = sample
+            rttvarMillis = sample / 2.0
+        }
+
+        if let srtt = srttMillis, let rttvar = rttvarMillis {
+            let rto = ceil(srtt + 4.0 * rttvar)
+            let bounded = min(max(rto, 50.0), 1000.0)
+            rtoMillis = UInt64(bounded)
+        }
     }
 }

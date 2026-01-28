@@ -53,7 +53,7 @@ final class TransportReceiver {
         self.onDisconnect = onDisconnect
     }
 
-    func process(_ instruction: TransportInstruction) throws {
+    func process(_ instruction: TransportInstruction, nowMillis: UInt64) throws {
         guard instruction.protocolVersion == expectedProtocolVersion else {
             throw TransportReceiveError.invalidProtocolVersion(
                 expected: expectedProtocolVersion,
@@ -61,7 +61,7 @@ final class TransportReceiver {
             )
         }
 
-        transportSender.processAckThrough(instruction.ackNum)
+        transportSender.processAckThrough(instruction.ackNum, nowMillis: nowMillis)
 
         if instruction.newNum == UInt64.max {
             onDisconnect?()
