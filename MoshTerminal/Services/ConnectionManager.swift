@@ -1,6 +1,45 @@
 import Combine
 import Foundation
 
+protocol AppLifecycleProviding: AnyObject {
+    var state: AppLifecycleService.State { get }
+    var eventsPublisher: AnyPublisher<AppLifecycleService.Event, Never> { get }
+}
+
+protocol NetworkPathProviding: AnyObject {
+    var pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never> { get }
+    var isSatisfied: Bool { get }
+}
+
+protocol MoshBootstrapping {
+    func bootstrap(
+        host: HostProfile,
+        privateKey: Data,
+        passphrase: String?,
+        hostKeyPrompter: SSHHostKeyPrompting
+    ) async throws -> MoshConnectInfo
+}
+
+protocol PrivateKeyStoring {
+    func loadPrivateKeyData(keyRefId: String) throws -> Data
+}
+
+extension AppLifecycleService: AppLifecycleProviding {
+    var eventsPublisher: AnyPublisher<AppLifecycleService.Event, Never> {
+        events.eraseToAnyPublisher()
+    }
+}
+
+extension NetworkPathService: NetworkPathProviding {
+    var pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never> {
+        $pathInfo.eraseToAnyPublisher()
+    }
+}
+
+extension MoshBootstrapper: MoshBootstrapping {}
+
+extension KeychainPrivateKeyStore: PrivateKeyStoring {}
+
 @MainActor
 final class ConnectionManager: ObservableObject {
     enum State: Equatable {
@@ -16,11 +55,12 @@ final class ConnectionManager: ObservableObject {
     @Published private(set) var activeHostId: UUID?
     @Published private(set) var failure: ConnectionFailure?
 
-    private let keyStore: KeychainPrivateKeyStore
-    private let moshBootstrapper: MoshBootstrapper
+    private let keyStore: PrivateKeyStoring
+    private let moshBootstrapper: MoshBootstrapping
     private let moshEngineFactory: MoshEngineFactory
-    private let appLifecycleService: AppLifecycleService
-    private let networkPathService: NetworkPathService
+    private let appLifecycleService: AppLifecycleProviding
+    private let networkPathService: NetworkPathProviding
+    private let connectionTimeoutNanoseconds: UInt64
 
     private var activeHost: HostProfile?
     private var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
@@ -38,19 +78,21 @@ final class ConnectionManager: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     init(
-        keyStore: KeychainPrivateKeyStore,
-        moshBootstrapper: MoshBootstrapper,
+        keyStore: PrivateKeyStoring,
+        moshBootstrapper: MoshBootstrapping,
         moshEngineFactory: @escaping MoshEngineFactory,
-        appLifecycleService: AppLifecycleService,
-        networkPathService: NetworkPathService
+        appLifecycleService: AppLifecycleProviding,
+        networkPathService: NetworkPathProviding,
+        connectionTimeoutNanoseconds: UInt64 = 5_000_000_000
     ) {
         self.keyStore = keyStore
         self.moshBootstrapper = moshBootstrapper
         self.moshEngineFactory = moshEngineFactory
         self.appLifecycleService = appLifecycleService
         self.networkPathService = networkPathService
+        self.connectionTimeoutNanoseconds = connectionTimeoutNanoseconds
 
-        appLifecycleService.events
+        appLifecycleService.eventsPublisher
             .sink { [weak self] event in
                 guard let self else { return }
                 switch event {
@@ -62,7 +104,7 @@ final class ConnectionManager: ObservableObject {
             }
             .store(in: &cancellables)
 
-        networkPathService.$pathInfo
+        networkPathService.pathInfoPublisher
             .removeDuplicates()
             .sink { [weak self] info in
                 guard let self else { return }
@@ -215,7 +257,7 @@ final class ConnectionManager: ObservableObject {
         }
 
         guard waitForConnection else { return true }
-        let connected = await waitForConnected(timeoutNanoseconds: 5_000_000_000, token: token)
+        let connected = await waitForConnected(timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
         if !connected {
             if connectToken == token {
                 handleConnectionFailure(ConnectionFailureReason.udpUnreachable)
@@ -325,6 +367,7 @@ final class ConnectionManager: ObservableObject {
     private func cancelConnectTask() {
         connectTask?.cancel()
         connectTask = nil
+        resumeConnectWaiter(connected: false)
     }
 
     private func stopEngine() async {

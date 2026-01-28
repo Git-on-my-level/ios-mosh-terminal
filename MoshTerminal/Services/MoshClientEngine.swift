@@ -81,7 +81,10 @@ final class MoshClientEngine: MoshEngine, @unchecked Sendable {
                     return
                 }
                 let context = Unmanaged.passUnretained(self).toOpaque()
-                let handle = mosh_client_create(context)
+                guard let handle = mosh_client_create(context) else {
+                    continuation.resume(throwing: MoshEngineError.startFailed(message: "mosh_client_create failed."))
+                    return
+                }
                 self.handle = handle
                 mosh_client_set_output_callback(handle, moshOutputCallback, context)
                 mosh_client_set_state_callback(handle, moshStateCallback, context)
