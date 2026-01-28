@@ -170,6 +170,46 @@ final class KeychainPrivateKeyStore {
         return mapped.sorted { $0.addedAt > $1.addedAt }
     }
 
+    func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: keyRefId,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnAttributes as String: true,
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound {
+            return nil
+        }
+        guard status == errSecSuccess else {
+            throw KeychainStoreError.unexpectedStatus(status)
+        }
+        guard let item = result as? [String: Any] else {
+            throw KeychainStoreError.invalidMetadata
+        }
+        let label = (item[kSecAttrLabel as String] as? String) ?? "Imported Key"
+        let comment = item[kSecAttrComment as String] as? String
+        if let comment,
+           let payload = decodeMetadata(comment) {
+            return StoredPrivateKeyMetadata(
+                id: keyRefId,
+                label: payload.label,
+                keyType: payload.keyType,
+                requiresPassphrase: payload.requiresPassphrase,
+                addedAt: payload.addedAt
+            )
+        }
+        return StoredPrivateKeyMetadata(
+            id: keyRefId,
+            label: label,
+            keyType: .unknown,
+            requiresPassphrase: false,
+            addedAt: Date.distantPast
+        )
+    }
+
     private struct MetadataPayload: Codable {
         let label: String
         let keyType: SSHKeyType

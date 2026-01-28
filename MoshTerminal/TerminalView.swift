@@ -11,6 +11,7 @@ struct TerminalView: View {
     @EnvironmentObject private var settings: AppSettings
     @Environment(\.dismiss) private var dismiss
     @State private var isVisible = false
+    @State private var passphraseInput = ""
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
@@ -76,10 +77,47 @@ struct TerminalView: View {
                     }
                 )
             }
+            .alert(
+                "SSH Key Passphrase",
+                isPresented: Binding(
+                    get: { viewModel.passphrasePrompt != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            viewModel.respondToPassphrasePrompt(passphrase: nil)
+                        }
+                    }
+                )
+            ) {
+                SecureField("Passphrase", text: $passphraseInput)
+                Button("Cancel", role: .cancel) {
+                    viewModel.respondToPassphrasePrompt(passphrase: nil)
+                    passphraseInput = ""
+                }
+                Button("Connect") {
+                    let submitted = passphraseInput
+                    viewModel.respondToPassphrasePrompt(passphrase: submitted)
+                    passphraseInput = ""
+                }
+            } message: {
+                if let prompt = viewModel.passphrasePrompt {
+                    Text(passphraseMessage(prompt.context))
+                }
+            }
+            .onChange(of: viewModel.passphrasePrompt?.id) { _ in
+                passphraseInput = ""
+            }
     }
 
     private func updateIdleTimer() {
         UIApplication.shared.isIdleTimerDisabled = isVisible && settings.keepAwake
+    }
+
+    private func passphraseMessage(_ context: SSHKeyPassphraseContext) -> String {
+        let hostLine = "\(context.username)@\(context.hostname)"
+        if context.hostDisplayName.isEmpty || context.hostDisplayName == context.hostname {
+            return "\(context.keyLabel)\n\(hostLine)"
+        }
+        return "\(context.keyLabel)\n\(context.hostDisplayName)\n\(hostLine)"
     }
 }
 

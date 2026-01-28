@@ -232,6 +232,16 @@ private struct TestKeyStore: PrivateKeyStoring {
     func loadPrivateKeyData(keyRefId: String) throws -> Data {
         Data("key".utf8)
     }
+
+    func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata? {
+        StoredPrivateKeyMetadata(
+            id: keyRefId,
+            label: "Test Key",
+            keyType: .rsa,
+            requiresPassphrase: false,
+            addedAt: Date()
+        )
+    }
 }
 
 private final class TestBootstrapper: MoshBootstrapping {

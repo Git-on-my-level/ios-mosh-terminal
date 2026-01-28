@@ -51,6 +51,13 @@ struct SSHHostKey: Equatable, Hashable, Sendable {
     let fingerprint: String
 }
 
+struct SSHKeyPassphraseContext: Equatable, Sendable {
+    let keyLabel: String
+    let hostDisplayName: String
+    let hostname: String
+    let username: String
+}
+
 protocol SSHHostKeyPrompting: Sendable {
     func promptTrust(hostKey: SSHHostKey) async -> Bool
 }
@@ -63,6 +70,20 @@ struct SSHHostKeyPrompt: SSHHostKeyPrompting, Sendable {
     }
 
     static let denyAll = SSHHostKeyPrompt { _ in false }
+}
+
+protocol SSHKeyPassphrasePrompting: Sendable {
+    func promptPassphrase(context: SSHKeyPassphraseContext) async -> String?
+}
+
+struct SSHKeyPassphrasePrompt: SSHKeyPassphrasePrompting, Sendable {
+    let handler: @Sendable (SSHKeyPassphraseContext) async -> String?
+
+    func promptPassphrase(context: SSHKeyPassphraseContext) async -> String? {
+        await handler(context)
+    }
+
+    static let denyAll = SSHKeyPassphrasePrompt { _ in nil }
 }
 
 protocol SSHHostKeyVerifying: Sendable {

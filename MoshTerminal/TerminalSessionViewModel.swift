@@ -8,13 +8,20 @@ final class TerminalSessionViewModel: ObservableObject {
         let hostKey: SSHHostKey
     }
 
+    struct PassphrasePromptState: Identifiable {
+        let id = UUID()
+        let context: SSHKeyPassphraseContext
+    }
+
     @Published var failure: ConnectionFailure?
     @Published var hostKeyPrompt: HostKeyPromptState?
+    @Published var passphrasePrompt: PassphrasePromptState?
 
     private let host: HostProfile
     private let connectionManager: ConnectionManager
     private weak var controller: TerminalSessionController?
     private var hostKeyContinuation: CheckedContinuation<Bool, Never>?
+    private var passphraseContinuation: CheckedContinuation<String?, Never>?
     private var hasStarted = false
     private var cancellables: Set<AnyCancellable> = []
 
@@ -44,6 +51,10 @@ final class TerminalSessionViewModel: ObservableObject {
             hostKeyContinuation = nil
             continuation.resume(returning: false)
         }
+        if let continuation = passphraseContinuation {
+            passphraseContinuation = nil
+            continuation.resume(returning: nil)
+        }
     }
 
     func respondToHostKeyPrompt(shouldTrust: Bool) {
@@ -51,6 +62,13 @@ final class TerminalSessionViewModel: ObservableObject {
         hostKeyContinuation = nil
         hostKeyPrompt = nil
         continuation.resume(returning: shouldTrust)
+    }
+
+    func respondToPassphrasePrompt(passphrase: String?) {
+        guard let continuation = passphraseContinuation else { return }
+        passphraseContinuation = nil
+        passphrasePrompt = nil
+        continuation.resume(returning: passphrase)
     }
 
     func dismissFailure() {
@@ -68,8 +86,17 @@ final class TerminalSessionViewModel: ObservableObject {
             guard let self else { return false }
             return await self.promptForHostKey(hostKey)
         }
+        let passphrasePrompter = SSHKeyPassphrasePrompt { [weak self] context in
+            guard let self else { return nil }
+            return await self.promptForPassphrase(context)
+        }
         if let controller {
-            connectionManager.connect(host: host, controller: controller, hostKeyPrompter: prompter)
+            connectionManager.connect(
+                host: host,
+                controller: controller,
+                hostKeyPrompter: prompter,
+                passphrasePrompter: passphrasePrompter
+            )
         }
     }
 
@@ -80,6 +107,16 @@ final class TerminalSessionViewModel: ObservableObject {
         return await withCheckedContinuation { continuation in
             hostKeyContinuation = continuation
             hostKeyPrompt = HostKeyPromptState(hostKey: hostKey)
+        }
+    }
+
+    private func promptForPassphrase(_ context: SSHKeyPassphraseContext) async -> String? {
+        if let continuation = passphraseContinuation {
+            continuation.resume(returning: nil)
+        }
+        return await withCheckedContinuation { continuation in
+            passphraseContinuation = continuation
+            passphrasePrompt = PassphrasePromptState(context: context)
         }
     }
 }

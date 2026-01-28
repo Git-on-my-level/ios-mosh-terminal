@@ -22,6 +22,7 @@ protocol MoshBootstrapping {
 
 protocol PrivateKeyStoring {
     func loadPrivateKeyData(keyRefId: String) throws -> Data
+    func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata?
 }
 
 extension AppLifecycleService: AppLifecycleProviding {
@@ -65,6 +66,7 @@ final class ConnectionManager: ObservableObject {
 
     private var activeHost: HostProfile?
     private var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
+    private var passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
     private weak var controller: TerminalSessionController?
 
     private var engine: MoshEngine?
@@ -128,12 +130,14 @@ final class ConnectionManager: ObservableObject {
     func connect(
         host: HostProfile,
         controller: TerminalSessionController,
-        hostKeyPrompter: SSHHostKeyPrompting
+        hostKeyPrompter: SSHHostKeyPrompting,
+        passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
     ) {
         self.activeHost = host
         self.activeHostId = host.id
         self.controller = controller
         self.hostKeyPrompter = hostKeyPrompter
+        self.passphrasePrompter = passphrasePrompter
         failure = nil
 
         if state == .connected, activeHostId == host.id, let engine {
@@ -230,10 +234,21 @@ final class ConnectionManager: ObservableObject {
         state = .bootstrappingSSH
         do {
             let privateKey = try keyStore.loadPrivateKeyData(keyRefId: host.keyRefId)
+            let metadata = try keyStore.metadata(keyRefId: host.keyRefId)
+            let requiresPassphrase = metadata?.requiresPassphrase == true
+            let passphrase = await resolvePassphraseIfNeeded(
+                metadata: metadata,
+                host: host,
+                token: token
+            )
+            guard connectToken == token else { return }
+            if requiresPassphrase && passphrase == nil {
+                return
+            }
             let connectInfo = try await moshBootstrapper.bootstrap(
                 host: host,
                 privateKey: privateKey,
-                passphrase: nil,
+                passphrase: passphrase,
                 hostKeyPrompter: hostKeyPrompter
             )
             guard connectToken == token else { return }
@@ -382,6 +397,30 @@ final class ConnectionManager: ObservableObject {
         )
         state = .failed(message: mappedFailure.title)
         failure = mappedFailure
+    }
+
+    private func resolvePassphraseIfNeeded(
+        metadata: StoredPrivateKeyMetadata?,
+        host: HostProfile,
+        token: UUID
+    ) async -> String? {
+        guard let metadata, metadata.requiresPassphrase else {
+            return nil
+        }
+        let context = SSHKeyPassphraseContext(
+            keyLabel: metadata.label,
+            hostDisplayName: host.resolvedDisplayName,
+            hostname: host.hostname,
+            username: host.username
+        )
+        let passphrase = await passphrasePrompter.promptPassphrase(context: context)
+        guard connectToken == token else { return nil }
+        guard let passphrase else {
+            state = .idle
+            failure = nil
+            return nil
+        }
+        return passphrase
     }
 
     private func cancelConnectTask() {
