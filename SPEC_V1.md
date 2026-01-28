@@ -170,9 +170,10 @@ If SSH bootstrap succeeds but UDP cannot establish:
 
 ---
 
-## 11. Licensing note (engineering requirement)
-Upstream Mosh is GPL-licensed; if you ship it embedded you must comply with GPL obligations.  
-Ticket 002 requires confirming the licensing/compliance plan and documenting it before deeper integration.
+## 11. Licensing constraints (engineering requirement)
+- The upstream GPL-licensed Mosh client is **disallowed** in the app binary.
+- The Mosh protocol client MUST be implemented independently (clean-room) or use a permissively licensed reimplementation that is explicitly approved.
+- Protocol compatibility is scoped to **interactive shell usage only** (tmux-first, minimal feature set).
 
 ---
 

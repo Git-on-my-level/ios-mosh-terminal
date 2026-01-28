@@ -5,7 +5,7 @@ Use this checklist to validate a release candidate on a real device (iOS/iPadOS 
 ## Build + Smoke
 - [ ] App launches to Hosts list without crashes.
 - [ ] Settings opens and shows Appearance, Session, Keys, About.
-- [ ] Licenses screen lists SwiftTerm, libssh2, OpenSSL, Mosh with license text.
+- [ ] Licenses screen lists SwiftTerm, libssh2, OpenSSL, and MoshEngine with license text.
 - [ ] App icon displays (placeholder is acceptable for v1).
 
 ## Hosts + Keys

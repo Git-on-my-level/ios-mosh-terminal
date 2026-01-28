@@ -46,3 +46,8 @@ If a change is required, create a new ticket and update the spec explicitly.
 - Track third-party licenses and include required attributions.
 - Avoid dynamic code execution and “plugin systems” in v1.
 - If using GPL components, comply fully (source offer/availability, notices).
+
+## Article 10 — Clean-room Mosh engine (App Store–safe)
+- GPL-licensed Mosh client code MUST NOT be embedded, linked, or included in the app.
+- v1 SHALL use a clean-room or permissively licensed Mosh protocol implementation.
+- This is a binding architectural decision; conflicting tickets or code must be rejected.
