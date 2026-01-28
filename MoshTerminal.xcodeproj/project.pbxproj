@@ -51,6 +51,8 @@
 		C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B9 /* MoshConnectInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F309 /* MoshConnectInfo.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F404 /* MoshCoreRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */; };
+		71F7D6297183487F830FC4C8E9059E40 /* OCBSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8E1976C64842A78AB3C87C76615FC4 /* OCBSession.swift */; };
+		6236D715578A483DB1E53A393712121A /* ocb.c in Sources */ = {isa = PBXBuildFile; fileRef = 3E47DE56953F47C29E0893B8CDD69708 /* ocb.c */; };
 		DE63ADE7C9F14E50B62404BD /* SessionKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */; };
 		1FCDB2638DAB4482A4E0C51E /* SecureRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D3691FA6324878BDB61B35 /* SecureRandom.swift */; };
 		C6C5AC7DCA2D4F87BD29A109 /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DD095043A54897BD02CC57 /* Clock.swift */; };
@@ -119,6 +121,10 @@
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostProfile.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F309 /* MoshConnectInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshConnectInfo.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshCoreRuntime.swift; sourceTree = "<group>"; };
+		6C8E1976C64842A78AB3C87C76615FC4 /* OCBSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCBSession.swift; sourceTree = "<group>"; };
+		3E47DE56953F47C29E0893B8CDD69708 /* ocb.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ocb.c; sourceTree = "<group>"; };
+		2CF4BD2B2A5946CF9F9B9FD50BC3AF01 /* ae.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ae.h; sourceTree = "<group>"; };
+		F789644648F649058124AEA475E31280 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKey.swift; sourceTree = "<group>"; };
 		A5D3691FA6324878BDB61B35 /* SecureRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureRandom.swift; sourceTree = "<group>"; };
 		56DD095043A54897BD02CC57 /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
@@ -190,6 +196,7 @@
 				D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */,
 				A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */,
 				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
+				F789644648F649058124AEA475E31280 /* Bridging-Header.h */,
 			);
 			path = MoshTerminal;
 			sourceTree = "<group>";
@@ -220,10 +227,29 @@
 			isa = PBXGroup;
 			children = (
 				F4F4F4F4F4F4F4F4F4F4F405 /* README.md */,
+				396C6F53CE964378878FEEB3394366DF /* Crypto */,
 				6D50D474ACBA42F58AB05B63 /* Util */,
 				F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */,
 			);
 			path = MoshClientCore;
+			sourceTree = "<group>";
+		};
+		396C6F53CE964378878FEEB3394366DF /* Crypto */ = {
+			isa = PBXGroup;
+			children = (
+				6C8E1976C64842A78AB3C87C76615FC4 /* OCBSession.swift */,
+				F1BB48837A1C4A6A8D7CE93AB5CCACA0 /* OCB */,
+			);
+			path = Crypto;
+			sourceTree = "<group>";
+		};
+		F1BB48837A1C4A6A8D7CE93AB5CCACA0 /* OCB */ = {
+			isa = PBXGroup;
+			children = (
+				3E47DE56953F47C29E0893B8CDD69708 /* ocb.c */,
+				2CF4BD2B2A5946CF9F9B9FD50BC3AF01 /* ae.h */,
+			);
+			path = OCB;
 			sourceTree = "<group>";
 		};
 		6D50D474ACBA42F58AB05B63 /* Util */ = {
@@ -427,6 +453,8 @@
 				C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B9 /* MoshConnectInfo.swift in Sources */,
 				F4F4F4F4F4F4F4F4F4F4F404 /* MoshCoreRuntime.swift in Sources */,
+				71F7D6297183487F830FC4C8E9059E40 /* OCBSession.swift in Sources */,
+				6236D715578A483DB1E53A393712121A /* ocb.c in Sources */,
 				DE63ADE7C9F14E50B62404BD /* SessionKey.swift in Sources */,
 				1FCDB2638DAB4482A4E0C51E /* SecureRandom.swift in Sources */,
 				C6C5AC7DCA2D4F87BD29A109 /* Clock.swift in Sources */,
@@ -508,6 +536,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OBJC_BRIDGING_HEADER = MoshTerminal/Bridging-Header.h;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -535,6 +564,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = MoshTerminal/Bridging-Header.h;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

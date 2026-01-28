@@ -32,6 +32,13 @@ enum LicensesData {
             text: LicenseTexts.openSSL
         ),
         LicenseItem(
+            id: "ocb",
+            name: "OCB v3 Reference Code",
+            licenseName: "ISC-style",
+            attribution: "Copyright (c) 2013 Ted Krovetz.",
+            text: LicenseTexts.ocb
+        ),
+        LicenseItem(
             id: "mosh",
             name: "Mosh",
             licenseName: "GNU General Public License v3.0",
@@ -290,6 +297,26 @@ Apache License
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
+"""
+
+    static let ocb = """
+OCB Version 3 Reference Code (Optimized C)
+Copyright (c) 2013 Ted Krovetz.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Phillip Rogaway holds patents relevant to OCB. See the following for
+his patent grant: http://www.cs.ucdavis.edu/~rogaway/ocb/grant.htm
 """
 
     static let mosh = """

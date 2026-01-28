@@ -244,6 +244,96 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(reassembled, payload)
     }
 
+    func testOCBSessionRoundTripSizes() throws {
+        let key = [UInt8](0..<16)
+        let session = try OCBSession(key16: key)
+        let sizes = [0, 1, 15, 16, 31, 32, 1024]
+        for (index, size) in sizes.enumerated() {
+            let nonceVal = UInt64(100 + index)
+            var bytes = [UInt8](repeating: 0, count: size)
+            for offset in 0..<size {
+                bytes[offset] = UInt8(truncatingIfNeeded: offset)
+            }
+            let plaintext = Data(bytes)
+            let encrypted = try session.encrypt(nonceVal: nonceVal, plaintext: plaintext)
+            let (decodedNonce, decodedPlaintext) = try session.decrypt(ciphertext: encrypted)
+            XCTAssertEqual(decodedNonce, nonceVal)
+            XCTAssertEqual(decodedPlaintext, plaintext)
+        }
+    }
+
+    func testOCBSessionTamperFails() throws {
+        let key = [UInt8](0..<16)
+        let session = try OCBSession(key16: key)
+        let plaintext = Data("tamper-test".utf8)
+        let encrypted = try session.encrypt(nonceVal: 42, plaintext: plaintext)
+
+        var tamperedCiphertext = encrypted
+        tamperedCiphertext[8] ^= 0xFF
+        XCTAssertThrowsError(try session.decrypt(ciphertext: tamperedCiphertext))
+
+        var tamperedTag = encrypted
+        tamperedTag[tamperedTag.count - 1] ^= 0x01
+        XCTAssertThrowsError(try session.decrypt(ciphertext: tamperedTag))
+
+        let truncated = Data(encrypted.prefix(7))
+        XCTAssertThrowsError(try session.decrypt(ciphertext: truncated))
+    }
+
+    func testOCBSessionNonceFormatting() throws {
+        let key = [UInt8](0..<16)
+        let session = try OCBSession(key16: key)
+        let nonceVal: UInt64 = 0x0102030405060708
+        let encrypted = try session.encrypt(nonceVal: nonceVal, plaintext: Data())
+        let noncePrefix = encrypted.prefix(8)
+        XCTAssertEqual(noncePrefix, Data([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]))
+    }
+
+    func testOCBRFC7253Vector() throws {
+        let key = bytesFromHex("000102030405060708090A0B0C0D0E0F")
+        let nonce = bytesFromHex("BBAA99887766554433221103")
+        let plaintext = bytesFromHex("0001020304050607")
+        let expected = bytesFromHex("45DD69F8F5AAE72414054CD1F35D82760B2CD00D2F99BFA9")
+
+        guard let ctx = ae_allocate(nil) else {
+            XCTFail("Failed to allocate OCB context")
+            return
+        }
+        defer {
+            _ = ae_clear(ctx)
+            ae_free(ctx)
+        }
+
+        let initResult = key.withUnsafeBytes { keyPtr in
+            ae_init(ctx, keyPtr.baseAddress, Int32(key.count), 12, 16)
+        }
+        XCTAssertEqual(initResult, AE_SUCCESS)
+
+        var ciphertext = [UInt8](repeating: 0, count: plaintext.count)
+        var tag = [UInt8](repeating: 0, count: 16)
+        let encryptResult = nonce.withUnsafeBytes { noncePtr in
+            plaintext.withUnsafeBytes { ptPtr in
+                ciphertext.withUnsafeMutableBytes { ctPtr in
+                    tag.withUnsafeMutableBytes { tagPtr in
+                        ae_encrypt(
+                            ctx,
+                            noncePtr.baseAddress,
+                            ptPtr.baseAddress,
+                            Int32(plaintext.count),
+                            nil,
+                            0,
+                            ctPtr.baseAddress,
+                            tagPtr.baseAddress,
+                            AE_FINALIZE
+                        )
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(Int(encryptResult), plaintext.count)
+        XCTAssertEqual(Data(ciphertext + tag), Data(expected))
+    }
+
     private func randomData(count: Int, using rng: inout SystemRandomNumberGenerator) -> Data {
         var bytes = [UInt8]()
         bytes.reserveCapacity(count)
@@ -286,5 +376,21 @@ final class MoshClientCoreUtilTests: XCTestCase {
         instructionWriter.writeKey(fieldNumber: 7, wireType: 2)
         instructionWriter.writeLengthDelimited(echoWriter.data)
         return instructionWriter.data
+    }
+
+    private func bytesFromHex(_ hex: String) -> [UInt8] {
+        let sanitized = hex.filter { !$0.isWhitespace }
+        var bytes: [UInt8] = []
+        bytes.reserveCapacity(sanitized.count / 2)
+        var index = sanitized.startIndex
+        while index < sanitized.endIndex {
+            let nextIndex = sanitized.index(index, offsetBy: 2)
+            let byteString = sanitized[index..<nextIndex]
+            if let byte = UInt8(byteString, radix: 16) {
+                bytes.append(byte)
+            }
+            index = nextIndex
+        }
+        return bytes
     }
 }
