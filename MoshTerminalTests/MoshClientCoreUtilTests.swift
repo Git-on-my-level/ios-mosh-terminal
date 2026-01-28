@@ -399,6 +399,89 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(Data(ciphertext + tag), Data(expected))
     }
 
+    func testTransportReceiverAppliesInOrderDiffsAndAcks() throws {
+        let sender = TransportSender()
+        let applier = TestHostDiffApplier()
+        let receiver = TransportReceiver(
+            transportSender: sender,
+            hostApplier: applier.asHostApplier()
+        )
+
+        let hostBytes = Data("hello".utf8)
+        let diff = encodeHostMessageDiff([
+            encodeHostBytesInstruction(hostBytes),
+            encodeResizeInstruction(cols: 100, rows: 40)
+        ])
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            oldNum: 0,
+            newNum: 1,
+            diff: diff
+        )
+
+        try receiver.process(instruction)
+
+        XCTAssertEqual(receiver.remoteStateTracker.lastAppliedRemoteNum, 1)
+        XCTAssertEqual(sender.ackNum, 1)
+        XCTAssertEqual(applier.appliedEvents, [
+            .hostBytes(hostBytes),
+            .resize(cols: 100, rows: 40)
+        ])
+    }
+
+    func testTransportReceiverIgnoresOutOfOrderDiffs() throws {
+        let sender = TransportSender()
+        let applier = TestHostDiffApplier()
+        let receiver = TransportReceiver(
+            transportSender: sender,
+            hostApplier: applier.asHostApplier()
+        )
+
+        let diff = encodeHostMessageDiff([
+            encodeHostBytesInstruction(Data([0x01]))
+        ])
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            oldNum: 2,
+            newNum: 3,
+            diff: diff
+        )
+
+        try receiver.process(instruction)
+
+        XCTAssertEqual(receiver.remoteStateTracker.lastAppliedRemoteNum, 0)
+        XCTAssertEqual(sender.ackNum, 0)
+        XCTAssertTrue(applier.appliedEvents.isEmpty)
+    }
+
+    func testTransportReceiverProcessesAckNum() throws {
+        let sender = TransportSender()
+        sender.setConnected(true, nowMillis: 0)
+
+        sender.currentState.append(.keystroke(Data([0x41])))
+        _ = sender.tick(nowMillis: 10)
+
+        sender.currentState.append(.keystroke(Data([0x42])))
+        _ = sender.tick(nowMillis: 40)
+
+        XCTAssertEqual(sender.sentStates.map(\.num), [1, 2])
+
+        let applier = TestHostDiffApplier()
+        let receiver = TransportReceiver(
+            transportSender: sender,
+            hostApplier: applier.asHostApplier()
+        )
+
+        let instruction = TransportInstruction(
+            protocolVersion: 2,
+            ackNum: 1
+        )
+
+        try receiver.process(instruction)
+
+        XCTAssertEqual(sender.sentStates.map(\.num), [2])
+    }
+
     private func randomData(count: Int, using rng: inout SystemRandomNumberGenerator) -> Data {
         var bytes = [UInt8]()
         bytes.reserveCapacity(count)
@@ -443,6 +526,15 @@ final class MoshClientCoreUtilTests: XCTestCase {
         return instructionWriter.data
     }
 
+    private func encodeHostMessageDiff(_ instructions: [Data]) -> Data {
+        var writer = ProtoWriter()
+        for instruction in instructions {
+            writer.writeKey(fieldNumber: 1, wireType: 2)
+            writer.writeLengthDelimited(instruction)
+        }
+        return writer.data
+    }
+
     private func bytesFromHex(_ hex: String) -> [UInt8] {
         let sanitized = hex.filter { !$0.isWhitespace }
         var bytes: [UInt8] = []
@@ -466,6 +558,24 @@ final class MoshClientCoreUtilTests: XCTestCase {
 
         func decode(datagram: Data, expectedDirection: PacketDirection) throws -> Data {
             datagram
+        }
+    }
+
+    private final class TestHostDiffApplier {
+        private(set) var appliedEvents: [HostEvent] = []
+
+        func asHostApplier() -> HostDiffApplier {
+            HostDiffApplier(
+                onTerminalOutput: { [weak self] data in
+                    self?.appliedEvents.append(.hostBytes(data))
+                },
+                onResize: { [weak self] cols, rows in
+                    self?.appliedEvents.append(.resize(cols: cols, rows: rows))
+                },
+                onEchoAck: { [weak self] value in
+                    self?.appliedEvents.append(.echoAck(value))
+                }
+            )
         }
     }
 }
