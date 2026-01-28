@@ -78,6 +78,64 @@ final class RepositoryTests: XCTestCase {
         XCTAssertEqual(alphaKeys.count, 2)
     }
 
+    func testConcurrentHostUpsertsPreserveBothChanges() throws {
+        let store = JSONStore(fileURL: makeTempFileURL())
+        let repo = HostRepository(store: store)
+
+        let hostA = HostProfile(
+            displayName: "Alpha",
+            hostname: "alpha.example.com",
+            username: "mosh",
+            sshPort: 22,
+            keyRefId: "key-alpha",
+            lastConnectedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let hostB = HostProfile(
+            displayName: "Beta",
+            hostname: "beta.example.com",
+            username: "mosh",
+            sshPort: 2222,
+            keyRefId: "key-beta",
+            lastConnectedAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var errors: [Error] = []
+
+        group.enter()
+        DispatchQueue.global().async {
+            defer { group.leave() }
+            do {
+                try repo.upsert(hostA)
+            } catch {
+                lock.lock()
+                errors.append(error)
+                lock.unlock()
+            }
+        }
+
+        group.enter()
+        DispatchQueue.global().async {
+            defer { group.leave() }
+            do {
+                try repo.upsert(hostB)
+            } catch {
+                lock.lock()
+                errors.append(error)
+                lock.unlock()
+            }
+        }
+
+        XCTAssertEqual(group.wait(timeout: .now() + 2), .success)
+        XCTAssertTrue(errors.isEmpty)
+
+        let all = try repo.all()
+        XCTAssertEqual(all.count, 2)
+        XCTAssertTrue(all.contains(where: { $0.id == hostA.id }))
+        XCTAssertTrue(all.contains(where: { $0.id == hostB.id }))
+    }
+
     private func makeTempFileURL() -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         return tempDir.appendingPathComponent("store.json")
