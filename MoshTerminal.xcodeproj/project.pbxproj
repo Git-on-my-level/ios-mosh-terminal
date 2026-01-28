@@ -24,6 +24,8 @@
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
+		F2F2F2F2F2F2F2F2F2F2F2D1 /* DatagramSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2C1 /* DatagramSocket.swift */; };
+		F2F2F2F2F2F2F2F2F2F2F2D2 /* RoamingDatagramSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2C2 /* RoamingDatagramSocket.swift */; };
 		57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */; };
 		67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */; };
@@ -41,6 +43,7 @@
 		D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1F2 /* DatagramSocketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1F1 /* DatagramSocketTests.swift */; };
 		A9F2CF4273AA43B8A220FD35 /* MoshBootstrapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */; };
 		B656783C53F748E3B8A84134 /* ConnectionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111671E9D83E43D9A0C0C7D1 /* ConnectionManagerTests.swift */; };
 		1452E163F5D344E295B6A360 /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */; };
@@ -97,6 +100,8 @@
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathService.swift; sourceTree = "<group>"; };
+		F2F2F2F2F2F2F2F2F2F2F2C1 /* DatagramSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatagramSocket.swift; sourceTree = "<group>"; };
+		F2F2F2F2F2F2F2F2F2F2F2C2 /* RoamingDatagramSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoamingDatagramSocket.swift; sourceTree = "<group>"; };
 		419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFailure.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
 		2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoff.swift; sourceTree = "<group>"; };
@@ -114,6 +119,7 @@
 		D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainPrivateKeyStore.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidator.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidatorTests.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1F1 /* DatagramSocketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatagramSocketTests.swift; sourceTree = "<group>"; };
 		1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshBootstrapperTests.swift; sourceTree = "<group>"; };
 		111671E9D83E43D9A0C0C7D1 /* ConnectionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManagerTests.swift; sourceTree = "<group>"; };
 		B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
@@ -206,6 +212,8 @@
 			children = (
 				F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */,
+				F2F2F2F2F2F2F2F2F2F2F2C1 /* DatagramSocket.swift */,
+				F2F2F2F2F2F2F2F2F2F2F2C2 /* RoamingDatagramSocket.swift */,
 				419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */,
 				2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */,
@@ -302,6 +310,7 @@
 				11EB1BDED3FF4596BF25B4BA /* ReconnectBackoffPolicyTests.swift */,
 				B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */,
 				D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1F1 /* DatagramSocketTests.swift */,
 				FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */,
 			);
 			path = MoshTerminalTests;
@@ -437,6 +446,8 @@
 				F3F3F3F3F3F3F3F3F3F3F3B3 /* TerminalSessionViewModel.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */,
+				F2F2F2F2F2F2F2F2F2F2F2D1 /* DatagramSocket.swift in Sources */,
+				F2F2F2F2F2F2F2F2F2F2F2D2 /* RoamingDatagramSocket.swift in Sources */,
 				57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */,
 				67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */,
@@ -479,6 +490,7 @@
 				BCF918674E6143BCB7E14C5C /* ReconnectBackoffPolicyTests.swift in Sources */,
 				1452E163F5D344E295B6A360 /* RepositoryTests.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1F2 /* DatagramSocketTests.swift in Sources */,
 				0FE22A9F977F4DE5866962DB /* MoshClientCoreUtilTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
