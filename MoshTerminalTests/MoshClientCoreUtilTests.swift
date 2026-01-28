@@ -124,6 +124,69 @@ final class MoshClientCoreUtilTests: XCTestCase {
         XCTAssertEqual(decoded, instruction)
     }
 
+    func testUserMessageRoundTripMergesKeystrokes() throws {
+        let events: [UserEvent] = [
+            .keystroke(Data("ls".utf8)),
+            .keystroke(Data(" -la".utf8)),
+            .resize(cols: 80, rows: 24),
+            .keystroke(Data("pwd".utf8))
+        ]
+
+        let encoded = UserMessageCodec.encode(events: events)
+        let decoded = try UserMessageCodec.decode(data: encoded)
+
+        let expected: [UserEvent] = [
+            .keystroke(Data("ls -la".utf8)),
+            .resize(cols: 80, rows: 24),
+            .keystroke(Data("pwd".utf8))
+        ]
+        XCTAssertEqual(decoded, expected)
+    }
+
+    func testUserMessageDecodeSkipsUnknownFields() throws {
+        var keystrokeWriter = ProtoWriter()
+        keystrokeWriter.writeKey(fieldNumber: 4, wireType: 2)
+        keystrokeWriter.writeLengthDelimited(Data([0x41]))
+        keystrokeWriter.writeKey(fieldNumber: 50, wireType: 0)
+        keystrokeWriter.writeVarint(123)
+
+        var instructionWriter = ProtoWriter()
+        instructionWriter.writeKey(fieldNumber: 2, wireType: 2)
+        instructionWriter.writeLengthDelimited(keystrokeWriter.data)
+        instructionWriter.writeKey(fieldNumber: 99, wireType: 0)
+        instructionWriter.writeVarint(456)
+
+        var messageWriter = ProtoWriter()
+        messageWriter.writeKey(fieldNumber: 1, wireType: 2)
+        messageWriter.writeLengthDelimited(instructionWriter.data)
+        messageWriter.writeKey(fieldNumber: 200, wireType: 2)
+        messageWriter.writeLengthDelimited(Data([0x00]))
+
+        let decoded = try UserMessageCodec.decode(data: messageWriter.data)
+        XCTAssertEqual(decoded, [.keystroke(Data([0x41]))])
+    }
+
+    func testHostMessageDecodeEvents() throws {
+        let hostBytes = Data("\u{1B}[31mHi\u{1B}[0m".utf8)
+        let hostInstruction = encodeHostBytesInstruction(hostBytes)
+        let resizeInstruction = encodeResizeInstruction(cols: 100, rows: 40)
+        let echoAckInstruction = encodeEchoAckInstruction(9001)
+
+        var messageWriter = ProtoWriter()
+        for instruction in [hostInstruction, resizeInstruction, echoAckInstruction] {
+            messageWriter.writeKey(fieldNumber: 1, wireType: 2)
+            messageWriter.writeLengthDelimited(instruction)
+        }
+
+        let decoded = try HostMessageCodec.decode(data: messageWriter.data)
+        let expected: [HostEvent] = [
+            .hostBytes(hostBytes),
+            .resize(cols: 100, rows: 40),
+            .echoAck(9001)
+        ]
+        XCTAssertEqual(decoded, expected)
+    }
+
     private func randomData(count: Int, using rng: inout SystemRandomNumberGenerator) -> Data {
         var bytes = [UInt8]()
         bytes.reserveCapacity(count)
@@ -131,5 +194,40 @@ final class MoshClientCoreUtilTests: XCTestCase {
             bytes.append(UInt8.random(in: 0...UInt8.max, using: &rng))
         }
         return Data(bytes)
+    }
+
+    private func encodeHostBytesInstruction(_ bytes: Data) -> Data {
+        var hostBytesWriter = ProtoWriter()
+        hostBytesWriter.writeKey(fieldNumber: 4, wireType: 2)
+        hostBytesWriter.writeLengthDelimited(bytes)
+
+        var instructionWriter = ProtoWriter()
+        instructionWriter.writeKey(fieldNumber: 2, wireType: 2)
+        instructionWriter.writeLengthDelimited(hostBytesWriter.data)
+        return instructionWriter.data
+    }
+
+    private func encodeResizeInstruction(cols: Int, rows: Int) -> Data {
+        var resizeWriter = ProtoWriter()
+        resizeWriter.writeKey(fieldNumber: 5, wireType: 0)
+        resizeWriter.writeVarint(UInt64(cols))
+        resizeWriter.writeKey(fieldNumber: 6, wireType: 0)
+        resizeWriter.writeVarint(UInt64(rows))
+
+        var instructionWriter = ProtoWriter()
+        instructionWriter.writeKey(fieldNumber: 3, wireType: 2)
+        instructionWriter.writeLengthDelimited(resizeWriter.data)
+        return instructionWriter.data
+    }
+
+    private func encodeEchoAckInstruction(_ value: UInt64) -> Data {
+        var echoWriter = ProtoWriter()
+        echoWriter.writeKey(fieldNumber: 8, wireType: 0)
+        echoWriter.writeVarint(value)
+
+        var instructionWriter = ProtoWriter()
+        instructionWriter.writeKey(fieldNumber: 7, wireType: 2)
+        instructionWriter.writeLengthDelimited(echoWriter.data)
+        return instructionWriter.data
     }
 }
