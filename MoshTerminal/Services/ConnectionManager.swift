@@ -196,6 +196,7 @@ final class ConnectionManager: ObservableObject {
         let controller = self.controller
         failure = nil
         await stopEngine()
+        guard connectToken == token else { return }
 
         if isReconnect {
             state = .reconnecting
@@ -367,6 +368,7 @@ final class ConnectionManager: ObservableObject {
     private func cancelConnectTask() {
         connectTask?.cancel()
         connectTask = nil
+        connectToken = UUID()
         resumeConnectWaiter(connected: false)
     }
 
