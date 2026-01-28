@@ -15,6 +15,9 @@ enum TransportFramingError: Error, Equatable {
     case mtuTooSmall(minimum: Int, actual: Int)
 }
 
+/// MoshClientCore entry point for protocol framing.
+/// Do not copy upstream GPL Mosh code here.
+/// Protocol behavior only.
 final class TransportFraming {
     static let expectedProtocolVersion: UInt32 = 2
     static let defaultPacketOverheadBytes = 24
