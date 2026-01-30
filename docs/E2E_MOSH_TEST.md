@@ -19,7 +19,7 @@ This will:
 1. Start the Docker harness (if not already running).
 2. Export the required `MOSH_*` env vars for the test.
 3. Run the `MoshE2EIntegrationTests/testMoshBootstrapAndHandshake` test on the simulator.
-4. Stop the harness automatically when the test completes.
+4. Stop the harness automatically when the test completes (only if the script started it).
 
 ## Example output
 You should see output similar to:
