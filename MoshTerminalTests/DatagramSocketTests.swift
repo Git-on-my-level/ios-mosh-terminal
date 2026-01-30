@@ -25,11 +25,11 @@ private final class UDPEchoServer {
 
     private let socketFD: Int32
     private let queue = DispatchQueue(label: "UDPEchoServer")
-    private var source: DispatchSourceRead?
+    private var source: DispatchSourceRead? = nil
 
     init() throws {
-        socketFD = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-        guard socketFD >= 0 else {
+        let fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+        guard fd >= 0 else {
             throw DatagramSocketError.socketCreationFailed(errno: errno)
         }
 
@@ -41,12 +41,12 @@ private final class UDPEchoServer {
 
         let didBind = withUnsafePointer(to: &addr) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
             }
         }
         guard didBind else {
             let bindErrno = errno
-            Darwin.close(socketFD)
+            Darwin.close(fd)
             throw DatagramSocketError.bindFailed(port: nil, errno: bindErrno)
         }
 
@@ -54,38 +54,33 @@ private final class UDPEchoServer {
         var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
         let result = withUnsafeMutablePointer(to: &storage) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                getsockname(socketFD, $0, &length)
+                getsockname(fd, $0, &length)
             }
         }
         guard result == 0 else {
             let bindErrno = errno
-            Darwin.close(socketFD)
+            Darwin.close(fd)
             throw DatagramSocketError.bindFailed(port: nil, errno: bindErrno)
         }
+        let resolvedPort: UInt16
         if storage.ss_family == sa_family_t(AF_INET) {
-            port = withUnsafePointer(to: &storage) { pointer in
+            resolvedPort = withUnsafePointer(to: &storage) { pointer in
                 pointer.withMemoryRebound(to: sockaddr_in.self, capacity: 1) {
                     UInt16(bigEndian: $0.pointee.sin_port)
                 }
             }
         } else {
-            port = 0
+            resolvedPort = 0
         }
 
-        let flags = fcntl(socketFD, F_GETFL)
+        let flags = fcntl(fd, F_GETFL)
         if flags >= 0 {
-            _ = fcntl(socketFD, F_SETFL, flags | O_NONBLOCK)
+            _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK)
         }
 
-        let source = DispatchSource.makeReadSource(fileDescriptor: Int(socketFD), queue: queue)
-        source.setEventHandler { [weak self] in
-            self?.handleRead()
-        }
-        source.setCancelHandler { [fd = socketFD] in
-            Darwin.close(fd)
-        }
-        self.source = source
-        source.resume()
+        socketFD = fd
+        port = resolvedPort
+        source = Self.makeSource(fd: fd, queue: queue)
     }
 
     func close() {
@@ -93,7 +88,19 @@ private final class UDPEchoServer {
         source = nil
     }
 
-    private func handleRead() {
+    private static func makeSource(fd: Int32, queue: DispatchQueue) -> DispatchSourceRead {
+        let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
+        source.setEventHandler {
+            handleRead(socketFD: fd)
+        }
+        source.setCancelHandler {
+            Darwin.close(fd)
+        }
+        source.resume()
+        return source
+    }
+
+    private static func handleRead(socketFD: Int32) {
         var buffer = [UInt8](repeating: 0, count: 2048)
         while true {
             var addrStorage = sockaddr_storage()

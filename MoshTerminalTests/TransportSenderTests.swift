@@ -26,7 +26,7 @@ final class TransportSenderTests: XCTestCase {
         sender.currentState.append(.keystroke(Data("b".utf8)))
         _ = sender.tick(nowMillis: 28)
 
-        sender.processAckThrough(1)
+        sender.processAckThrough(1, nowMillis: 28)
 
         XCTAssertEqual(sender.sentStates.count, 1)
         XCTAssertEqual(sender.sentStates.first?.num, 2)

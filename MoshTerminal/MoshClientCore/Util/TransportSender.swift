@@ -74,13 +74,13 @@ final class TransportSender {
         if let matched = sentStates.last(where: { $0.num <= ack }) {
             lastAckedState = matched.state
             lastAckedStateNum = matched.num
-            if ackAdvanced {
+            if ackAdvanced, nowMillis >= matched.timestampMillis {
                 updateRtt(sampleMillis: nowMillis - matched.timestampMillis)
             }
         } else if ack >= lastSentStateNum {
             lastAckedState = lastSentState
             lastAckedStateNum = lastSentStateNum
-            if ackAdvanced, let timestamp = lastSentStateTimestampMillis {
+            if ackAdvanced, let timestamp = lastSentStateTimestampMillis, nowMillis >= timestamp {
                 updateRtt(sampleMillis: nowMillis - timestamp)
             }
         }
@@ -95,11 +95,13 @@ final class TransportSender {
 
         scheduleIfNeeded(nowMillis: nowMillis)
 
-        let dueAck = nextAckTimeMillis.map { nowMillis >= $0 } ?? false
-        let dueSend = nextSendTimeMillis.map { nowMillis >= $0 } ?? false
-        let minDelayPassed = lastSendMillis.map { nowMillis >= $0 + Constants.minSendIntervalMillis } ?? true
         let hasNewState = currentState != lastSentState
-        let canResend = shouldResend(nowMillis: nowMillis)
+        let isBackpressured = hasNewState && sentStates.count >= Constants.maxSentStates
+        let canSendNewState = hasNewState && !isBackpressured
+        let dueAck = nextAckTimeMillis.map { nowMillis >= $0 } ?? false
+        let dueSend = canSendNewState && (nextSendTimeMillis.map { nowMillis >= $0 } ?? false)
+        let minDelayPassed = lastSendMillis.map { nowMillis >= $0 + Constants.minSendIntervalMillis } ?? true
+        let canResend = shouldResend(nowMillis: nowMillis, allowStale: isBackpressured)
 
         if !(minDelayPassed && (dueSend || dueAck || canResend)) {
             return []
@@ -109,7 +111,7 @@ final class TransportSender {
         let newNum: UInt64
         let includeStateDiff: Bool
 
-        if hasNewState {
+        if canSendNewState {
             newNum = lastSentStateNum + 1
             sendingState = currentState
             includeStateDiff = true
@@ -133,15 +135,12 @@ final class TransportSender {
             instruction.diff = sendingState.diff(from: lastAckedState)
         }
 
-        if includeStateDiff && hasNewState {
+        if includeStateDiff && canSendNewState {
             lastSentState = currentState
             lastSentStateNum = newNum
             lastSentStateTimestampMillis = nowMillis
             let timestamped = TimestampedState(num: newNum, state: currentState, timestampMillis: nowMillis)
             sentStates.append(timestamped)
-            if sentStates.count > Constants.maxSentStates {
-                sentStates.remove(at: sentStates.count / 2)
-            }
         } else if includeStateDiff && canResend {
             if let index = sentStates.firstIndex(where: { $0.num == newNum }) {
                 sentStates[index] = TimestampedState(num: newNum, state: sentStates[index].state, timestampMillis: nowMillis)
@@ -170,9 +169,12 @@ final class TransportSender {
 
         scheduleIfNeeded(nowMillis: nowMillis)
 
+        let hasNewState = currentState != lastSentState
+        let isBackpressured = hasNewState && sentStates.count >= Constants.maxSentStates
+        let canSendNewState = hasNewState && !isBackpressured
         var candidates: [UInt64] = []
 
-        if let nextSend = nextSendTimeMillis {
+        if canSendNewState, let nextSend = nextSendTimeMillis {
             candidates.append(applyMinSendInterval(to: nextSend))
         }
 
@@ -180,7 +182,7 @@ final class TransportSender {
             candidates.append(applyMinSendInterval(to: nextAck))
         }
 
-        if let resendTime = nextResendTime(nowMillis: nowMillis) {
+        if let resendTime = nextResendTime(nowMillis: nowMillis, allowStale: isBackpressured) {
             candidates.append(applyMinSendInterval(to: resendTime))
         }
 
@@ -213,13 +215,15 @@ final class TransportSender {
 
     private func scheduleIfNeeded(nowMillis: UInt64) {
         if currentState != lastSentState {
-            let proposed = nowMillis + Constants.sendMinDelayMillis
             if let existing = nextSendTimeMillis {
-                if proposed > existing {
-                    nextSendTimeMillis = proposed
+                if nowMillis < existing {
+                    let proposed = nowMillis + Constants.sendMinDelayMillis
+                    if proposed > existing {
+                        nextSendTimeMillis = proposed
+                    }
                 }
             } else {
-                nextSendTimeMillis = proposed
+                nextSendTimeMillis = nowMillis
             }
             lastActivityMillis = nowMillis
         }
@@ -229,8 +233,8 @@ final class TransportSender {
         }
     }
 
-    private func shouldResend(nowMillis: UInt64) -> Bool {
-        guard currentState == lastSentState, !sentStates.isEmpty else {
+    private func shouldResend(nowMillis: UInt64, allowStale: Bool = false) -> Bool {
+        guard (allowStale || currentState == lastSentState), !sentStates.isEmpty else {
             return false
         }
         guard let lastSend = lastSendMillis else {
@@ -245,8 +249,8 @@ final class TransportSender {
         return nowMillis >= lastSend + Constants.maxSendIntervalMillis
     }
 
-    private func nextResendTime(nowMillis: UInt64) -> UInt64? {
-        guard currentState == lastSentState, !sentStates.isEmpty else {
+    private func nextResendTime(nowMillis: UInt64, allowStale: Bool = false) -> UInt64? {
+        guard (allowStale || currentState == lastSentState), !sentStates.isEmpty else {
             return nil
         }
         guard let lastSend = lastSendMillis else {
