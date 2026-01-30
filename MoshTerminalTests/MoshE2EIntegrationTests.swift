@@ -86,7 +86,7 @@ final class MoshE2EIntegrationTests: XCTestCase {
 #else
 final class MoshE2EIntegrationTests: XCTestCase {
     func testMoshBootstrapAndHandshake() throws {
-        throw XCTSkip("Mosh or libssh2 is unavailable in this build.")
+        XCTFail("Mosh or libssh2 is unavailable in this build. Provide MoshClient and libssh2 to run this E2E test.")
     }
 }
 #endif
