@@ -69,7 +69,7 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
             throw DatagramSocketError.closed
         }
         maybeHop()
-        let socket = currentSocket()
+        let socket = try currentSocket()
         do {
             try socket.send(data)
         } catch {
@@ -237,6 +237,10 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         } else {
             shouldFinish = entries.isEmpty
         }
+        if entries.isEmpty {
+            isClosed = true
+            currentSocketId = nil
+        }
         stateLock.unlock()
 
         entry.socket.close()
@@ -247,12 +251,15 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         }
     }
 
-    private func currentSocket() -> DatagramSocket {
+    private func currentSocket() throws -> DatagramSocket {
         stateLock.lock()
         let entry = currentSocketId.flatMap { entries[$0] }
         let socket = entry?.socket ?? entries.values.first?.socket
         stateLock.unlock()
-        return socket ?? entries.values.first!.socket
+        guard let socket else {
+            throw DatagramSocketError.closed
+        }
+        return socket
     }
 
     private func currentLocalPort() -> UInt16? {
