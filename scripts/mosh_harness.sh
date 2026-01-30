@@ -38,6 +38,23 @@ maybe_warn_cmd() {
   fi
 }
 
+ssh_keyscan_with_retry() {
+  local host=$1
+  local port=$2
+  local out=$3
+  local attempts=10
+  local delay=0.3
+
+  for _ in $(seq 1 "$attempts"); do
+    if ssh-keyscan -p "$port" "$host" > "$out" 2>/dev/null; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+
+  return 1
+}
+
 build_image_if_needed() {
   if docker image inspect "$IMAGE_TAG" >/dev/null 2>&1; then
     return
@@ -137,7 +154,9 @@ start_harness() {
     die "Failed to determine host port for SSH"
   fi
 
-  ssh-keyscan -p "$host_port" "$MOSH_HOST" > "$state_dir/known_hosts" 2>/dev/null
+  if ! ssh_keyscan_with_retry "$MOSH_HOST" "$host_port" "$state_dir/known_hosts"; then
+    die "Failed to capture SSH host key from $MOSH_HOST:$host_port"
+  fi
 
   cat > "$state_dir/connection.env" <<ENVEOF
 export MOSH_HOST="$MOSH_HOST"
