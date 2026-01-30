@@ -18,3 +18,6 @@ This zip contains the planning documents to guide coding agents implementing a m
 - iOS Simulator runtime must be installed via Xcode → Settings → Platforms.
 - Ensure developer tools path is correct: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`
 - Build via CLI: `./scripts/build_sim.sh`
+
+## E2E Mosh test
+See `docs/E2E_MOSH_TEST.md` for prerequisites, commands, example output, and troubleshooting tips.
