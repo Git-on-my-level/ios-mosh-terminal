@@ -7,9 +7,14 @@ final class KeyManagementViewModel: ObservableObject {
     @Published var alertMessage: String?
 
     private let store: KeychainPrivateKeyStore
+    private let hostRepository: HostRepository
 
-    init(store: KeychainPrivateKeyStore = KeychainPrivateKeyStore()) {
+    init(
+        store: KeychainPrivateKeyStore = KeychainPrivateKeyStore(),
+        hostRepository: HostRepository = HostRepository(store: JSONStore())
+    ) {
         self.store = store
+        self.hostRepository = hostRepository
     }
 
     func loadKeys() {
@@ -49,6 +54,20 @@ final class KeyManagementViewModel: ObservableObject {
 
     func deleteKeys(at offsets: IndexSet) {
         let ids = offsets.map { keys[$0].id }
+        guard !ids.isEmpty else {
+            return
+        }
+        do {
+            let hosts = try hostRepository.all()
+            let referencedHosts = hosts.filter { ids.contains($0.keyRefId) }
+            if !referencedHosts.isEmpty {
+                alertMessage = makeDeletionBlockedMessage(hosts: referencedHosts, keyCount: ids.count)
+                return
+            }
+        } catch {
+            alertMessage = error.localizedDescription
+            return
+        }
         for id in ids {
             do {
                 try store.deleteKey(keyRefId: id)
@@ -100,12 +119,33 @@ final class KeyManagementViewModel: ObservableObject {
 
         return normalized
     }
+
+    private func makeDeletionBlockedMessage(hosts: [HostProfile], keyCount: Int) -> String {
+        let names = Array(Set(hosts.map { $0.resolvedDisplayName })).sorted()
+        let keyPhrase = keyCount == 1 ? "This key is" : "One or more selected keys are"
+        if names.count == 1 {
+            let updatePhrase = "Update that host to a different key before deleting."
+            return "\(keyPhrase) still assigned to the host \"\(names[0])\". \(updatePhrase)"
+        }
+        let list = names.map { "- \($0)" }.joined(separator: "\n")
+        let updatePhrase = "Update those hosts to a different key before deleting."
+        return "\(keyPhrase) still assigned to these hosts:\n\(list)\n\(updatePhrase)"
+    }
 }
 
 struct KeyManagementView: View {
-    @StateObject private var viewModel = KeyManagementViewModel()
+    @StateObject private var viewModel: KeyManagementViewModel
     @State private var isShowingFileImporter = false
     @State private var isShowingPasteSheet = false
+
+    init(hostRepository: HostRepository, keyStore: KeychainPrivateKeyStore) {
+        _viewModel = StateObject(
+            wrappedValue: KeyManagementViewModel(
+                store: keyStore,
+                hostRepository: hostRepository
+            )
+        )
+    }
 
     var body: some View {
         List {
@@ -149,7 +189,7 @@ struct KeyManagementView: View {
                 }
             }
         }
-        .alert("Key Import", isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })) {
+        .alert("Keys", isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(viewModel.alertMessage ?? "")
@@ -286,6 +326,9 @@ private struct KeyFileDocumentPicker: UIViewControllerRepresentable {
 
 #Preview {
     NavigationStack {
-        KeyManagementView()
+        KeyManagementView(
+            hostRepository: HostRepository(store: JSONStore()),
+            keyStore: KeychainPrivateKeyStore()
+        )
     }
 }

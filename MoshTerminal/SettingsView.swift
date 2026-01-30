@@ -28,7 +28,10 @@ struct SettingsView: View {
 
             Section("Keys") {
                 NavigationLink("Manage Keys") {
-                    KeyManagementView()
+                    KeyManagementView(
+                        hostRepository: environment.dependencies.hostRepository,
+                        keyStore: environment.dependencies.keyStore
+                    )
                 }
                 NavigationLink("Trusted Host Keys") {
                     TrustedHostKeysView(repository: environment.dependencies.trustedHostKeyRepository)

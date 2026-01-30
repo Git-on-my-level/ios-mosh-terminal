@@ -123,6 +123,8 @@ final class HostEditorViewModel: ObservableObject {
 struct HostEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: HostEditorViewModel
+    private let hostRepository: HostRepository
+    private let keyStore: KeychainPrivateKeyStore
     private let onSave: (HostProfile) -> Void
 
     init(
@@ -138,6 +140,8 @@ struct HostEditorView: View {
                 host: host
             )
         )
+        self.hostRepository = hostRepository
+        self.keyStore = keyStore
         self.onSave = onSave
     }
 
@@ -171,7 +175,10 @@ struct HostEditorView: View {
                     }
                 }
                 NavigationLink("Manage Keys") {
-                    KeyManagementView()
+                    KeyManagementView(
+                        hostRepository: hostRepository,
+                        keyStore: keyStore
+                    )
                 }
             }
 
