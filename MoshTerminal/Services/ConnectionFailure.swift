@@ -51,8 +51,8 @@ struct ConnectionErrorMapper {
         switch reason {
         case .udpUnreachable:
             return ConnectionFailure(
-                title: "UDP unreachable",
-                message: "UDP appears blocked or unreachable. Try a different network or firewall and retry.",
+                title: "UDP blocked",
+                message: "This network appears to block UDP. Mosh requires UDP.",
                 allowsRetry: true
             )
         case .networkUnavailable:
@@ -167,6 +167,14 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "Mosh start failed",
                 message: "Unable to start the Mosh client. Check your network and retry.",
+                allowsRetry: true
+            )
+        case .udpUnreachable:
+            return map(reason: .udpUnreachable)
+        case .integrityFailure:
+            return ConnectionFailure(
+                title: "Connection unstable",
+                message: "Too many invalid packets were received. Check the network and retry.",
                 allowsRetry: true
             )
         }

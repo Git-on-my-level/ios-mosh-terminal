@@ -385,8 +385,9 @@ private final class TestMoshEngine: MoshEngine, @unchecked Sendable {
         case failStart
     }
 
-    var onOutput: ((Data) -> Void)?
-    var onStateChange: ((MoshEngineState) -> Void)?
+    var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
+    var onStateChange: (@Sendable (MoshEngineState) -> Void)?
 
     let behavior: Behavior
     let stopState: MoshEngineState

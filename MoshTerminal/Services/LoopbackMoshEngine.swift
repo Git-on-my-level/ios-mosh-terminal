@@ -1,7 +1,8 @@
 import Foundation
 
-final class LoopbackMoshEngine: MoshEngine, @unchecked Sendable {
+final class LoopbackMoshEngine: MoshEngine, MoshEngineDebugProviding, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
     private var started = false
 
@@ -22,5 +23,14 @@ final class LoopbackMoshEngine: MoshEngine, @unchecked Sendable {
 
     func stop() async {
         onStateChange?(.idle)
+    }
+
+    func debugSnapshot() async -> MoshEngineDebugSnapshot {
+        MoshEngineDebugSnapshot(
+            lastHeardAgeMillis: nil,
+            sendIntervalMillis: nil,
+            rtoMillis: nil,
+            localPort: nil
+        )
     }
 }

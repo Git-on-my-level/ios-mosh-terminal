@@ -2,6 +2,7 @@ import Foundation
 
 final class UnavailableMoshEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
 
     func start(connectInfo: MoshConnectInfo, initialTerminalSize: TerminalSize) async throws {

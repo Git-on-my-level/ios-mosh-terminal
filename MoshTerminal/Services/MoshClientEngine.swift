@@ -89,6 +89,7 @@ private final class MoshClientCallbackContext {
 
 final class MoshClientEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
 
     private let queue = DispatchQueue(label: "com.moshterminal.moshengine")

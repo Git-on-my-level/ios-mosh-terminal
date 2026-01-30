@@ -89,6 +89,13 @@ final class ConnectionManager: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var reconnectBackoff: ReconnectBackoffState
 
+    struct DebugSnapshot: Sendable, Equatable {
+        let lastHeardAgeMillis: UInt64?
+        let sendIntervalMillis: UInt64?
+        let rtoMillis: UInt64?
+        let localPort: UInt16?
+    }
+
     init(
         keyStore: PrivateKeyStoring,
         hostRepository: HostPersisting,
@@ -99,7 +106,7 @@ final class ConnectionManager: ObservableObject {
         connectionTimeoutNanoseconds: UInt64 = 5_000_000_000,
         reconnectBackoffPolicy: ReconnectBackoffPolicy = .default,
         reconnectRandomUnit: @escaping () -> Double = { Double.random(in: 0...1) },
-        sleep: @Sendable @escaping (UInt64) async throws -> Void = Task.sleep
+        sleep: @Sendable @escaping (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) }
     ) {
         self.keyStore = keyStore
         self.hostRepository = hostRepository
@@ -176,6 +183,17 @@ final class ConnectionManager: ObservableObject {
         failure = nil
     }
 
+    func debugSnapshot() async -> DebugSnapshot? {
+        guard let engine = engine as? MoshEngineDebugProviding else { return nil }
+        let snapshot = await engine.debugSnapshot()
+        return DebugSnapshot(
+            lastHeardAgeMillis: snapshot.lastHeardAgeMillis,
+            sendIntervalMillis: snapshot.sendIntervalMillis,
+            rtoMillis: snapshot.rtoMillis,
+            localPort: snapshot.localPort
+        )
+    }
+
     private enum ReconnectReason {
         case foreground
         case networkSatisfied
@@ -223,7 +241,7 @@ final class ConnectionManager: ObservableObject {
         await stopEngine()
         guard connectToken == token else { return }
 
-        if !await applyReconnectBackoffIfNeeded(isReconnect: isReconnect, token: token) {
+        if !(await applyReconnectBackoffIfNeeded(isReconnect: isReconnect, token: token)) {
             return
         }
 
@@ -331,6 +349,13 @@ final class ConnectionManager: ObservableObject {
             Task { @MainActor in
                 guard let self, let controller, self.engine === engine else { return }
                 controller.feedOutput(data)
+            }
+        }
+
+        engine.onRemoteResize = { [weak self, weak controller, weak engine] size in
+            Task { @MainActor in
+                guard let self, let controller, self.engine === engine else { return }
+                controller.applyRemoteResize(cols: size.cols, rows: size.rows)
             }
         }
 
@@ -455,6 +480,7 @@ final class ConnectionManager: ObservableObject {
     private func stopEngine() async {
         guard let engine else { return }
         engine.onOutput = nil
+        engine.onRemoteResize = nil
         engine.onStateChange = nil
         self.engine = nil
         await engine.stop()

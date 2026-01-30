@@ -16,6 +16,8 @@ enum MoshEngineState: Sendable {
 enum MoshEngineError: Error, LocalizedError, Equatable {
     case libraryUnavailable
     case startFailed(message: String)
+    case udpUnreachable
+    case integrityFailure
 
     var errorDescription: String? {
         switch self {
@@ -23,12 +25,17 @@ enum MoshEngineError: Error, LocalizedError, Equatable {
             return "Mosh client engine is unavailable."
         case .startFailed(let message):
             return "Mosh client failed to start: \(message)"
+        case .udpUnreachable:
+            return "UDP appears blocked or unreachable."
+        case .integrityFailure:
+            return "Too many invalid packets were received."
         }
     }
 }
 
 protocol MoshEngine: AnyObject, Sendable {
     var onOutput: (@Sendable (Data) -> Void)? { get set }
+    var onRemoteResize: (@Sendable (TerminalSize) -> Void)? { get set }
     var onStateChange: (@Sendable (MoshEngineState) -> Void)? { get set }
 
     func start(connectInfo: MoshConnectInfo, initialTerminalSize: TerminalSize) async throws
@@ -37,18 +44,21 @@ protocol MoshEngine: AnyObject, Sendable {
     func stop() async
 }
 
+struct MoshEngineDebugSnapshot: Sendable, Equatable {
+    let lastHeardAgeMillis: UInt64?
+    let sendIntervalMillis: UInt64?
+    let rtoMillis: UInt64?
+    let localPort: UInt16?
+}
+
+protocol MoshEngineDebugProviding: AnyObject, Sendable {
+    func debugSnapshot() async -> MoshEngineDebugSnapshot
+}
+
 typealias MoshEngineFactory = @Sendable () -> MoshEngine
 
-#if canImport(MoshClient)
 struct DefaultMoshEngineFactory {
     static func make() -> MoshEngineFactory {
-        { MoshClientEngine() }
+        { NativeMoshEngine() }
     }
 }
-#else
-struct DefaultMoshEngineFactory {
-    static func make() -> MoshEngineFactory {
-        { UnavailableMoshEngine() }
-    }
-}
-#endif

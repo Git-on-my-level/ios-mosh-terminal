@@ -11,6 +11,7 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     var onSizeChange: (@Sendable (TerminalSize) -> Void)?
 
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
+    private var pendingRemoteResize: TerminalSize?
 
     func attach(view: TerminalUIKitView) {
         terminalView = view
@@ -37,10 +38,26 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         terminalView?.feed(byteArray: bytes[...])
     }
 
+    func applyRemoteResize(cols: Int, rows: Int) {
+        let size = TerminalSize(cols: cols, rows: rows)
+        guard size != currentSize else { return }
+        currentSize = size
+        guard let terminalView else { return }
+        pendingRemoteResize = size
+        terminalView.resize(cols: cols, rows: rows)
+    }
+
     // MARK: - TerminalViewDelegate
     func sizeChanged(source: TerminalUIKitView, newCols: Int, newRows: Int) {
-        currentSize = TerminalSize(cols: newCols, rows: newRows)
-        onSizeChange?(currentSize)
+        let size = TerminalSize(cols: newCols, rows: newRows)
+        currentSize = size
+        if let pending = pendingRemoteResize {
+            pendingRemoteResize = nil
+            if pending == size {
+                return
+            }
+        }
+        onSizeChange?(size)
     }
 
     func setTerminalTitle(source: TerminalUIKitView, title: String) {}
