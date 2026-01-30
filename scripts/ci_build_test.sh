@@ -25,3 +25,7 @@ fi
 
 "$ROOT_DIR/scripts/build_sim.sh"
 "$ROOT_DIR/scripts/test_sim.sh"
+
+if [ "${MOSH_E2E:-0}" = "1" ]; then
+  "$ROOT_DIR/scripts/e2e_mosh_test.sh"
+fi
