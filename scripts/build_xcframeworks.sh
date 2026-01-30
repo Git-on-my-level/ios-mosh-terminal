@@ -70,13 +70,26 @@ build_openssl_arch() {
   prepare_build_dir "$OPENSSL_SRC" "$build_dir"
 
   pushd "$build_dir" >/dev/null
-  export CC="$(xcrun --sdk "$sdk" --find clang)"
-  export CFLAGS="-arch $arch $min_flag"
-  export LDFLAGS="-arch $arch $min_flag"
+  local sdk_root
+  sdk_root="$(xcrun --sdk "$sdk" --show-sdk-path)"
+  local cc
+  local cflags
+  local ldflags
+  local cppflags
+  cc="$(xcrun --sdk "$sdk" --find clang)"
+  cflags="-arch $arch $min_flag -isysroot $sdk_root"
+  ldflags="-arch $arch $min_flag -isysroot $sdk_root"
+  cppflags="-isysroot $sdk_root"
 
-  ./Configure "$target" no-shared no-dso no-tests --prefix="$build_dir/install"
-  make -j"$JOBS"
-  make install_sw
+  CC="$cc" CFLAGS="$cflags" LDFLAGS="$ldflags" CPPFLAGS="$cppflags" \
+    SDKROOT="$sdk_root" \
+    ./Configure "$target" no-shared no-dso no-tests --prefix="$build_dir/install"
+  CC="$cc" CFLAGS="$cflags" LDFLAGS="$ldflags" CPPFLAGS="$cppflags" \
+    SDKROOT="$sdk_root" \
+    make -j"$JOBS"
+  CC="$cc" CFLAGS="$cflags" LDFLAGS="$ldflags" CPPFLAGS="$cppflags" \
+    SDKROOT="$sdk_root" \
+    make install_sw
   popd >/dev/null
 }
 
@@ -122,9 +135,11 @@ build_libssh2() {
   rm -rf "$device_build"
   cmake -S "$LIBSSH2_SRC" -B "$device_build" \
     -DCMAKE_SYSTEM_NAME=iOS \
-    -DCMAKE_OSX_SYSROOT="$(xcrun --sdk iphoneos --show-sdk-path)" \
+    -DCMAKE_OSX_SYSROOT=iphoneos \
     -DCMAKE_OSX_ARCHITECTURES="arm64" \
     -DCMAKE_OSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+    -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS=OFF \
     -DBUILD_EXAMPLES=OFF \
@@ -141,9 +156,11 @@ build_libssh2() {
   rm -rf "$sim_build"
   cmake -S "$LIBSSH2_SRC" -B "$sim_build" \
     -DCMAKE_SYSTEM_NAME=iOS \
-    -DCMAKE_OSX_SYSROOT="$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+    -DCMAKE_OSX_SYSROOT=iphonesimulator \
     -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
     -DCMAKE_OSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+    -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS=OFF \
     -DBUILD_EXAMPLES=OFF \
