@@ -192,7 +192,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             }
             return try username.withCString { usernameCString in
                 if let passphrase = passphrase {
-                    return try passphrase.withCString { passphraseCString in
+                    return passphrase.withCString { passphraseCString in
                         let result = libssh2_userauth_publickey_frommemory(
                             session,
                             usernameCString,
@@ -242,7 +242,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             let usernameLength = UInt32(username.utf8.count)
             return try keyURL.path.withCString { keyPathCString in
                 if let passphrase = passphrase {
-                    return try passphrase.withCString { passphraseCString in
+                    return passphrase.withCString { passphraseCString in
                         let result = libssh2_userauth_publickey_fromfile_ex(
                             session,
                             usernameCString,
