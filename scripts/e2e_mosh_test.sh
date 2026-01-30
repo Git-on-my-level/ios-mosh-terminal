@@ -19,7 +19,7 @@ ensure_harness() {
     fi
   fi
 
-  "$HARNESS_SCRIPT" start
+  "$HARNESS_SCRIPT" start >&2
   started_harness=1
   state_dir=$(cat "$STATE_FILE")
   if [ ! -f "$state_dir/connection.env" ]; then
