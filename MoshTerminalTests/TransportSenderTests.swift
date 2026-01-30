@@ -54,6 +54,28 @@ final class TransportSenderTests: XCTestCase {
         XCTAssertEqual(sender.waitTime(nowMillis: 0), Int.max)
     }
 
+    func testTransportSenderDoesNotEvictUnackedStatesWhenAtCap() {
+        let sender = TransportSender()
+        sender.setConnected(true, nowMillis: 0)
+
+        let maxStates = TransportSender.Constants.maxSentStates
+        for index in 0..<maxStates {
+            sender.currentState.append(.keystroke(Data([UInt8(0x41 + index % 26)])))
+            _ = sender.tick(nowMillis: UInt64((index + 1) * 20))
+        }
+
+        XCTAssertEqual(sender.sentStates.count, maxStates)
+        XCTAssertEqual(sender.sentStates.first?.num, 1)
+        XCTAssertEqual(sender.sentStates.last?.num, UInt64(maxStates))
+
+        sender.currentState.append(.keystroke(Data([0x7A])))
+        _ = sender.tick(nowMillis: UInt64((maxStates + 1) * 20))
+
+        XCTAssertEqual(sender.sentStates.count, maxStates)
+        XCTAssertEqual(sender.sentStates.first?.num, 1)
+        XCTAssertEqual(sender.sentStates.last?.num, UInt64(maxStates))
+    }
+
     func testTransportSenderResendsAfterMaxInterval() {
         let rng = DeterministicRandomSource(bytes: [0])
         let sender = TransportSender(randomBytes: rng.next)
