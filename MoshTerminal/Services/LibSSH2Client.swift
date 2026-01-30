@@ -1,9 +1,11 @@
-#if canImport(libssh2)
+#if LIBSSH2_AVAILABLE
 import Foundation
 import libssh2
 import Darwin
 
 final class LibSSH2Client: SSHClient, @unchecked Sendable {
+    private static let channelWindowDefault: UInt32 = 2 * 1024 * 1024
+    private static let channelPacketDefault: UInt32 = 32768
     private let queue = DispatchQueue(label: "com.moshterminal.ssh")
     private let hostKeyVerifier: SSHHostKeyVerifying?
 
@@ -26,7 +28,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         passphrase: String?
     ) async throws {
         let fingerprint = try await run {
-            if session != nil {
+            if self.session != nil {
                 throw SSHClientError.alreadyConnected
             }
             let socketFD = try Self.openSocket(host: host, port: port)
@@ -63,13 +65,13 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         }
 
         do {
-            try await run {
-                guard let session = session else {
-                    throw SSHClientError.notConnected
-                }
-                let auth = try Self.authenticate(
-                    session: session,
-                    username: username,
+        try await run {
+            guard let session = self.session else {
+                throw SSHClientError.notConnected
+            }
+            let auth = try Self.authenticate(
+                session: session,
+                username: username,
                     privateKey: privateKey,
                     passphrase: passphrase
                 )
@@ -85,7 +87,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
 
     func fetchHostKeyFingerprint() async throws -> String {
         try await run {
-            guard let fingerprint = hostKeyFingerprint else {
+            guard let fingerprint = self.hostKeyFingerprint else {
                 throw SSHClientError.notConnected
             }
             return fingerprint
@@ -94,11 +96,19 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
 
     func execute(command: String) async throws -> SSHCommandResult {
         try await run {
-            guard let session = session else {
+            guard let session = self.session else {
                 throw SSHClientError.notConnected
             }
 
-            guard let channel = libssh2_channel_open_session(session) else {
+            guard let channel = libssh2_channel_open_ex(
+                session,
+                "session",
+                UInt32("session".utf8.count),
+                Self.channelWindowDefault,
+                Self.channelPacketDefault,
+                nil,
+                0
+            ) else {
                 throw SSHClientError.connectionFailed(message: "Unable to open SSH channel.")
             }
             defer {
@@ -107,7 +117,13 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             }
 
             let execResult = command.withCString { commandCString in
-                libssh2_channel_exec(channel, commandCString)
+                libssh2_channel_process_startup(
+                    channel,
+                    "exec",
+                    UInt32("exec".utf8.count),
+                    commandCString,
+                    UInt32(strlen(commandCString))
+                )
             }
             guard execResult == 0 else {
                 throw SSHClientError.connectionFailed(message: "Command exec failed (\(execResult)).")
@@ -124,17 +140,17 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
 
     func disconnect() async {
         await runIgnoringErrors {
-            if let session = session {
+            if let session = self.session {
                 libssh2_session_disconnect_ex(session, SSH_DISCONNECT_BY_APPLICATION, "", "")
                 libssh2_session_free(session)
             }
-            session = nil
-            hostKeyFingerprint = nil
-            connectedHost = nil
-            connectedPort = nil
-            if socketFD >= 0 {
-                Self.closeSocket(socketFD)
-                socketFD = -1
+            self.session = nil
+            self.hostKeyFingerprint = nil
+            self.connectedHost = nil
+            self.connectedPort = nil
+            if self.socketFD >= 0 {
+                Self.closeSocket(self.socketFD)
+                self.socketFD = -1
             }
         }
     }
@@ -170,7 +186,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         privateKey: Data,
         passphrase: String?
     ) throws -> Int32 {
-        return try privateKey.withUnsafeBytes { privateKeyBuffer in
+        let memoryResult = try privateKey.withUnsafeBytes { privateKeyBuffer in
             guard let privateKeyBase = privateKeyBuffer.bindMemory(to: Int8.self).baseAddress else {
                 throw SSHClientError.authenticationFailed
             }
@@ -198,6 +214,52 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                         0,
                         privateKeyBase,
                         privateKey.count,
+                        nil
+                    )
+                    return Int32(result)
+                }
+            }
+        }
+        if memoryResult == 0 {
+            return 0
+        }
+
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let keyURL = tempDir.appendingPathComponent("id_key")
+        do {
+            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+            try privateKey.write(to: keyURL, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: keyURL.path)
+        } catch {
+            throw SSHClientError.authenticationFailed
+        }
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        return try username.withCString { usernameCString in
+            let usernameLength = UInt32(username.utf8.count)
+            return try keyURL.path.withCString { keyPathCString in
+                if let passphrase = passphrase {
+                    return try passphrase.withCString { passphraseCString in
+                        let result = libssh2_userauth_publickey_fromfile_ex(
+                            session,
+                            usernameCString,
+                            usernameLength,
+                            nil,
+                            keyPathCString,
+                            passphraseCString
+                        )
+                        return Int32(result)
+                    }
+                } else {
+                    let result = libssh2_userauth_publickey_fromfile_ex(
+                        session,
+                        usernameCString,
+                        usernameLength,
+                        nil,
+                        keyPathCString,
                         nil
                     )
                     return Int32(result)
@@ -277,7 +339,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         while let addrInfo = pointer {
             let socketFD = socket(addrInfo.pointee.ai_family, addrInfo.pointee.ai_socktype, addrInfo.pointee.ai_protocol)
             if socketFD >= 0 {
-                let connectResult = connect(socketFD, addrInfo.pointee.ai_addr, addrInfo.pointee.ai_addrlen)
+                let connectResult = Darwin.connect(socketFD, addrInfo.pointee.ai_addr, addrInfo.pointee.ai_addrlen)
                 if connectResult == 0 {
                     return socketFD
                 }

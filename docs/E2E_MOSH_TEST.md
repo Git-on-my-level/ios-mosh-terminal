@@ -1,6 +1,6 @@
 # E2E Mosh Integration Test
 
-This doc explains how to run the end-to-end Mosh integration test locally. The test spins up a local Docker harness that runs `sshd` and `mosh-server`, then the iOS test boots Mosh via SSH and performs the UDP handshake.
+This doc explains how to run the end-to-end Mosh integration test locally. The test spins up a local Docker harness that runs `sshd` and `mosh-server`, then the iOS test boots Mosh via SSH, completes the UDP handshake, and waits for a deterministic output sentinel from the remote shell.
 
 ## Prerequisites
 - Docker (running)
@@ -39,10 +39,23 @@ DESTINATION="platform=iOS Simulator,name=iPhone 17 Pro" ./scripts/e2e_mosh_test.
 MOSH_E2E_TIMEOUT=30 ./scripts/e2e_mosh_test.sh
 ```
 
+You can also override the command and sentinel used to validate output:
+
+```bash
+MOSH_E2E_COMMAND="printf '__MOSH_E2E_OK__\\n'" MOSH_E2E_SENTINEL="__MOSH_E2E_OK__" ./scripts/e2e_mosh_test.sh
+```
+
+By default the script erases the simulator for a clean run. Disable this if you want faster iterations:
+
+```bash
+MOSH_E2E_ERASE_SIM=0 ./scripts/e2e_mosh_test.sh
+```
+
 The harness script also supports overrides:
 
 ```bash
 MOSH_HARNESS_HOST=127.0.0.1 MOSH_HARNESS_UDP_RANGE=60000-61000 ./scripts/mosh_harness.sh start
+MOSH_HARNESS_BIND_HOST=0.0.0.0 ./scripts/mosh_harness.sh start
 ```
 
 ## What the test uses
@@ -67,6 +80,7 @@ No SSH keys or host keys are persisted in the repo or Keychain.
 - `Missing MOSH_* env vars`: Run `./scripts/e2e_mosh_test.sh` (it sets them for the test).
 - `Missing required command: docker` or `ssh-keygen`: Install Docker or OpenSSH tools.
 - `Harness already running`: Stop it with `./scripts/mosh_harness.sh stop`.
-- `Mosh handshake failed`: Check that Docker is running and the UDP port range is free.
+- `Mosh handshake failed`: Check that Docker is running and the UDP port range is free. If the simulator cannot reach `127.0.0.1`, set `MOSH_HARNESS_BIND_HOST=0.0.0.0` and try `MOSH_HARNESS_HOST=<your-host-ip>`.
+- `Did not observe sentinel output`: Verify `MOSH_E2E_COMMAND` runs on the target shell and that the sentinel matches.
 - `mosh-server was not found`: Ensure the harness container built correctly (try `./scripts/mosh_harness.sh stop` then `start`).
 - Simulator build failures: confirm Xcode CLI setup and run `./scripts/build_sim.sh` to validate basics first.

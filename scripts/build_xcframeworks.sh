@@ -241,15 +241,6 @@ create_xcframeworks() {
   fi
   cp "$libssh2_config" "$libssh2_headers/libssh2_config.h"
 
-  mkdir -p "$libssh2_headers/openssl"
-  rsync -a "$openssl_device_prefix/include/openssl/" "$libssh2_headers/openssl/"
-  cat <<'MODULE' > "$libssh2_headers/module.modulemap"
-module libssh2 [system] {
-  umbrella "."
-  export *
-}
-MODULE
-
   rm -rf "$FRAMEWORKS_DIR/libcrypto.xcframework" \
     "$FRAMEWORKS_DIR/libssl.xcframework" \
     "$FRAMEWORKS_DIR/libssh2.xcframework"
@@ -268,6 +259,14 @@ MODULE
     -library "$libssh2_device_lib" -headers "$libssh2_headers" \
     -library "$libssh2_sim_lib" -headers "$libssh2_headers" \
     -output "$FRAMEWORKS_DIR/libssh2.xcframework"
+
+  find "$FRAMEWORKS_DIR/libcrypto.xcframework" -type d -name Headers -prune -exec rm -rf {} +
+  for slice in "$FRAMEWORKS_DIR/libcrypto.xcframework"/*; do
+    if [ -d "$slice" ]; then
+      mkdir -p "$slice/Headers"
+      echo "// Placeholder to satisfy xcframework headers path." > "$slice/Headers/placeholder.h"
+    fi
+  done
 }
 
 main() {

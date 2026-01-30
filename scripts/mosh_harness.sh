@@ -12,11 +12,16 @@ set -euo pipefail
 #   scripts/mosh_harness.sh start
 #   scripts/mosh_harness.sh stop
 #   scripts/mosh_harness.sh status
+#
+# Env overrides:
+#   MOSH_HARNESS_HOST       - hostname/IP clients should use (default 127.0.0.1)
+#   MOSH_HARNESS_BIND_HOST  - host interface to bind docker ports (default 0.0.0.0)
 
 STATE_FILE=${MOSH_HARNESS_STATE_FILE:-/tmp/mosh-harness.state}
 IMAGE_TAG=${MOSH_HARNESS_IMAGE_TAG:-mosh-harness:latest}
 MOSH_USER=${MOSH_HARNESS_USER:-mosh}
 MOSH_HOST=${MOSH_HARNESS_HOST:-127.0.0.1}
+MOSH_BIND_HOST=${MOSH_HARNESS_BIND_HOST:-0.0.0.0}
 MOSH_UDP_RANGE=${MOSH_HARNESS_UDP_RANGE:-60000-61000}
 
 usage() {
@@ -84,6 +89,8 @@ PasswordAuthentication no
 ChallengeResponseAuthentication no
 PermitRootLogin no
 PubkeyAuthentication yes
+PubkeyAcceptedAlgorithms +ssh-rsa
+HostkeyAlgorithms +ssh-rsa
 AuthorizedKeysFile .ssh/authorized_keys
 UsePAM no
 Subsystem sftp /usr/lib/ssh/sftp-server
@@ -95,7 +102,8 @@ set -e
 
 USER_NAME="${MOSH_USER:-mosh}"
 if ! id -u "$USER_NAME" >/dev/null 2>&1; then
-  adduser -D "$USER_NAME"
+  adduser -D -s /bin/sh "$USER_NAME"
+  passwd -d "$USER_NAME" >/dev/null 2>&1 || true
 fi
 
 HOME_DIR="/home/$USER_NAME"
@@ -135,7 +143,7 @@ start_harness() {
   }
   trap cleanup_start EXIT
 
-  ssh-keygen -t ed25519 -N "" -f "$state_dir/ssh_key" >/dev/null
+  ssh-keygen -t rsa -b 2048 -m PEM -N "" -f "$state_dir/ssh_key" >/dev/null
   cp "$state_dir/ssh_key.pub" "$state_dir/authorized_keys"
 
   build_image_if_needed
@@ -144,8 +152,8 @@ start_harness() {
   container_id=$(docker run -d --rm \
     --name "$container_name" \
     -e MOSH_USER="$MOSH_USER" \
-    -p "$MOSH_HOST"::22 \
-    -p "$MOSH_HOST":"$MOSH_UDP_RANGE":"$MOSH_UDP_RANGE"/udp \
+    -p "$MOSH_BIND_HOST"::22 \
+    -p "$MOSH_BIND_HOST":"$MOSH_UDP_RANGE":"$MOSH_UDP_RANGE"/udp \
     -v "$state_dir/authorized_keys":/authorized_keys:ro \
     "$IMAGE_TAG")
 

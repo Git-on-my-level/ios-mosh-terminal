@@ -81,46 +81,62 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
         self.maxDatagramSize = configuration.maxDatagramSize
         self.queue = configuration.queue
 
-        guard let addressInfo = Self.resolve(host: host, port: port) else {
-            throw DatagramSocketError.resolutionFailed(host: host)
-        }
-
         var createdSocket: Int32 = -1
         var selectedRemote = sockaddr_storage()
         var selectedRemoteLen: socklen_t = 0
         var boundPort: UInt16 = 0
 
-        var current = addressInfo
-        while true {
-            let ai = current.pointee
-            let socketFD = socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol)
-            if socketFD >= 0 {
-                if Self.configureSocket(socketFD) {
-                    do {
-                        boundPort = try Self.bindSocket(
-                            socketFD,
-                            family: ai.ai_family,
-                            strategy: configuration.localPortStrategy
-                        )
-                        createdSocket = socketFD
-                        memcpy(&selectedRemote, ai.ai_addr, Int(ai.ai_addrlen))
-                        selectedRemoteLen = ai.ai_addrlen
-                        break
-                    } catch {
+        if let numeric = Self.resolveNumeric(host: host, port: port) {
+            let socketFD = socket(numeric.family, SOCK_DGRAM, IPPROTO_UDP)
+            if socketFD >= 0, Self.configureSocket(socketFD) {
+                boundPort = try Self.bindSocket(
+                    socketFD,
+                    family: numeric.family,
+                    strategy: configuration.localPortStrategy
+                )
+                createdSocket = socketFD
+                selectedRemote = numeric.address
+                selectedRemoteLen = numeric.length
+            } else if socketFD >= 0 {
+                Darwin.close(socketFD)
+            }
+        } else {
+            guard let addressInfo = Self.resolve(host: host, port: port) else {
+                throw DatagramSocketError.resolutionFailed(host: host)
+            }
+
+            var current = addressInfo
+            while true {
+                let ai = current.pointee
+                let socketFD = socket(ai.ai_family, ai.ai_socktype, ai.ai_protocol)
+                if socketFD >= 0 {
+                    if Self.configureSocket(socketFD) {
+                        do {
+                            boundPort = try Self.bindSocket(
+                                socketFD,
+                                family: ai.ai_family,
+                                strategy: configuration.localPortStrategy
+                            )
+                            createdSocket = socketFD
+                            memcpy(&selectedRemote, ai.ai_addr, Int(ai.ai_addrlen))
+                            selectedRemoteLen = ai.ai_addrlen
+                            break
+                        } catch {
+                            Darwin.close(socketFD)
+                        }
+                    } else {
                         Darwin.close(socketFD)
                     }
+                }
+                if let next = ai.ai_next {
+                    current = next
                 } else {
-                    Darwin.close(socketFD)
+                    break
                 }
             }
-            if let next = ai.ai_next {
-                current = next
-            } else {
-                break
-            }
-        }
 
-        freeaddrinfo(addressInfo)
+            freeaddrinfo(addressInfo)
+        }
 
         guard createdSocket >= 0 else {
             throw DatagramSocketError.socketCreationFailed(errno: errno)
@@ -293,8 +309,12 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
 
         if !didBind {
             let bindErrno = errno
-            if case .random = strategy {
-                return try bindWithRandomPorts(socketFD, family: family)
+            if case .random(let range) = strategy {
+                do {
+                    return try bindWithRandomPorts(socketFD, family: family, range: range)
+                } catch {
+                    return try bindEphemeral(socketFD, family: family)
+                }
             }
             throw DatagramSocketError.bindFailed(port: port == 0 ? nil : port, errno: bindErrno)
         }
@@ -302,10 +322,14 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
         return resolveBoundPort(socketFD)
     }
 
-    private static func bindWithRandomPorts(_ socketFD: Int32, family: Int32) throws -> UInt16 {
+    private static func bindWithRandomPorts(
+        _ socketFD: Int32,
+        family: Int32,
+        range: ClosedRange<UInt16>
+    ) throws -> UInt16 {
         let attempts = 16
         for _ in 0..<attempts {
-            let port = UInt16.random(in: 60001...60999)
+            let port = UInt16.random(in: range)
             let didBind: Bool
             if family == AF_INET {
                 var addr = sockaddr_in()
@@ -335,6 +359,37 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
             }
         }
         throw DatagramSocketError.bindFailed(port: nil, errno: errno)
+    }
+
+    private static func bindEphemeral(_ socketFD: Int32, family: Int32) throws -> UInt16 {
+        let didBind: Bool
+        if family == AF_INET {
+            var addr = sockaddr_in()
+            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            addr.sin_family = sa_family_t(AF_INET)
+            addr.sin_port = 0
+            addr.sin_addr = in_addr(s_addr: INADDR_ANY.bigEndian)
+            didBind = withUnsafePointer(to: &addr) { pointer in
+                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                    bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+                }
+            }
+        } else {
+            var addr = sockaddr_in6()
+            addr.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
+            addr.sin6_family = sa_family_t(AF_INET6)
+            addr.sin6_port = 0
+            addr.sin6_addr = in6addr_any
+            didBind = withUnsafePointer(to: &addr) { pointer in
+                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                    bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in6>.size)) == 0
+                }
+            }
+        }
+        if !didBind {
+            throw DatagramSocketError.bindFailed(port: nil, errno: errno)
+        }
+        return resolveBoundPort(socketFD)
     }
 
     private static func resolveBoundPort(_ socketFD: Int32) -> UInt16 {
@@ -368,7 +423,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
         hints.ai_socktype = SOCK_DGRAM
         hints.ai_protocol = IPPROTO_UDP
         hints.ai_family = AF_UNSPEC
-        hints.ai_flags = AI_ADDRCONFIG
+        hints.ai_flags = 0
 
         var result: UnsafeMutablePointer<addrinfo>?
         let portString = String(port)
@@ -377,5 +432,30 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
             return nil
         }
         return result
+    }
+
+    private static func resolveNumeric(host: String, port: UInt16) -> (address: sockaddr_storage, length: socklen_t, family: Int32)? {
+        var storage = sockaddr_storage()
+        var ipv4 = in_addr()
+        if inet_pton(AF_INET, host, &ipv4) == 1 {
+            var addr = sockaddr_in()
+            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            addr.sin_family = sa_family_t(AF_INET)
+            addr.sin_port = port.bigEndian
+            addr.sin_addr = ipv4
+            memcpy(&storage, &addr, MemoryLayout<sockaddr_in>.size)
+            return (storage, socklen_t(MemoryLayout<sockaddr_in>.size), AF_INET)
+        }
+        var ipv6 = in6_addr()
+        if inet_pton(AF_INET6, host, &ipv6) == 1 {
+            var addr = sockaddr_in6()
+            addr.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
+            addr.sin6_family = sa_family_t(AF_INET6)
+            addr.sin6_port = port.bigEndian
+            addr.sin6_addr = ipv6
+            memcpy(&storage, &addr, MemoryLayout<sockaddr_in6>.size)
+            return (storage, socklen_t(MemoryLayout<sockaddr_in6>.size), AF_INET6)
+        }
+        return nil
     }
 }

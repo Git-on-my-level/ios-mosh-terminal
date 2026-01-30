@@ -90,7 +90,7 @@ protocol SSHHostKeyVerifying: Sendable {
     func verify(hostname: String, port: Int, fingerprint: String) async throws
 }
 
-typealias SSHClientFactory = (SSHHostKeyPrompting) -> SSHClient
+typealias SSHClientFactory = @Sendable (SSHHostKeyPrompting) -> SSHClient
 
 protocol SSHClient: Sendable {
     func connect(
@@ -110,7 +110,7 @@ protocol SSHClient: Sendable {
     func cancel() async
 }
 
-#if canImport(libssh2)
+#if LIBSSH2_AVAILABLE
 struct DefaultSSHClientFactory {
     static func make(repository: TrustedHostKeyRepository) -> SSHClientFactory {
         { prompter in
