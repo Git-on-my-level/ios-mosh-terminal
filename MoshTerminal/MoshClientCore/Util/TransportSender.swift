@@ -39,7 +39,7 @@ final class TransportSender {
     private var rttvarMillis: Double?
     private var rtoMillis: UInt64?
 
-    init(randomBytes: @escaping RandomBytesProvider = SecureRandom.bytes) {
+    init(randomBytes: @escaping RandomBytesProvider = SecureRandom.nonThrowingBytes) {
         self.randomBytes = randomBytes
     }
 

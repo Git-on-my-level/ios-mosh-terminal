@@ -117,6 +117,17 @@ final class TransportSenderTests: XCTestCase {
         XCTAssertEqual(instructions.count, 1)
         XCTAssertEqual(instructions[0].chaff, Data([1, 2, 3, 4, 5]))
     }
+
+    func testTransportSenderHandlesRNGFailureGracefully() {
+        let failingRng = FailingRandomSource()
+        let sender = TransportSender(randomBytes: failingRng.next)
+        sender.setConnected(true, nowMillis: 0)
+        sender.currentState.append(.keystroke(Data("a".utf8)))
+
+        let instructions = sender.tick(nowMillis: 8)
+        XCTAssertEqual(instructions.count, 1)
+        XCTAssertEqual(instructions[0].chaff, Data())
+    }
 }
 
 private final class DeterministicRandomSource {
@@ -139,5 +150,11 @@ private final class DeterministicRandomSource {
         let slice = Array(bytes.prefix(count))
         bytes.removeFirst(count)
         return slice
+    }
+}
+
+private final class FailingRandomSource {
+    func next(count: Int) -> [UInt8] {
+        return []
     }
 }
