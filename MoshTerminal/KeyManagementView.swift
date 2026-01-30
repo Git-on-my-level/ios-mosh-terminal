@@ -21,19 +21,30 @@ final class KeyManagementViewModel: ObservableObject {
     }
 
     func importKeyFromFile(data: Data, label: String?) {
-        let text = String(data: data, encoding: .utf8)
-            ?? String(data: data, encoding: .ascii)
-        guard let text else {
-            alertMessage = "Unable to read key as text."
-            return
+        do {
+            let normalizedData = try normalizePrivateKeyData(data)
+            guard let text = String(data: normalizedData, encoding: .utf8) else {
+                alertMessage = "Unable to read key as text."
+                return
+            }
+            importKey(text: text, data: normalizedData, label: label)
+        } catch {
+            alertMessage = error.localizedDescription
         }
-        importKey(text: text, data: data, label: label)
     }
 
     func importKeyFromPaste(text: String, label: String?) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let data = Data(trimmed.utf8)
-        importKey(text: trimmed, data: data, label: label)
+        do {
+            let data = Data(text.utf8)
+            let normalizedData = try normalizePrivateKeyData(data)
+            guard let normalizedText = String(data: normalizedData, encoding: .utf8) else {
+                alertMessage = "Unable to read key as text."
+                return
+            }
+            importKey(text: normalizedText, data: normalizedData, label: label)
+        } catch {
+            alertMessage = error.localizedDescription
+        }
     }
 
     func deleteKeys(at offsets: IndexSet) {
@@ -64,6 +75,30 @@ final class KeyManagementViewModel: ObservableObject {
         } catch {
             alertMessage = error.localizedDescription
         }
+    }
+
+    private func normalizePrivateKeyData(_ data: Data) throws -> Data {
+        let decoded = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .ascii)
+        guard var text = decoded else {
+            throw NSError(domain: "KeyManagement", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to read key as text"])
+        }
+
+        let bomScalars: [UInt32] = [0xFEFF, 0xFFFE, 0xEFBBBF]
+        if let firstScalar = text.unicodeScalars.first, bomScalars.contains(firstScalar.value) {
+            text.removeFirst()
+        }
+
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        text = text.replacingOccurrences(of: "\r\n", with: "\n")
+        text = text.replacingOccurrences(of: "\r", with: "\n")
+
+        guard let normalized = text.data(using: .utf8) else {
+            throw NSError(domain: "KeyManagement", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to encode normalized key"])
+        }
+
+        return normalized
     }
 }
 

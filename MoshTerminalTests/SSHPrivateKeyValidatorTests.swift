@@ -40,6 +40,53 @@ final class SSHPrivateKeyValidatorTests: XCTestCase {
         }
     }
 
+    func testNormalizePrivateKeyDataStripsCRLF() throws {
+        let basePayload = makeOpenSSHKeyPayload(cipher: "none", kdf: "none", marker: "ssh-ed25519")
+        let basePEM = wrapOpenSSHPEM(basePayload)
+
+        let messyKey = "  \r\n" + basePEM.replacingOccurrences(of: "\n", with: "\r\n") + "  \r\n"
+        let normalizedData = try normalizePrivateKeyDataForTest(Data(messyKey.utf8))
+        let normalizedText = String(data: normalizedData, encoding: .utf8)
+
+        XCTAssertEqual(normalizedText, basePEM)
+        XCTAssertFalse(normalizedText?.contains("\r") ?? true)
+    }
+
+    func testNormalizePrivateKeyDataStripsTrailingWhitespace() throws {
+        let basePayload = makeOpenSSHKeyPayload(cipher: "none", kdf: "none", marker: "ssh-ed25519")
+        let basePEM = wrapOpenSSHPEM(basePayload)
+
+        let messyKey = basePEM + "   \n   "
+        let normalizedData = try normalizePrivateKeyDataForTest(Data(messyKey.utf8))
+        let normalizedText = String(data: normalizedData, encoding: .utf8)
+
+        XCTAssertEqual(normalizedText, basePEM)
+    }
+
+    func testNormalizePrivateKeyDataStripsLeadingWhitespace() throws {
+        let basePayload = makeOpenSSHKeyPayload(cipher: "none", kdf: "none", marker: "ssh-ed25519")
+        let basePEM = wrapOpenSSHPEM(basePayload)
+
+        let messyKey = "  \n  " + basePEM
+        let normalizedData = try normalizePrivateKeyDataForTest(Data(messyKey.utf8))
+        let normalizedText = String(data: normalizedData, encoding: .utf8)
+
+        XCTAssertEqual(normalizedText, basePEM)
+    }
+
+    func testNormalizePrivateKeyDataIdenticalViaFileAndPaste() throws {
+        let basePayload = makeOpenSSHKeyPayload(cipher: "none", kdf: "none", marker: "ssh-ed25519")
+        let basePEM = wrapOpenSSHPEM(basePayload)
+
+        let fileData = "  \r\n" + basePEM.replacingOccurrences(of: "\n", with: "\r\n") + "  \r\n"
+        let pasteText = "  \n" + basePEM + "  \n"
+
+        let normalizedFileData = try normalizePrivateKeyDataForTest(Data(fileData.utf8))
+        let normalizedPasteData = try normalizePrivateKeyDataForTest(Data(pasteText.utf8))
+
+        XCTAssertEqual(normalizedFileData, normalizedPasteData)
+    }
+
     private func wrapOpenSSHPEM(_ data: Data) -> String {
         let base64 = data.base64EncodedString()
         return """
@@ -63,5 +110,29 @@ final class SSHPrivateKeyValidatorTests: XCTestCase {
         var data = Data(bytes: &length, count: 4)
         data.append(contentsOf: bytes)
         return data
+    }
+
+    private func normalizePrivateKeyDataForTest(_ data: Data) throws -> Data {
+        let decoded = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .ascii)
+        guard var text = decoded else {
+            throw NSError(domain: "KeyManagement", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to read key as text"])
+        }
+
+        let bomScalars: [UInt32] = [0xFEFF, 0xFFFE, 0xEFBBBF]
+        if let firstScalar = text.unicodeScalars.first, bomScalars.contains(firstScalar.value) {
+            text.removeFirst()
+        }
+
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        text = text.replacingOccurrences(of: "\r\n", with: "\n")
+        text = text.replacingOccurrences(of: "\r", with: "\n")
+
+        guard let normalized = text.data(using: .utf8) else {
+            throw NSError(domain: "KeyManagement", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to encode normalized key"])
+        }
+
+        return normalized
     }
 }
