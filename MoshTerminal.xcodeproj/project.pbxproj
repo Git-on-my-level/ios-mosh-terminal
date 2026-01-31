@@ -87,6 +87,13 @@
 		F4F4F4F4F4F4F4F4F4F4F40A /* MoshRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */; };
 		7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */; };
 		7F260B101DBF8462D9057D25 /* PredictionParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */; };
+		E1A2B3C4D5E6F708192A3B4C /* PredictionDisplayPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */; };
+		E2A3B4C5D6E7F8091A2B3C4D /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */; };
+		E3A4B5C6D7E8F90A1B2C3D4E /* PredictionNetworkSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */; };
+		E4A5B6C7D8E9F01B2C3D4E5F /* PredictionRenderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */; };
+		E5A6B7C8D9EA0B1C2D3E4F50 /* TerminalPredictionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */; };
+		C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */; };
+		D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -189,6 +196,8 @@
 		55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalPredictionCoordinator.swift; sourceTree = "<group>"; };
 		E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UTF8ByteParser.swift; sourceTree = "<group>"; };
 		B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionParserTests.swift; sourceTree = "<group>"; };
+		A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionTypes.swift; sourceTree = "<group>"; };
+		B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngineInputTests.swift; sourceTree = "<group>"; };
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1A1A1A1A1A1A1A1A1A1A1B1 /* Frameworks */ = {
@@ -335,6 +344,7 @@
 				7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */,
 				5887890B1C9820791F281160 /* ProtoCodecTests.swift */,
 				B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */,
+				B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */,
 			);
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
@@ -351,6 +361,12 @@
 		D1D1D1D1D1D1D1D1D1E6 /* Prediction */ = {
 			isa = PBXGroup;
 			children = (
+				0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */,
+				FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */,
+				00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */,
+				D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */,
+				A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */,
+				55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */,
 				E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */,
 			);
 			path = Prediction;
@@ -561,6 +577,12 @@
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
+				E1A2B3C4D5E6F708192A3B4C /* PredictionDisplayPreference.swift in Sources */,
+				E2A3B4C5D6E7F8091A2B3C4D /* PredictionEngine.swift in Sources */,
+				E3A4B5C6D7E8F90A1B2C3D4E /* PredictionNetworkSnapshot.swift in Sources */,
+				E4A5B6C7D8E9F01B2C3D4E5F /* PredictionRenderModel.swift in Sources */,
+				E5A6B7C8D9EA0B1C2D3E4F50 /* TerminalPredictionCoordinator.swift in Sources */,
+				C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */,
 				7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -583,6 +605,7 @@
 				810FCC2B47F82E36AE63CB27 /* PacketCodecTests.swift in Sources */,
 				33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */,
 				7F260B101DBF8462D9057D25 /* PredictionParserTests.swift in Sources */,
+				D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
