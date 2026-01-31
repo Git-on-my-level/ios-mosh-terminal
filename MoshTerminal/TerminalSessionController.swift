@@ -16,6 +16,9 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     /// based on keyboard visibility. See `TerminalContainerView` docs for details.
     var accessoryView: UIView?
 
+    /// Holds a reference to the prediction overlay view for updating render models.
+    var predictionOverlayView: PredictionOverlayView?
+
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
     private var pendingRemoteResize: TerminalSize?
     private var outputBuffer = [UInt8]()

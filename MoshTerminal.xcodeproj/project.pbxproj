@@ -97,6 +97,7 @@
 		C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */; };
 		D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */; };
 		BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */; };
+		B0E3F4A5C6D7E8F90A1B2C3D /* PredictionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,6 +194,7 @@
 		F789644648F649058124AEA475E31280 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
 		FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKey.swift; sourceTree = "<group>"; };
+		A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionOverlayView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionDisplayPreference.swift; sourceTree = "<group>"; };
 		FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngine.swift; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 				A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */,
 				55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */,
 				E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */,
+				A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */,
 			);
 			path = Prediction;
 			sourceTree = "<group>";
@@ -595,6 +598,7 @@
 				E5A6B7C8D9EA0B1C2D3E4F50 /* TerminalPredictionCoordinator.swift in Sources */,
 				C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */,
 				7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */,
+				B0E3F4A5C6D7E8F90A1B2C3D /* PredictionOverlayView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
