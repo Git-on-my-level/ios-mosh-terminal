@@ -45,7 +45,7 @@ final class ConnectionManagerTests: XCTestCase {
             hostKeyPrompter: SSHHostKeyPrompt { _ in true }
         )
 
-        await waitUntil { bootstrapper.isWaiting }
+        await waitUntil(bootstrapper.isWaiting)
         lifecycle.send(.foreground)
         network.setStatus(.satisfied)
         lifecycle.send(.foreground)
@@ -88,7 +88,7 @@ final class ConnectionManagerTests: XCTestCase {
 
         engines[0].emit(.disconnected)
 
-        await waitUntil { bootstrapper.callCount >= 2 }
+        await waitUntil(bootstrapper.callCount >= 2)
         await awaitState(manager) { state in
             if case .connected = state { return true }
             return false

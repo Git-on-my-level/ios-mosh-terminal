@@ -25,7 +25,8 @@ final class RepositoryTests: XCTestCase {
 
         try await repo.upsert(hostA)
         try await repo.upsert(hostB)
-        XCTAssertEqual(try await repo.all().count, 2)
+        let initialCount = try await repo.all().count
+        XCTAssertEqual(initialCount, 2)
 
         var updated = hostA
         updated.displayName = "Lab Updated"
@@ -34,7 +35,8 @@ final class RepositoryTests: XCTestCase {
         XCTAssertTrue(all.contains(where: { $0.displayName == "Lab Updated" }))
 
         try await repo.delete(id: hostB.id)
-        XCTAssertEqual(try await repo.all().count, 1)
+        let remainingCount = try await repo.all().count
+        XCTAssertEqual(remainingCount, 1)
 
         try await repo.replaceAll([hostB])
         let replaced = try await repo.all()

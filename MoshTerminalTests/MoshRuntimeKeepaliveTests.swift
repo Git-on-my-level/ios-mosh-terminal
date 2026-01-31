@@ -103,13 +103,13 @@ private final class MockMoshDatagramSocket: DatagramSocket, @unchecked Sendable 
 }
 
 private final class MockMoshServer {
-    private let framing: TransportFraming
+    private let framing: MockServerFraming
     private let mtu: Int
 
     init(sessionKey: [UInt8], mtu: Int = 1400) throws {
         let ocbSession = try OCBSession(key16: sessionKey)
         let packetCodec = OCBPacketCodec(session: ocbSession)
-        framing = TransportFraming(packetCodec: packetCodec)
+        framing = MockServerFraming(packetCodec: packetCodec)
         self.mtu = mtu
     }
 
@@ -127,6 +127,72 @@ private final class MockMoshServer {
             return try framing.makeOutboundDatagrams(instruction: response, mtu: mtu)
         } catch {
             return []
+        }
+    }
+}
+
+private struct MockServerFraming {
+    private let packetCodec: PacketCodec
+    private let fragmentAssembly: FragmentAssembly
+    private let sequenceCounter: SequenceCounter
+    private let maxDecompressedBytes: Int
+    private let packetOverheadBytes: Int
+
+    init(
+        packetCodec: PacketCodec,
+        fragmentAssembly: FragmentAssembly = FragmentAssembly(),
+        sequenceCounter: SequenceCounter = SequenceCounter(),
+        maxDecompressedBytes: Int = ZlibCodec.defaultMaxOutputBytes,
+        packetOverheadBytes: Int = TransportFraming.defaultPacketOverheadBytes
+    ) {
+        self.packetCodec = packetCodec
+        self.fragmentAssembly = fragmentAssembly
+        self.sequenceCounter = sequenceCounter
+        self.maxDecompressedBytes = maxDecompressedBytes
+        self.packetOverheadBytes = packetOverheadBytes
+    }
+
+    func makeOutboundDatagrams(instruction: TransportInstruction, mtu: Int) throws -> [Data] {
+        try validateProtocolVersion(instruction.protocolVersion)
+
+        let minimumDatagramMtu = packetOverheadBytes + Fragment.headerBytes + 1
+        guard mtu >= minimumDatagramMtu else {
+            throw TransportFramingError.mtuTooSmall(minimum: minimumDatagramMtu, actual: mtu)
+        }
+
+        let encoded = instruction.encode()
+        let compressed = try ZlibCodec.compress(encoded)
+        let fragmentBodyMtu = mtu - packetOverheadBytes - Fragment.headerBytes
+        let fragmentId = sequenceCounter.next()
+        let fragments = Fragmenter.makeFragments(instructionBytes: compressed, mtu: fragmentBodyMtu, id: fragmentId)
+
+        return try fragments.map { fragment in
+            let payload = fragment.encode()
+            return try packetCodec.encode(payload: payload, direction: .toClient)
+        }
+    }
+
+    func processInboundDatagram(_ datagram: Data) throws -> TransportInstruction? {
+        let payload = try packetCodec.decode(datagram: datagram, expectedDirection: .toServer)
+        let fragment = try Fragment(decode: payload)
+        let isComplete = fragmentAssembly.add(fragment)
+        guard isComplete else {
+            return nil
+        }
+
+        let compressed = try fragmentAssembly.assembledBytes()
+        let decompressed = try ZlibCodec.decompress(compressed, maxOutputBytes: maxDecompressedBytes)
+        let instruction = try TransportInstruction(decode: decompressed)
+        try validateProtocolVersion(instruction.protocolVersion)
+        return instruction
+    }
+
+    private func validateProtocolVersion(_ actual: UInt32) throws {
+        guard actual == TransportFraming.expectedProtocolVersion else {
+            throw TransportFramingError.invalidProtocolVersion(
+                expected: TransportFraming.expectedProtocolVersion,
+                actual: actual
+            )
         }
     }
 }
