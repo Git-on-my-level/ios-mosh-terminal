@@ -94,6 +94,7 @@ final class ConnectionManager: ObservableObject {
         let sendIntervalMillis: UInt64?
         let rtoMillis: UInt64?
         let localPort: UInt16?
+        let consecutiveUnreachableSends: Int?
     }
 
     init(
@@ -103,7 +104,7 @@ final class ConnectionManager: ObservableObject {
         moshEngineFactory: @escaping MoshEngineFactory,
         appLifecycleService: AppLifecycleProviding,
         networkPathService: NetworkPathProviding,
-        connectionTimeoutNanoseconds: UInt64 = 5_000_000_000,
+        connectionTimeoutNanoseconds: UInt64 = 12_000_000_000,
         reconnectBackoffPolicy: ReconnectBackoffPolicy = .default,
         reconnectRandomUnit: @escaping () -> Double = { Double.random(in: 0...1) },
         sleep: @Sendable @escaping (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) }
@@ -190,7 +191,8 @@ final class ConnectionManager: ObservableObject {
             lastHeardAgeMillis: snapshot.lastHeardAgeMillis,
             sendIntervalMillis: snapshot.sendIntervalMillis,
             rtoMillis: snapshot.rtoMillis,
-            localPort: snapshot.localPort
+            localPort: snapshot.localPort,
+            consecutiveUnreachableSends: snapshot.consecutiveUnreachableSends
         )
     }
 
@@ -318,8 +320,8 @@ final class ConnectionManager: ObservableObject {
         guard waitForConnection else { return true }
         let connected = await waitForConnected(timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
         if !connected {
-            if connectToken == token {
-                handleConnectionFailure(ConnectionFailureReason.udpUnreachable)
+            if connectToken == token, state == .connectingUDP {
+                handleConnectionFailure(ConnectionFailureReason.udpTimeout)
             }
             await stopEngine()
             return false

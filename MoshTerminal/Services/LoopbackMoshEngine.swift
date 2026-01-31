@@ -30,7 +30,8 @@ final class LoopbackMoshEngine: MoshEngine, MoshEngineDebugProviding, @unchecked
             lastHeardAgeMillis: nil,
             sendIntervalMillis: nil,
             rtoMillis: nil,
-            localPort: nil
+            localPort: nil,
+            consecutiveUnreachableSends: nil
         )
     }
 }

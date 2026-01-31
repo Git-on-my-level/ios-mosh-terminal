@@ -142,7 +142,8 @@ actor MoshRuntime {
             lastHeardAgeMillis: lastHeardAge,
             sendIntervalMillis: sendInterval,
             rtoMillis: rto,
-            localPort: normalizedPort
+            localPort: normalizedPort,
+            consecutiveUnreachableSends: consecutiveUnreachableSends
         )
     }
 
