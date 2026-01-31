@@ -35,6 +35,7 @@ final class AppSettings: ObservableObject {
         static let fontSize = "settings.fontSize"
         static let themeMode = "settings.themeMode"
         static let keepAwake = "settings.keepAwake"
+        static let predictionDisplayPreference = "settings.predictionDisplayPreference"
 #if DEBUG
     static let debugOverlayEnabled = "settings.debugOverlayEnabled"
     static let debugLoggingEnabled = "settings.debugLoggingEnabled"
@@ -59,6 +60,12 @@ final class AppSettings: ObservableObject {
     @Published var keepAwake: Bool {
         didSet {
             defaults.set(keepAwake, forKey: Keys.keepAwake)
+        }
+    }
+
+    @Published var predictionDisplayPreference: PredictionDisplayPreference {
+        didSet {
+            defaults.set(predictionDisplayPreference.rawValue, forKey: Keys.predictionDisplayPreference)
         }
     }
 
@@ -94,6 +101,12 @@ final class AppSettings: ObservableObject {
             themeMode = .system
         }
         keepAwake = defaults.object(forKey: Keys.keepAwake) as? Bool ?? false
+        if let storedPreference = defaults.string(forKey: Keys.predictionDisplayPreference),
+           let preference = PredictionDisplayPreference(rawValue: storedPreference) {
+            predictionDisplayPreference = preference
+        } else {
+            predictionDisplayPreference = .adaptive
+        }
 
 #if DEBUG
         debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false

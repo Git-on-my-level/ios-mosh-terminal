@@ -98,6 +98,7 @@
 		C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */; };
 		D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */; };
 		BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */; };
+		1776D11099F64422A24D0357 /* PredictionDisplayPreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8CB3502052429883BCD547 /* PredictionDisplayPreferenceTests.swift */; };
 		B0E3F4A5C6D7E8F90A1B2C3D /* PredictionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */; };
 /* End PBXBuildFile section */
 
@@ -207,6 +208,7 @@
 		A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionTypes.swift; sourceTree = "<group>"; };
 		B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngineInputTests.swift; sourceTree = "<group>"; };
 		ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionSwiftTermIntegrationTests.swift; sourceTree = "<group>"; };
+		DC8CB3502052429883BCD547 /* PredictionDisplayPreferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionDisplayPreferenceTests.swift; sourceTree = "<group>"; };
 		E6A7B8C9DAEB1C2D3E4F5060 /* SwiftTermGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftTermGrid.swift; sourceTree = "<group>"; };
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -358,6 +360,7 @@
 				B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */,
 				B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */,
 					ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */,
+					DC8CB3502052429883BCD547 /* PredictionDisplayPreferenceTests.swift */,
 			);
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
@@ -626,6 +629,7 @@
 				7F260B101DBF8462D9057D25 /* PredictionParserTests.swift in Sources */,
 				D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */,
 					BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */,
+					1776D11099F64422A24D0357 /* PredictionDisplayPreferenceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

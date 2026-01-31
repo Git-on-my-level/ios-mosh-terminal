@@ -44,6 +44,11 @@ struct CursorPrediction: Equatable {
     var tentativeUntilEpoch: Int
 }
 
+struct CellPosition: Hashable {
+    let row: Int
+    let col: Int
+}
+
 struct PredictionDebugState: Equatable {
     var overlayRows: [OverlayRowState]
     var cursorPredictions: [CursorPrediction]

@@ -23,6 +23,8 @@ final class PredictionEngine {
     private let parser = UTF8ByteParser()
     private var overlayRows: [OverlayRowState] = []
     private var cursorPredictions: [CursorPrediction] = []
+    private var activeCellPositions: Set<CellPosition> = []
+    private var activeRowIndices: Set<Int> = []
 
     private var predictionEpoch = 0
     private var confirmedEpoch = 0
@@ -46,6 +48,8 @@ final class PredictionEngine {
     func reset() {
         parser.reset()
         cursorPredictions.removeAll()
+        activeCellPositions.removeAll()
+        activeRowIndices.removeAll()
         overlayRows = makeEmptyRows()
         predictionEpoch = 0
         confirmedEpoch = 0
@@ -110,6 +114,8 @@ final class PredictionEngine {
             rows = confirmedGrid.rows
             reset()
             overlayRows = makeEmptyRows()
+            activeCellPositions.removeAll()
+            activeRowIndices.removeAll()
             return
         }
 
@@ -129,20 +135,22 @@ final class PredictionEngine {
             underlinePredictions = true
         }
 
-        for rowIndex in overlayRows.indices {
+        for rowIndex in activeRowIndices {
+            guard rowIndex < overlayRows.count else { continue }
             for cellIndex in overlayRows[rowIndex].cells.indices {
                 var cell = overlayRows[rowIndex].cells[cellIndex]
                 switch cellValidity(cell, row: rowIndex, confirmedGrid: confirmedGrid) {
                 case .incorrectOrExpired:
                     if cell.tentativeUntilEpoch > confirmedEpoch {
                         if displayPreference == .experimental {
-                            resetCell(&cell)
+                            resetCell(&cell, row: rowIndex)
                         } else {
                             killEpoch(epoch: cell.tentativeUntilEpoch, confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+                            return
                         }
                     } else {
                         if displayPreference == .experimental {
-                            resetCell(&cell)
+                            resetCell(&cell, row: rowIndex)
                         } else {
                             reset()
                             return
@@ -161,10 +169,10 @@ final class PredictionEngine {
                         lastQuickConfirmation = nowMillis
                     }
 
-                    resetCell(&cell)
+                    resetCell(&cell, row: rowIndex)
 
                 case .correctNoCredit:
-                    resetCell(&cell)
+                    resetCell(&cell, row: rowIndex)
 
                 case .pending:
                     let age = nowMillis - cell.predictionTime
@@ -343,12 +351,19 @@ final class PredictionEngine {
     private func shiftRowRight(rowIndex: Int, startCol: Int) {
         guard rowIndex >= 0, rowIndex < overlayRows.count else { return }
         var shifted: [OverlayCellState] = []
+        let positionsToRemove = activeCellPositions.filter { pos in pos.row == rowIndex && pos.col >= startCol }
+        for pos in positionsToRemove {
+            activeCellPositions.remove(pos)
+        }
         for var cell in overlayRows[rowIndex].cells {
             if cell.col >= startCol {
                 cell.col += 1
             }
             if cell.col < cols {
                 shifted.append(cell)
+                if cell.active {
+                    activeCellPositions.insert(CellPosition(row: rowIndex, col: cell.col))
+                }
             }
         }
         overlayRows[rowIndex].cells = shifted
@@ -358,9 +373,17 @@ final class PredictionEngine {
         guard row >= 0, row < overlayRows.count else { return }
         var rowState = overlayRows[row]
         if let index = rowState.cells.firstIndex(where: { $0.col == cell.col }) {
+            let oldCell = rowState.cells[index]
+            if !oldCell.active {
+                activeCellPositions.remove(CellPosition(row: row, col: cell.col))
+            }
             rowState.cells[index] = cell
         } else {
             rowState.cells.append(cell)
+        }
+        if cell.active {
+            activeCellPositions.insert(CellPosition(row: row, col: cell.col))
+            activeRowIndices.insert(row)
         }
         overlayRows[row] = rowState
     }
@@ -430,13 +453,19 @@ final class PredictionEngine {
         return .pending
     }
 
-    private func resetCell(_ cell: inout OverlayCellState) {
+    private func resetCell(_ cell: inout OverlayCellState, row: Int) {
+        if cell.active {
+            activeCellPositions.remove(CellPosition(row: row, col: cell.col))
+        }
         cell.active = false
         cell.replacement = nil
         cell.unknown = false
         cell.originalContents.removeAll()
         cell.expirationFrame = 0
         cell.predictionTime = 0
+        if overlayRows.indices.contains(row) && overlayRows[row].cells.allSatisfy({ !$0.active }) {
+            activeRowIndices.remove(row)
+        }
     }
 
     private func killEpoch(epoch: Int, confirmedGrid: DisplayGrid, nowMillis: Int64) {
@@ -453,11 +482,12 @@ final class PredictionEngine {
         )
         cursorPredictions.append(resetCursor)
 
-        for rowIndex in overlayRows.indices {
+        for rowIndex in activeRowIndices {
+            guard rowIndex < overlayRows.count else { continue }
             for cellIndex in overlayRows[rowIndex].cells.indices {
                 if overlayRows[rowIndex].cells[cellIndex].tentativeUntilEpoch > epoch - 1 {
                     var cell = overlayRows[rowIndex].cells[cellIndex]
-                    resetCell(&cell)
+                    resetCell(&cell, row: rowIndex)
                     overlayRows[rowIndex].cells[cellIndex] = cell
                 }
             }
@@ -470,12 +500,7 @@ final class PredictionEngine {
         if !cursorPredictions.isEmpty {
             return true
         }
-        for row in overlayRows {
-            if row.cells.contains(where: { $0.active }) {
-                return true
-            }
-        }
-        return false
+        return !activeCellPositions.isEmpty
     }
 
     private func shouldShowPredictions() -> Bool {

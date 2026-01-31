@@ -29,13 +29,14 @@ struct TerminalView: View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .onAppear {
-#if DEBUG
                 updatePredictionPreference()
-#endif
                 updateIdleTimer()
                 if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
                     viewModel.start(autoConnect: autoConnect)
                 }
+            }
+            .onChange(of: settings.predictionDisplayPreference) { _ in
+                updatePredictionPreference()
             }
 #if DEBUG
             .onChange(of: settings.debugPredictionEnabled) { _ in
@@ -165,12 +166,15 @@ struct TerminalView: View {
         return "\(context.keyLabel)\n\(context.hostDisplayName)\n\(hostLine)"
     }
 
-#if DEBUG
     private func updatePredictionPreference() {
-        let preference: PredictionDisplayPreference = settings.debugPredictionEnabled ? .always : .off
+        var preference = settings.predictionDisplayPreference
+#if DEBUG
+        if settings.debugPredictionEnabled {
+            preference = .always
+        }
+#endif
         controller.setPredictionDisplayPreference(preference)
     }
-#endif
 }
 
 #if DEBUG

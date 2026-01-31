@@ -4,7 +4,7 @@ final class PredictionOverlayView: UIView {
     var model: PredictionRenderModel = PredictionRenderModel() {
         didSet {
             guard oldValue != model else { return }
-            setNeedsDisplay()
+            scheduleRedraw()
         }
     }
 
@@ -12,11 +12,16 @@ final class PredictionOverlayView: UIView {
         didSet {
             guard oldValue != font else { return }
             _cellMetrics = nil
-            setNeedsDisplay()
+            scheduleRedraw()
         }
     }
 
     private var _cellMetrics: CellMetrics?
+    private var pendingRedraw = false
+    private var redrawWorkItem: DispatchWorkItem?
+    private let redrawQueue = DispatchQueue(label: "com.mosh.overlay", qos: .userInteractive)
+
+    private let minFrameInterval: TimeInterval = 1.0 / 60.0
     private var cellMetrics: CellMetrics {
         if let cached = _cellMetrics {
             return cached
@@ -46,6 +51,19 @@ final class PredictionOverlayView: UIView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func scheduleRedraw() {
+        guard !pendingRedraw else { return }
+        pendingRedraw = true
+
+        redrawWorkItem?.cancel()
+        redrawWorkItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.pendingRedraw = false
+            self.setNeedsDisplay()
+        }
+        redrawQueue.asyncAfter(deadline: .now() + minFrameInterval, execute: redrawWorkItem!)
     }
 
     override func draw(_ rect: CGRect) {
