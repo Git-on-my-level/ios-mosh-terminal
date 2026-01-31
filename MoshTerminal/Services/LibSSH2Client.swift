@@ -260,7 +260,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                         )
                     }
                 } else {
-                    authFunctions.userauthPublicKeyFromMemory(
+                    return authFunctions.userauthPublicKeyFromMemory(
                         session,
                         usernameCString,
                         username.utf8.count,

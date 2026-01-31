@@ -1,9 +1,24 @@
 import Foundation
 
+private let udpHelpText = """
+Mosh requires UDP for connection. Common causes:
+
+• Captive portals (login screens on public Wi‑Fi)
+• Enterprise Wi‑Fi or hotel networks
+• Firewalls blocking UDP
+
+Workarounds:
+
+• Switch to a different network
+• Use a VPN that allows UDP
+• Connect via plain SSH instead
+"""
+
 struct ConnectionFailure: Identifiable, Equatable {
     let id = UUID()
     let title: String
     let message: String
+    let helpInfo: String?
     let allowsRetry: Bool
 }
 
@@ -44,6 +59,7 @@ struct ConnectionErrorMapper {
         return ConnectionFailure(
             title: "Connection failed",
             message: "Unable to connect.\(hostHint)",
+            helpInfo: nil,
             allowsRetry: true
         )
     }
@@ -54,24 +70,28 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "UDP blocked",
                 message: "This network appears to block UDP. Mosh requires UDP.",
+                helpInfo: udpHelpText,
                 allowsRetry: true
             )
         case .udpTimeout:
             return ConnectionFailure(
                 title: "UDP timeout",
-                message: "No UDP response was received yet. This can happen on slow or lossy networks. Try again.",
+                message: "No UDP response was received. UDP may be blocked on this network.",
+                helpInfo: udpHelpText,
                 allowsRetry: true
             )
         case .networkUnavailable:
             return ConnectionFailure(
                 title: "Network unavailable",
                 message: "Check your connection and try again.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .disconnected:
             return ConnectionFailure(
                 title: "Disconnected",
                 message: "Connection dropped. We'll retry when the network returns.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         }
@@ -86,18 +106,21 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "Authentication failed",
                 message: "Check that your SSH key is authorized on the host and the passphrase is correct.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .hostKeyMismatch:
             return ConnectionFailure(
                 title: "Host key changed",
                 message: "The host key doesn't match the saved one. Verify the server identity, then remove and re-add this host to trust the new key.",
+                helpInfo: nil,
                 allowsRetry: false
             )
         case .hostKeyUntrusted:
             return ConnectionFailure(
                 title: "Host key not trusted",
                 message: "Retry and accept the host key if you trust this server.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .connectionFailed(let message):
@@ -110,30 +133,35 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "SSH connection failed",
                 message: "Check the host address, port, and network, then try again.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .commandFailed:
             return ConnectionFailure(
                 title: "SSH command failed",
                 message: "Unable to start mosh-server over SSH. Ensure mosh-server is installed and retry.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .storageFailure:
             return ConnectionFailure(
                 title: "Host key storage error",
                 message: "Unable to access trusted host key storage.",
+                helpInfo: nil,
                 allowsRetry: false
             )
         case .libraryUnavailable:
             return ConnectionFailure(
                 title: "SSH unavailable",
                 message: "SSH support is unavailable in this build.",
+                helpInfo: nil,
                 allowsRetry: false
             )
         case .notConnected, .alreadyConnected, .cancelled:
             return ConnectionFailure(
                 title: "SSH unavailable",
                 message: "SSH session is not available. Try again.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         }
@@ -145,18 +173,21 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "mosh-server missing",
                 message: "mosh-server was not found on the host. Install it and retry.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .nonUtf8Locale:
             return ConnectionFailure(
                 title: "Locale required",
                 message: "mosh-server requires a UTF-8 locale on the host. Configure a UTF-8 locale and retry.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .unexpectedOutput:
             return ConnectionFailure(
                 title: "mosh-server error",
                 message: "Unexpected response while starting mosh-server. Verify the host setup and retry.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         }
@@ -168,12 +199,14 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "Mosh unavailable",
                 message: "Mosh client support is unavailable in this build.",
+                helpInfo: nil,
                 allowsRetry: false
             )
         case .startFailed:
             return ConnectionFailure(
                 title: "Mosh start failed",
                 message: "Unable to start the Mosh client. Check your network and retry.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         case .udpUnreachable:
@@ -182,6 +215,7 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "Connection unstable",
                 message: "Too many invalid packets were received. Check the network and retry.",
+                helpInfo: nil,
                 allowsRetry: true
             )
         }

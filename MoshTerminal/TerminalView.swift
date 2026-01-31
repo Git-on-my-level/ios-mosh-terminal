@@ -553,6 +553,21 @@ private struct TerminalErrorBanner: View {
             Text(failure.message)
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.9))
+            if let helpInfo = failure.helpInfo {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 10))
+                    Text("Learn more")
+                        .font(.caption2)
+                        .underline()
+                    Spacer()
+                }
+                .foregroundStyle(.white.opacity(0.8))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    UIPasteboard.general.string = helpInfo
+                }
+            }
             HStack(spacing: 8) {
                 if failure.allowsRetry {
                     Button("Retry", action: onRetry)
