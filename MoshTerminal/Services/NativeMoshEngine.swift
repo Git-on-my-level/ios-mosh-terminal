@@ -33,10 +33,11 @@ private actor NativeMoshEngineState {
     }
 }
 
-final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, @unchecked Sendable {
+final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, PredictionEchoAckNotifying, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
+    var onEchoAck: (@Sendable (UInt64) -> Void)?
 
     private let runtime = MoshRuntime()
     private let state = NativeMoshEngineState()
@@ -70,6 +71,9 @@ final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, @unchecked S
                     Task { await self.state.markIdle() }
                     self.onStateChange?(.failed(error))
                 }
+            },
+            onEchoAck: { [weak self] value in
+                self?.onEchoAck?(value)
             }
         )
 

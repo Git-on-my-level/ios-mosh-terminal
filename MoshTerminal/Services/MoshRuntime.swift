@@ -108,6 +108,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onEvent: (@Sendable (Event) -> Void)?
+    var onEchoAck: (@Sendable (UInt64) -> Void)?
 
     private let configuration: Configuration
     private var state: State = .idle
@@ -138,11 +139,13 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
     func setHandlers(
         onOutput: (@Sendable (Data) -> Void)?,
         onRemoteResize: (@Sendable (TerminalSize) -> Void)?,
-        onEvent: (@Sendable (Event) -> Void)?
+        onEvent: (@Sendable (Event) -> Void)?,
+        onEchoAck: (@Sendable (UInt64) -> Void)?
     ) async {
         self.onOutput = onOutput
         self.onRemoteResize = onRemoteResize
         self.onEvent = onEvent
+        self.onEchoAck = onEchoAck
     }
 
     func start(serverHost: String, udpPort: UInt16, key: String, initialSize: TerminalSize) async throws {
@@ -170,10 +173,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
             Task { await self?.emitRemoteResize(cols: cols, rows: rows) }
         }
         let echoAckHandler: (UInt64) -> Void = { [weak self] value in
-            self?.predictionNetworkStore.setEchoAck(value)
-#if DEBUG
-            os_log("echoAck: %llu", log: .default, type: .debug, value)
-#endif
+            Task { await self?.handleEchoAck(value) }
         }
         let receiver = TransportReceiver(
             transportSender: sender,
@@ -414,6 +414,14 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         let size = TerminalSize(cols: cols, rows: rows)
         lastSize = size
         onRemoteResize?(size)
+    }
+
+    private func handleEchoAck(_ value: UInt64) {
+        predictionNetworkStore.setEchoAck(value)
+#if DEBUG
+        os_log("echoAck: %llu", log: .default, type: .debug, value)
+#endif
+        onEchoAck?(value)
     }
 
     private func emitEvent(_ event: Event) {

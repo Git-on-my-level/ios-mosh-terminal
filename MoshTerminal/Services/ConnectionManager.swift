@@ -436,6 +436,14 @@ final class ConnectionManager: ObservableObject {
             Task { await self?.engine?.updateTerminalSize(cols: size.cols, rows: size.rows) }
         }
         controller.attachPredictionNetworkProvider(engine as? PredictionNetworkSnapshotProviding)
+        if let notifier = engine as? PredictionEchoAckNotifying {
+            notifier.onEchoAck = { [weak self, weak controller, weak engine] _ in
+                Task { @MainActor in
+                    guard let self, let controller, self.engine === engine else { return }
+                    controller.handleEchoAckUpdated()
+                }
+            }
+        }
     }
 
     private func handleEngineState(_ engineState: MoshEngineState) {

@@ -46,8 +46,14 @@ final class TerminalPredictionCoordinator {
         }
     }
 
-    private func withConfirmedGrid(_ block: (SwiftTermConfirmedGrid, Int64) -> Void) {
+    private func withConfirmedGrid(_ block: @escaping (SwiftTermConfirmedGrid, Int64) -> Void) {
         guard let terminalView else { return }
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.withConfirmedGrid(block)
+            }
+            return
+        }
         let terminal = terminalView.getTerminal()
         let grid = SwiftTermConfirmedGrid(terminal: terminal)
         let nowMillis = Int64(Clock.nowMillis())

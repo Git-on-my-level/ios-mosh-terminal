@@ -68,6 +68,7 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         let size = TerminalSize(cols: cols, rows: rows)
         guard size != currentSize else { return }
         currentSize = size
+        predictionCoordinator.handleResize(cols: cols, rows: rows)
         guard let terminalView else { return }
         pendingRemoteResize = size
         terminalView.resize(cols: cols, rows: rows)
@@ -89,7 +90,11 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     func setTerminalTitle(source: TerminalUIKitView, title: String) {}
     func hostCurrentDirectoryUpdate(source: TerminalUIKitView, directory: String?) {}
-    func scrolled(source: TerminalUIKitView, position: Double) {}
+    func scrolled(source: TerminalUIKitView, position: Double) {
+        if position < 0.999 {
+            predictionCoordinator.reset()
+        }
+    }
     func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {}
     func bell(source: TerminalUIKitView) {}
     func clipboardCopy(source: TerminalUIKitView, content: Data) {}
@@ -122,6 +127,10 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
             return nil
         }
         return [ctrlByte]
+    }
+
+    func handleEchoAckUpdated() {
+        predictionCoordinator.handleEchoAckUpdated()
     }
 
     private func controlByte(for byte: UInt8) -> UInt8? {
