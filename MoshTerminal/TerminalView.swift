@@ -27,7 +27,7 @@ struct TerminalView: View {
 
     var body: some View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
-        TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette)
+        TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .onTapGesture {
                 controller.focus()
             }
@@ -37,11 +37,6 @@ struct TerminalView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Disconnect", role: .destructive) {
                         viewModel.stop()
-                    }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    if keyboardObserver.isKeyboardVisible {
-                        TerminalAccessoryRow(controller: controller)
                     }
                 }
             }
@@ -207,16 +202,35 @@ private struct TerminalDebugOverlay: View {
 }
 #endif
 
+/// Bridges SwiftTerm's UIKit-based TerminalView into SwiftUI.
+///
+/// ## Keyboard Accessory Visibility
+/// The custom keyboard accessory (Esc, Ctrl, ^C, arrows, etc.) must only appear when
+/// the system keyboard is visible. We achieve this by:
+/// 1. Tracking keyboard visibility via `KeyboardObserver` in the parent view
+/// 2. Passing `isKeyboardVisible` to this view
+/// 3. Dynamically setting `inputAccessoryView` to our custom view or `nil`
+///
+/// **Why not just use `inputAccessoryView` directly?**
+/// UIKit's `inputAccessoryView` normally hides with the keyboard, but SwiftTerm's
+/// TerminalView has custom first-responder handling that can cause the accessory
+/// to persist on screen even when the keyboard is dismissed. By explicitly setting
+/// it to `nil` when the keyboard hides, we guarantee correct behavior.
 private struct TerminalContainerView: UIViewRepresentable {
     @ObservedObject var controller: TerminalSessionController
     let fontSize: Double
     let palette: AppTheme.TerminalPalette
+    let isKeyboardVisible: Bool
 
     func makeUIView(context: Context) -> TerminalUIKitView {
         let view = TerminalUIKitView(
             frame: .zero,
             font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         )
+        // Create the accessory view once and store it for reuse
+        context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
+        // Start with no accessory - keyboard is not visible on initial load
+        view.inputAccessoryView = nil
         view.terminalDelegate = context.coordinator
         applyPalette(palette, to: view)
         controller.attach(view: view)
@@ -234,6 +248,15 @@ private struct TerminalContainerView: UIViewRepresentable {
             uiView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
         applyPalette(palette, to: uiView)
+
+        // IMPORTANT: Dynamically attach/detach accessory based on keyboard visibility.
+        // This prevents the accessory bar from appearing when the keyboard is hidden.
+        // See struct documentation for rationale.
+        let expectedAccessory: UIView? = isKeyboardVisible ? context.coordinator.accessoryView : nil
+        if uiView.inputAccessoryView !== expectedAccessory {
+            uiView.inputAccessoryView = expectedAccessory
+            uiView.reloadInputViews()
+        }
     }
 
     func makeCoordinator() -> TerminalSessionController {
@@ -255,54 +278,203 @@ private struct TerminalContainerView: UIViewRepresentable {
     }
 }
 
+/// UIKit hosting view that wraps the SwiftUI TerminalAccessoryRow for use as inputAccessoryView
+private final class TerminalAccessoryHostingView: UIInputView {
+    private let hostingController: UIHostingController<TerminalAccessoryRow>
+    private static let accessoryHeight: CGFloat = 44
+
+    init(controller: TerminalSessionController) {
+        let accessoryRow = TerminalAccessoryRow(controller: controller)
+        self.hostingController = UIHostingController(rootView: accessoryRow)
+
+        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: Self.accessoryHeight),
+                   inputViewStyle: .keyboard)
+
+        hostingController.view.backgroundColor = .clear
+        backgroundColor = .clear
+
+        addSubview(hostingController.view)
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostingController.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingController.view.topAnchor.constraint(equalTo: topAnchor),
+            hostingController.view.heightAnchor.constraint(equalToConstant: Self.accessoryHeight)
+        ])
+
+        autoresizingMask = [.flexibleWidth]
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: Self.accessoryHeight)
+    }
+}
+
+/// Custom keyboard accessory bar providing terminal-specific keys.
+///
+/// ## Main Row (default)
+/// - **Modifiers**: Esc, Ctrl (toggle), Tab
+/// - **Direct Ctrl shortcuts**: ^C (interrupt), ^D (EOF), ^Z (suspend), ^L (clear), ^A (start of line), ^E (end of line)
+/// - **Symbols**: ~, |, /, -
+/// - **Navigation**: Arrow keys (←, ↓, ↑, →)
+///
+/// ## Function Keys Row (via F1-9 toggle)
+/// - F1 through F10
+///
+/// The Ctrl toggle allows sending any Ctrl+key combination by tapping Ctrl then a letter on the main keyboard.
+/// Direct ^C/^D/etc. buttons provide single-tap access to the most common control sequences.
 private struct TerminalAccessoryRow: View {
     @ObservedObject var controller: TerminalSessionController
+    @State private var showFunctionKeys = false
 
-    // iOS HIG recommends minimum 44pt touch targets
-    private let minTouchTarget: CGFloat = 44
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                // Modifier keys (most used, grouped first)
-                accessoryButton("Ctrl", isActive: controller.isCtrlActive) {
-                    controller.toggleCtrl()
-                }
-                accessoryButton("Esc") {
-                    controller.sendControl(0x1B)
-                }
-                accessoryButton("Tab") {
-                    controller.sendControl(0x09)
-                }
-
-                Divider()
-                    .frame(height: 24)
-
-                // Common symbols
-                accessoryButton("|") {
-                    controller.sendText("|")
-                }
-                accessoryButton("-") {
-                    controller.sendText("-")
-                }
-                accessoryButton("/") {
-                    controller.sendText("/")
-                }
-                accessoryButton(":") {
-                    controller.sendText(":")
-                }
-                accessoryButton("~") {
-                    controller.sendText("~")
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                if showFunctionKeys {
+                    functionKeysRow
+                } else {
+                    mainKeysRow
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .frame(height: 20)
+                .padding(.horizontal, 4)
+
+            // Toggle F-keys / keyboard dismiss
+            HStack(spacing: 4) {
+                Button {
+                    hapticFeedback.impactOccurred()
+                    showFunctionKeys.toggle()
+                } label: {
+                    Text(showFunctionKeys ? "ABC" : "F1-9")
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    hapticFeedback.impactOccurred()
+                    controller.terminalView?.resignFirstResponder()
+                } label: {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding(.trailing, 8)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 36)
         .onAppear {
             hapticFeedback.prepare()
         }
+    }
+
+    private var mainKeysRow: some View {
+        HStack(spacing: 4) {
+            // Modifier keys
+            accessoryButton("Esc") {
+                controller.sendControl(0x1B)
+            }
+            accessoryButton("Ctrl", isActive: controller.isCtrlActive) {
+                controller.toggleCtrl()
+            }
+            accessoryButton("Tab") {
+                controller.sendControl(0x09)
+            }
+
+            Divider()
+                .frame(height: 20)
+
+            // Common Ctrl+key shortcuts (most used)
+            ctrlKeyButton("C") // Ctrl+C (interrupt)
+            ctrlKeyButton("D") // Ctrl+D (EOF)
+            ctrlKeyButton("Z") // Ctrl+Z (suspend)
+            ctrlKeyButton("L") // Ctrl+L (clear)
+            ctrlKeyButton("A") // Ctrl+A (start of line)
+            ctrlKeyButton("E") // Ctrl+E (end of line)
+
+            Divider()
+                .frame(height: 20)
+
+            // Common symbols
+            accessoryButton("~") {
+                controller.sendText("~")
+            }
+            accessoryButton("|") {
+                controller.sendText("|")
+            }
+            accessoryButton("/") {
+                controller.sendText("/")
+            }
+            accessoryButton("-") {
+                controller.sendText("-")
+            }
+
+            Divider()
+                .frame(height: 20)
+
+            // Arrow keys
+            arrowButton("arrow.left") {
+                controller.sendText("\u{1b}[D")
+            }
+            arrowButton("arrow.down") {
+                controller.sendText("\u{1b}[B")
+            }
+            arrowButton("arrow.up") {
+                controller.sendText("\u{1b}[A")
+            }
+            arrowButton("arrow.right") {
+                controller.sendText("\u{1b}[C")
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    /// Creates a button that sends Ctrl+<key> directly
+    private func ctrlKeyButton(_ key: String) -> some View {
+        Button {
+            hapticFeedback.impactOccurred()
+            // Convert letter to control character (A=1, B=2, ..., Z=26)
+            if let char = key.uppercased().first,
+               let ascii = char.asciiValue {
+                let ctrlByte = ascii & 0x1F
+                controller.sendControl(ctrlByte)
+            }
+        } label: {
+            Text("^\(key)")
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private var functionKeysRow: some View {
+        HStack(spacing: 4) {
+            ForEach(1...10, id: \.self) { num in
+                accessoryButton("F\(num)") {
+                    // F1-F10 escape sequences
+                    let sequences = [
+                        "\u{1b}OP", "\u{1b}OQ", "\u{1b}OR", "\u{1b}OS",
+                        "\u{1b}[15~", "\u{1b}[17~", "\u{1b}[18~", "\u{1b}[19~",
+                        "\u{1b}[20~", "\u{1b}[21~"
+                    ]
+                    controller.sendText(sequences[num - 1])
+                }
+            }
+        }
+        .padding(.horizontal, 8)
     }
 
     private func accessoryButton(_ title: String, isActive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -311,11 +483,25 @@ private struct TerminalAccessoryRow: View {
             action()
         } label: {
             Text(title)
-                .font(.system(size: 15, weight: .medium))
-                .frame(minWidth: minTouchTarget, minHeight: minTouchTarget)
+                .font(.system(size: 14, weight: .medium))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
         }
         .buttonStyle(.bordered)
         .tint(isActive ? .orange : nil)
+    }
+
+    private func arrowButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+        Button {
+            hapticFeedback.impactOccurred()
+            action()
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .medium))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.bordered)
     }
 }
 
@@ -387,7 +573,13 @@ private struct TerminalErrorBanner: View {
     }
 }
 
-/// Observes keyboard visibility changes using NotificationCenter
+/// Observes keyboard visibility changes using NotificationCenter.
+///
+/// Used by `TerminalView` to control when the custom keyboard accessory bar is shown.
+/// The accessory bar must only appear when the system keyboard is visible to avoid
+/// blocking the tab bar or appearing during navigation transitions.
+///
+/// - SeeAlso: `TerminalContainerView` documentation for the full visibility mechanism.
 private final class KeyboardObserver: ObservableObject {
     @Published private(set) var isKeyboardVisible = false
 

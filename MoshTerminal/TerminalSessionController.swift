@@ -1,5 +1,6 @@
 import Foundation
 import SwiftTerm
+import UIKit
 
 typealias TerminalUIKitView = SwiftTerm.TerminalView
 
@@ -9,6 +10,11 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     weak var terminalView: TerminalUIKitView?
     var onInput: (@Sendable (Data) -> Void)?
     var onSizeChange: (@Sendable (TerminalSize) -> Void)?
+
+    /// Holds the keyboard accessory view for reuse across keyboard show/hide cycles.
+    /// Set by `TerminalContainerView.makeUIView` and attached/detached in `updateUIView`
+    /// based on keyboard visibility. See `TerminalContainerView` docs for details.
+    var accessoryView: UIView?
 
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
     private var pendingRemoteResize: TerminalSize?
