@@ -1,6 +1,25 @@
 import Foundation
 
 final class PredictionEngine {
+    private enum Validity {
+        case pending
+        case correct
+        case correctNoCredit
+        case incorrectOrExpired
+        case inactive
+    }
+
+    private enum Constants {
+        static let srttTriggerLow: Int64 = 20
+        static let srttTriggerHigh: Int64 = 30
+        static let flagTriggerLow: Int64 = 50
+        static let flagTriggerHigh: Int64 = 80
+        static let glitchThreshold: Int64 = 250
+        static let glitchRepairCount: Int = 10
+        static let glitchRepairMinInterval: Int64 = 150
+        static let glitchFlagThreshold: Int64 = 5000
+    }
+
     private let parser = UTF8ByteParser()
     private var overlayRows: [OverlayRowState] = []
     private var cursorPredictions: [CursorPrediction] = []
@@ -8,6 +27,7 @@ final class PredictionEngine {
     private var predictionEpoch = 0
     private var confirmedEpoch = 0
     private var lastUserByte: UInt8?
+    var displayPreference: PredictionDisplayPreference = .adaptive
 
     private var cols = 0
     private var rows = 0
@@ -18,6 +38,10 @@ final class PredictionEngine {
     private var localFrameAcked: Int64 = 0
     private var echoAck: Int64 = 0
     private var srttMillis: Int64 = 0
+    private var srttTrigger = false
+    private var glitchTrigger = 0
+    private var underlinePredictions = false
+    private var lastQuickConfirmation: Int64 = 0
 
     func reset() {
         parser.reset()
@@ -28,6 +52,10 @@ final class PredictionEngine {
     }
 
     func updateNetworkSnapshot(_ snapshot: PredictionNetworkSnapshot) {
+        localFrameSent = Int64(snapshot.lastSentStateNum)
+        localFrameAcked = Int64(snapshot.lastAckedStateNum)
+        echoAck = Int64(snapshot.echoAck)
+        srttMillis = snapshot.srttMillis.map { Int64($0) } ?? 0
     }
 
     func newUserBytes(_ bytes: Data, displayGrid: DisplayGrid, nowMillis: Int64) {
@@ -73,10 +101,124 @@ final class PredictionEngine {
     }
 
     func cull(confirmedGrid: DisplayGrid, nowMillis: Int64) {
+        if displayPreference == .off {
+            return
+        }
+
+        if cols != confirmedGrid.cols || rows != confirmedGrid.rows {
+            cols = confirmedGrid.cols
+            rows = confirmedGrid.rows
+            reset()
+            overlayRows = makeEmptyRows()
+            return
+        }
+
+        if srttMillis > Constants.srttTriggerHigh {
+            srttTrigger = true
+        } else if srttTrigger && srttMillis <= Constants.srttTriggerLow && !hasActivePredictions() {
+            srttTrigger = false
+        }
+
+        if srttMillis > Constants.flagTriggerHigh {
+            underlinePredictions = true
+        } else if srttMillis <= Constants.flagTriggerLow {
+            underlinePredictions = false
+        }
+
+        if glitchTrigger > Constants.glitchRepairCount {
+            underlinePredictions = true
+        }
+
+        for rowIndex in overlayRows.indices {
+            for cellIndex in overlayRows[rowIndex].cells.indices {
+                var cell = overlayRows[rowIndex].cells[cellIndex]
+                switch cellValidity(cell, row: rowIndex, confirmedGrid: confirmedGrid) {
+                case .incorrectOrExpired:
+                    if cell.tentativeUntilEpoch > confirmedEpoch {
+                        if displayPreference == .experimental {
+                            resetCell(&cell)
+                        } else {
+                            killEpoch(epoch: cell.tentativeUntilEpoch, confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+                        }
+                    } else {
+                        if displayPreference == .experimental {
+                            resetCell(&cell)
+                        } else {
+                            reset()
+                            return
+                        }
+                    }
+
+                case .correct:
+                    if cell.tentativeUntilEpoch > confirmedEpoch {
+                        confirmedEpoch = cell.tentativeUntilEpoch
+                    }
+
+                    if nowMillis - cell.predictionTime < Constants.glitchThreshold,
+                       glitchTrigger > 0,
+                       nowMillis - Constants.glitchRepairMinInterval >= lastQuickConfirmation {
+                        glitchTrigger -= 1
+                        lastQuickConfirmation = nowMillis
+                    }
+
+                    resetCell(&cell)
+
+                case .correctNoCredit:
+                    resetCell(&cell)
+
+                case .pending:
+                    let age = nowMillis - cell.predictionTime
+                    if age >= Constants.glitchFlagThreshold {
+                        glitchTrigger = Constants.glitchRepairCount * 2
+                    } else if age >= Constants.glitchThreshold, glitchTrigger < Constants.glitchRepairCount {
+                        glitchTrigger = Constants.glitchRepairCount
+                    }
+
+                case .inactive:
+                    break
+                }
+                overlayRows[rowIndex].cells[cellIndex] = cell
+            }
+        }
+
+        if let lastCursor = cursorPredictions.last,
+           cursorValidity(lastCursor, confirmedGrid: confirmedGrid) == .incorrectOrExpired {
+            if displayPreference == .experimental {
+                cursorPredictions.removeAll()
+            } else {
+                reset()
+                return
+            }
+        }
+
+        cursorPredictions = cursorPredictions.filter {
+            cursorValidity($0, confirmedGrid: confirmedGrid) == .pending
+        }
     }
 
     func currentRenderModel(confirmedGrid: DisplayGrid, nowMillis: Int64) -> PredictionRenderModel {
-        return PredictionRenderModel()
+        let show = shouldShowPredictions()
+        guard show else {
+            return PredictionRenderModel()
+        }
+
+        let filteredRows = overlayRows.enumerated().map { index, row in
+            let visibleCells = row.cells.filter { cell in
+                cell.active && cell.tentativeUntilEpoch <= confirmedEpoch
+            }
+            let hasVisibleCells = !visibleCells.isEmpty
+            let visibleUnknown = row.unknownRow && hasVisibleCells
+            return OverlayRowState(unknownRow: visibleUnknown, cells: visibleCells)
+        }
+
+        let visibleCursors = cursorPredictions.filter { $0.tentativeUntilEpoch <= confirmedEpoch }
+
+        return PredictionRenderModel(
+            overlayRows: filteredRows,
+            cursorPredictions: visibleCursors,
+            showPredictions: show,
+            underlinePredictions: underlinePredictions
+        )
     }
 
     var debugState: PredictionDebugState {
@@ -244,6 +386,107 @@ final class PredictionEngine {
     private func makeEmptyRows() -> [OverlayRowState] {
         guard rows > 0 else { return [] }
         return (0..<rows).map { _ in OverlayRowState(unknownRow: false, cells: []) }
+    }
+
+    private func cellValidity(_ cell: OverlayCellState, row: Int, confirmedGrid: DisplayGrid) -> Validity {
+        if !cell.active {
+            return .inactive
+        }
+        if row >= confirmedGrid.rows || cell.col >= confirmedGrid.cols {
+            return .incorrectOrExpired
+        }
+        if echoAck < cell.expirationFrame {
+            return .pending
+        }
+        if cell.unknown {
+            return .correctNoCredit
+        }
+        guard let replacement = cell.replacement else {
+            return .correctNoCredit
+        }
+        if replacement == .blank {
+            return .correctNoCredit
+        }
+        let current = confirmedGrid.cell(atRow: row, col: cell.col)
+        if current == replacement {
+            if cell.originalContents.contains(where: { $0 == replacement }) {
+                return .correctNoCredit
+            }
+            return .correct
+        }
+        return .incorrectOrExpired
+    }
+
+    private func cursorValidity(_ prediction: CursorPrediction, confirmedGrid: DisplayGrid) -> Validity {
+        if prediction.row >= confirmedGrid.rows || prediction.col >= confirmedGrid.cols {
+            return .incorrectOrExpired
+        }
+        if echoAck >= prediction.expirationFrame {
+            if confirmedGrid.cursorRow == prediction.row && confirmedGrid.cursorCol == prediction.col {
+                return .correct
+            }
+            return .incorrectOrExpired
+        }
+        return .pending
+    }
+
+    private func resetCell(_ cell: inout OverlayCellState) {
+        cell.active = false
+        cell.replacement = nil
+        cell.unknown = false
+        cell.originalContents.removeAll()
+        cell.expirationFrame = 0
+        cell.predictionTime = 0
+    }
+
+    private func killEpoch(epoch: Int, confirmedGrid: DisplayGrid, nowMillis: Int64) {
+        cursorPredictions.removeAll { $0.tentativeUntilEpoch > epoch - 1 }
+
+        predictedCursorRow = confirmedGrid.cursorRow
+        predictedCursorCol = confirmedGrid.cursorCol
+        let resetCursor = CursorPrediction(
+            row: predictedCursorRow,
+            col: predictedCursorCol,
+            expirationFrame: localFrameSent + 1,
+            predictionTime: nowMillis,
+            tentativeUntilEpoch: predictionEpoch
+        )
+        cursorPredictions.append(resetCursor)
+
+        for rowIndex in overlayRows.indices {
+            for cellIndex in overlayRows[rowIndex].cells.indices {
+                if overlayRows[rowIndex].cells[cellIndex].tentativeUntilEpoch > epoch - 1 {
+                    var cell = overlayRows[rowIndex].cells[cellIndex]
+                    resetCell(&cell)
+                    overlayRows[rowIndex].cells[cellIndex] = cell
+                }
+            }
+        }
+
+        becomeTentative()
+    }
+
+    private func hasActivePredictions() -> Bool {
+        if !cursorPredictions.isEmpty {
+            return true
+        }
+        for row in overlayRows {
+            if row.cells.contains(where: { $0.active }) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func shouldShowPredictions() -> Bool {
+        switch displayPreference {
+        case .off:
+            return false
+        case .always, .experimental:
+            return true
+        case .adaptive:
+            return srttTrigger || glitchTrigger > 0
+        }
     }
 
     private func becomeTentative() {

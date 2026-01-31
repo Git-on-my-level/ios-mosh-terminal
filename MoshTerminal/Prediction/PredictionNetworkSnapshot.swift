@@ -1,4 +1,1 @@
-import Foundation
-
-struct PredictionNetworkSnapshot {
-}
+// Intentionally empty. PredictionNetworkSnapshot is defined in MoshRuntime.swift.
