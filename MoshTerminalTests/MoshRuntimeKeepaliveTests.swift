@@ -32,7 +32,7 @@ final class MoshRuntimeKeepaliveTests: XCTestCase {
             case .failed:
                 failed.fulfill()
             }
-        })
+        }, onEchoAck: nil)
 
         try await runtime.start(
             serverHost: "127.0.0.1",

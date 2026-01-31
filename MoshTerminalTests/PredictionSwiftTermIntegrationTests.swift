@@ -16,36 +16,30 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 1, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("\r".utf8), displayGrid: grid, nowMillis: 1000)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("abc".utf8), displayGrid: grid, nowMillis: 1010)
 
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("\r".utf8), displayGrid: grid, nowMillis: 1000)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("abc".utf8), displayGrid: grid, nowMillis: 1010)
 
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("\r".utf8), displayGrid: grid, nowMillis: 1000)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("abc".utf8), displayGrid: grid, nowMillis: 1010)
 
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
@@ -55,12 +49,11 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
             rows: 3,
             cursorRow: 1,
             cursorCol: 1,
-            overrides: [CellPosition(row: 1, col: 0): DisplayCell(char: "a", width: 1)])
+            overrides: [CellPosition(row: 1, col: 0): DisplayCell(char: "a", width: 1)]
         )
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 1, srttMillis: 40))
-        )
         engine.cull(confirmedGrid: confirmed, nowMillis: 1100)
 
         let render = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1100)
@@ -80,24 +73,20 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 1, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("\r".utf8), displayGrid: grid, nowMillis: 1000)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data("p@ssw0rd".utf8), displayGrid: grid, nowMillis: 1010)
 
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 1, srttMillis: 40))
-        )
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
 
         var render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1010)
@@ -105,7 +94,6 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 2, lastAckedStateNum: 0, echoAck: 2, srttMillis: 40))
-        )
         engine.cull(confirmedGrid: grid, nowMillis: 1010)
 
         render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1010)
@@ -130,7 +118,6 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 1, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40))
-        )
         engine.newUserBytes(Data([0x7F]), displayGrid: grid, nowMillis: 1000)
 
         engine.cull(confirmedGrid: grid, nowMillis: 1000)
@@ -140,7 +127,6 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
 
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 1, lastAckedStateNum: 0, echoAck: 1, srttMillis: 40))
-        )
         engine.cull(confirmedGrid: grid, nowMillis: 1100)
 
         render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1100)
