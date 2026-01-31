@@ -1,5 +1,8 @@
 import Darwin
 import Foundation
+#if DEBUG
+import os
+#endif
 
 actor MoshRuntime {
     enum Event: Sendable {
@@ -12,6 +15,8 @@ actor MoshRuntime {
         struct LivenessPolicy: Sendable {
             /// Disconnect if we have seen no inbound UDP packets for this long.
             var inboundSilenceMillis: UInt64 = 15_000
+            /// Allow extra idle time before disconnecting if no network errors are observed.
+            var idleGraceMillis: UInt64 = 30_000
             /// Fail the session after this many consecutive corrupted packets.
             var corruptPacketThreshold: Int = 6
             /// Fail the session after this many consecutive UDP unreachable send errors.
@@ -23,6 +28,7 @@ actor MoshRuntime {
             try RoamingDatagramSocket(host: host, port: port)
         }
         var idleTickSleepMillis: UInt64 = 250
+        var keepaliveIntervalMillis: UInt64 = TransportSender.Constants.keepaliveIntervalMillis
         var livenessPolicy: LivenessPolicy = LivenessPolicy()
     }
 
@@ -50,9 +56,15 @@ actor MoshRuntime {
     private var lastRoundtripSuccessMillis: UInt64?
     private var consecutiveCorruptPackets: Int = 0
     private var consecutiveUnreachableSends: Int = 0
+#if DEBUG
+    private var debugLogger: DebugLogProviding?
+#endif
 
     init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
+#if DEBUG
+        self.debugLogger = DebugLogger.shared
+#endif
     }
 
     func setHandlers(
@@ -79,7 +91,7 @@ actor MoshRuntime {
         let ocbSession = try OCBSession(key16: sessionKey)
         let packetCodec = OCBPacketCodec(session: ocbSession)
         let framing = TransportFraming(packetCodec: packetCodec)
-        let sender = TransportSender()
+        let sender = TransportSender(keepaliveIntervalMillis: configuration.keepaliveIntervalMillis)
         sender.setConnected(true, nowMillis: Clock.nowMillis())
         sender.currentState.append(.resize(cols: initialSize.cols, rows: initialSize.rows))
 
@@ -142,7 +154,8 @@ actor MoshRuntime {
             lastHeardAgeMillis: lastHeardAge,
             sendIntervalMillis: sendInterval,
             rtoMillis: rto,
-            localPort: normalizedPort
+            localPort: normalizedPort,
+            consecutiveUnreachableSends: consecutiveUnreachableSends
         )
     }
 
@@ -169,6 +182,18 @@ actor MoshRuntime {
         state = .idle
 
         if reason == .remote || reason == .liveness {
+#if DEBUG
+            let reasonString: String
+            switch reason {
+            case .remote:
+                reasonString = "remote"
+            case .liveness:
+                reasonString = "liveness timeout"
+            default:
+                reasonString = "unknown"
+            }
+            logLivenessEvent(.disconnected(reason: reasonString))
+#endif
             emitEvent(.disconnected)
         }
     }
@@ -192,6 +217,9 @@ actor MoshRuntime {
                 consecutiveCorruptPackets = 0
                 if !hasEmittedConnected {
                     hasEmittedConnected = true
+#if DEBUG
+                    logLivenessEvent(.connected)
+#endif
                     emitEvent(.connected)
                 }
             } catch {
@@ -201,7 +229,13 @@ actor MoshRuntime {
                 let now = Clock.nowMillis()
                 if shouldCountCorrupt(error) {
                     consecutiveCorruptPackets += 1
+#if DEBUG
+                    logLivenessEvent(.corruptPacket(consecutiveCount: consecutiveCorruptPackets))
+#endif
                     if consecutiveCorruptPackets >= configuration.livenessPolicy.corruptPacketThreshold {
+#if DEBUG
+                        logLivenessEvent(.failed(error: "Integrity failure"))
+#endif
                         emitEvent(.failed(.integrityFailure))
                         await stopInternal(reason: .failure)
                         break
@@ -210,6 +244,9 @@ actor MoshRuntime {
                     continue
                 }
 
+#if DEBUG
+                logLivenessEvent(.failed(error: error.localizedDescription))
+#endif
                 emitEvent(.failed(.startFailed(message: error.localizedDescription)))
                 await stopInternal(reason: .failure)
                 break
@@ -256,6 +293,11 @@ actor MoshRuntime {
                         try socket.send(datagram)
                         consecutiveUnreachableSends = 0
                     }
+#if DEBUG
+                    if instruction.diff.isEmpty && instruction.newNum == 0 {
+                        logLivenessEvent(.keepaliveSent)
+                    }
+#endif
                 } catch {
                     if Task.isCancelled || state != .running {
                         return
@@ -293,9 +335,17 @@ actor MoshRuntime {
         guard state == .running else { return true }
         let now = Clock.nowMillis()
         if let lastHeardMillis {
-            if now > lastHeardMillis + configuration.livenessPolicy.inboundSilenceMillis {
-                await stopInternal(reason: .liveness)
-                return true
+            let silenceDeadline = lastHeardMillis &+ configuration.livenessPolicy.inboundSilenceMillis
+            if now > silenceDeadline {
+                let lastHeardAge = now &- lastHeardMillis
+                let graceDeadline = silenceDeadline &+ configuration.livenessPolicy.idleGraceMillis
+#if DEBUG
+                logLivenessEvent(.livenessCheck(lastHeardAge: lastHeardAge, consecutiveUnreachable: consecutiveUnreachableSends))
+#endif
+                if consecutiveUnreachableSends > 0 || now > graceDeadline {
+                    await stopInternal(reason: .liveness)
+                    return true
+                }
             }
         }
         return false
@@ -322,6 +372,9 @@ actor MoshRuntime {
             if case .sendFailed(let errno) = socketError {
                 if isUnreachableErrno(errno) {
                     consecutiveUnreachableSends += 1
+#if DEBUG
+                    logLivenessEvent(.unreachableSend(consecutiveCount: consecutiveUnreachableSends))
+#endif
                     if consecutiveUnreachableSends >= configuration.livenessPolicy.unreachableSendThreshold {
                         return .udpUnreachable
                     }
@@ -341,3 +394,12 @@ actor MoshRuntime {
         }
     }
 }
+
+#if DEBUG
+extension MoshRuntime {
+    private func logLivenessEvent(_ kind: LivenessDebugEvent.Kind) {
+        let event = LivenessDebugEvent(kind: kind, timestamp: Clock.nowMillis())
+        debugLogger?.logLivenessEvent(event)
+    }
+}
+#endif

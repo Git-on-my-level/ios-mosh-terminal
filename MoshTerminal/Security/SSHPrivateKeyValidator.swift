@@ -139,9 +139,11 @@ private struct SSHKeyDataReader {
 
     private mutating func readUInt32() -> UInt32? {
         guard let bytes = readBytes(count: 4) else { return nil }
-        return bytes.withUnsafeBytes { buffer in
-            buffer.load(as: UInt32.self).bigEndian
-        }
+        let b0 = UInt32(bytes[0])
+        let b1 = UInt32(bytes[1])
+        let b2 = UInt32(bytes[2])
+        let b3 = UInt32(bytes[3])
+        return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
     }
 
     private mutating func readBytes(count: Int) -> Data? {

@@ -1,5 +1,8 @@
 import Combine
 import Foundation
+#if DEBUG
+import os
+#endif
 
 protocol AppLifecycleProviding: AnyObject {
     var state: AppLifecycleService.State { get }
@@ -26,7 +29,7 @@ protocol PrivateKeyStoring {
 }
 
 protocol HostPersisting {
-    func upsert(_ host: HostProfile) throws
+    func upsert(_ host: HostProfile) async throws
 }
 
 extension AppLifecycleService: AppLifecycleProviding {
@@ -59,7 +62,13 @@ final class ConnectionManager: ObservableObject {
         case failed(message: String)
     }
 
-    @Published private(set) var state: State = .idle
+    @Published private(set) var state: State = .idle {
+        didSet {
+#if DEBUG
+            logStateTransition(from: oldValue.debugName, to: state.debugName)
+#endif
+        }
+    }
     @Published private(set) var activeHostId: UUID?
     @Published private(set) var failure: ConnectionFailure?
 
@@ -88,12 +97,16 @@ final class ConnectionManager: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
     private var reconnectBackoff: ReconnectBackoffState
+#if DEBUG
+    private var debugLogger: DebugLogProviding?
+#endif
 
     struct DebugSnapshot: Sendable, Equatable {
         let lastHeardAgeMillis: UInt64?
         let sendIntervalMillis: UInt64?
         let rtoMillis: UInt64?
         let localPort: UInt16?
+        let consecutiveUnreachableSends: Int?
     }
 
     init(
@@ -103,7 +116,7 @@ final class ConnectionManager: ObservableObject {
         moshEngineFactory: @escaping MoshEngineFactory,
         appLifecycleService: AppLifecycleProviding,
         networkPathService: NetworkPathProviding,
-        connectionTimeoutNanoseconds: UInt64 = 5_000_000_000,
+        connectionTimeoutNanoseconds: UInt64 = 12_000_000_000,
         reconnectBackoffPolicy: ReconnectBackoffPolicy = .default,
         reconnectRandomUnit: @escaping () -> Double = { Double.random(in: 0...1) },
         sleep: @Sendable @escaping (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) }
@@ -120,6 +133,10 @@ final class ConnectionManager: ObservableObject {
             randomUnit: reconnectRandomUnit
         )
         self.sleep = sleep
+
+#if DEBUG
+        self.debugLogger = DebugLogger.shared
+#endif
 
         appLifecycleService.eventsPublisher
             .sink { [weak self] event in
@@ -190,7 +207,8 @@ final class ConnectionManager: ObservableObject {
             lastHeardAgeMillis: snapshot.lastHeardAgeMillis,
             sendIntervalMillis: snapshot.sendIntervalMillis,
             rtoMillis: snapshot.rtoMillis,
-            localPort: snapshot.localPort
+            localPort: snapshot.localPort,
+            consecutiveUnreachableSends: snapshot.consecutiveUnreachableSends
         )
     }
 
@@ -208,6 +226,18 @@ final class ConnectionManager: ObservableObject {
         guard !isConnecting else { return }
         guard state != .connected else { return }
 
+        let reasonString: String
+        switch reason {
+        case .foreground:
+            reasonString = "foreground"
+        case .networkSatisfied:
+            reasonString = "networkSatisfied"
+        case .engineDisconnected:
+            reasonString = "engineDisconnected"
+        }
+#if DEBUG
+        logReconnectRequest(reason: reasonString)
+#endif
         startConnection(isReconnect: true)
     }
 
@@ -224,6 +254,9 @@ final class ConnectionManager: ObservableObject {
         cancelConnectTask()
         let token = UUID()
         connectToken = token
+#if DEBUG
+        logStartAttempt(isReconnect: isReconnect, hostId: activeHost?.uuidString ?? "unknown")
+#endif
         connectTask = Task { [weak self] in
             await self?.runConnectionAttempt(isReconnect: isReconnect, token: token)
         }
@@ -279,6 +312,9 @@ final class ConnectionManager: ObservableObject {
                 passphrase: passphrase,
                 hostKeyPrompter: hostKeyPrompter
             )
+#if DEBUG
+            logSSHBootstrap(success: true, errorDescription: nil)
+#endif
             guard connectToken == token else { return }
             lastConnectInfo = connectInfo
             state = .connectingUDP
@@ -290,6 +326,9 @@ final class ConnectionManager: ObservableObject {
             )
         } catch {
             if connectToken != token { return }
+#if DEBUG
+            logSSHBootstrap(success: false, errorDescription: error.localizedDescription)
+#endif
             handleConnectionFailure(error)
         }
     }
@@ -309,8 +348,14 @@ final class ConnectionManager: ObservableObject {
         state = .connectingUDP
         do {
             try await engine.start(connectInfo: connectInfo, initialTerminalSize: size)
+#if DEBUG
+            logUDPConnect(success: true, timeoutMillis: nil)
+#endif
         } catch {
             if connectToken != token { return false }
+#if DEBUG
+            logUDPConnect(success: false, timeoutMillis: nil)
+#endif
             handleConnectionFailure(error)
             return false
         }
@@ -318,8 +363,11 @@ final class ConnectionManager: ObservableObject {
         guard waitForConnection else { return true }
         let connected = await waitForConnected(timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
         if !connected {
-            if connectToken == token {
-                handleConnectionFailure(ConnectionFailureReason.udpUnreachable)
+            if connectToken == token, state == .connectingUDP {
+#if DEBUG
+                logUDPConnect(success: false, timeoutMillis: connectionTimeoutNanoseconds / 1_000_000)
+#endif
+                handleConnectionFailure(ConnectionFailureReason.udpTimeout)
             }
             await stopEngine()
             return false
@@ -345,6 +393,9 @@ final class ConnectionManager: ObservableObject {
     }
 
     private func attachEngine(_ engine: MoshEngine, controller: TerminalSessionController?) {
+#if DEBUG
+        logEngineAttached()
+#endif
         engine.onOutput = { [weak self, weak controller, weak engine] data in
             Task { @MainActor in
                 guard let self, let controller, self.engine === engine else { return }
@@ -391,7 +442,9 @@ final class ConnectionManager: ObservableObject {
             failure = nil
             reconnectBackoff.recordSuccess()
             resumeConnectWaiter(connected: true)
-            recordLastConnected()
+            Task { @MainActor [weak self] in
+                await self?.recordLastConnected()
+            }
         case .disconnected:
             reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
@@ -401,6 +454,9 @@ final class ConnectionManager: ObservableObject {
             )
             state = .failed(message: mappedFailure.title)
             failure = mappedFailure
+#if DEBUG
+            logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? "Disconnected")
+#endif
             resumeConnectWaiter(connected: false)
             requestReconnect(reason: .engineDisconnected)
         case .failed(let error):
@@ -412,6 +468,9 @@ final class ConnectionManager: ObservableObject {
             )
             state = .failed(message: mappedFailure.title)
             failure = mappedFailure
+#if DEBUG
+            logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
+#endif
             resumeConnectWaiter(connected: false)
             requestReconnect(reason: .engineDisconnected)
         }
@@ -433,6 +492,9 @@ final class ConnectionManager: ObservableObject {
         )
         state = .failed(message: mappedFailure.title)
         failure = mappedFailure
+#if DEBUG
+        logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
+#endif
     }
 
     private func resolvePassphraseIfNeeded(
@@ -459,12 +521,12 @@ final class ConnectionManager: ObservableObject {
         return passphrase
     }
 
-    private func recordLastConnected() {
+    private func recordLastConnected() async {
         guard var host = activeHost else { return }
         host.lastConnectedAt = Date()
         activeHost = host
         do {
-            try hostRepository.upsert(host)
+            try await hostRepository.upsert(host)
         } catch {
             return
         }
@@ -482,6 +544,9 @@ final class ConnectionManager: ObservableObject {
         engine.onOutput = nil
         engine.onRemoteResize = nil
         engine.onStateChange = nil
+#if DEBUG
+        logEngineDetached()
+#endif
         self.engine = nil
         await engine.stop()
     }
@@ -499,6 +564,9 @@ final class ConnectionManager: ObservableObject {
         let delaySeconds = reconnectBackoff.nextDelay()
         guard delaySeconds > 0 else { return true }
         let nanoseconds = UInt64(delaySeconds * 1_000_000_000)
+#if DEBUG
+        logBackoffApplied(delaySeconds: delaySeconds)
+#endif
         do {
             try await sleep(nanoseconds)
         } catch {
@@ -507,6 +575,82 @@ final class ConnectionManager: ObservableObject {
         return connectToken == token
     }
 }
+
+#if DEBUG
+extension ConnectionManager {
+    private func logStateTransition(from: String, to: String) {
+        let event = ConnectionDebugEvent(
+            kind: .stateTransition(from: from, to: to),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logStartAttempt(isReconnect: Bool, hostId: String) {
+        let event = ConnectionDebugEvent(
+            kind: .startAttempt(isReconnect: isReconnect, hostId: hostId),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logReconnectRequest(reason: String) {
+        let event = ConnectionDebugEvent(
+            kind: .reconnectRequest(reason: reason),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logBackoffApplied(delaySeconds: Double) {
+        let event = ConnectionDebugEvent(
+            kind: .backoffApplied(delaySeconds: delaySeconds),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logSSHBootstrap(success: Bool, errorDescription: String?) {
+        let event = ConnectionDebugEvent(
+            kind: .sshBootstrap(success: success, errorDescription: errorDescription),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logUDPConnect(success: Bool, timeoutMillis: UInt64?) {
+        let event = ConnectionDebugEvent(
+            kind: .udpConnect(success: success, timeoutMillis: timeoutMillis),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logEngineAttached() {
+        let event = ConnectionDebugEvent(
+            kind: .engineAttached,
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logEngineDetached() {
+        let event = ConnectionDebugEvent(
+            kind: .engineDetached,
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+    
+    private func logFailure(title: String, errorDescription: String) {
+        let event = ConnectionDebugEvent(
+            kind: .failure(title: title, errorDescription: errorDescription),
+            timestamp: Clock.nowMillis()
+        )
+        debugLogger?.logConnectionEvent(event)
+    }
+}
+#endif
 
 extension ConnectionManager.State {
     var statusText: String {

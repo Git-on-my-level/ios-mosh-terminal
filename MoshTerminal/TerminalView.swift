@@ -154,6 +154,7 @@ private struct TerminalDebugOverlay: View {
             Text("Send interval: \(formatMillis(snapshot?.sendIntervalMillis))")
             Text("RTO: \(formatMillis(snapshot?.rtoMillis))")
             Text("Local UDP: \(snapshot?.localPort.map(String.init) ?? "n/a")")
+            Text("Unreachable sends: \(snapshot?.consecutiveUnreachableSends.map(String.init) ?? "n/a")")
         }
         .font(.caption2)
         .padding(8)

@@ -2,7 +2,7 @@ import XCTest
 @testable import MoshTerminal
 
 final class JSONStoreTests: XCTestCase {
-    func testRoundTripSaveLoad() throws {
+    func testRoundTripSaveLoad() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let fileURL = tempDir.appendingPathComponent("store.json")
         let store = JSONStore(fileURL: fileURL)
@@ -25,15 +25,15 @@ final class JSONStoreTests: XCTestCase {
         var state = StoreState.empty()
         state.hosts = [host]
         state.trustedHostKeys = [key]
-        try store.save(state)
+        try await store.save(state)
 
-        let loaded = try store.load()
+        let loaded = try await store.load()
         XCTAssertEqual(loaded.schemaVersion, StoreState.currentSchemaVersion)
         XCTAssertEqual(loaded.hosts, [host])
         XCTAssertEqual(loaded.trustedHostKeys, [key])
     }
 
-    func testUnsupportedSchemaVersionThrows() throws {
+    func testUnsupportedSchemaVersionThrows() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let fileURL = tempDir.appendingPathComponent("store.json")
         let json = """
@@ -47,12 +47,15 @@ final class JSONStoreTests: XCTestCase {
         try json.data(using: .utf8)?.write(to: fileURL, options: [.atomic])
 
         let store = JSONStore(fileURL: fileURL)
-        XCTAssertThrowsError(try store.load()) { error in
+        do {
+            _ = try await store.load()
+            XCTFail("Expected unsupported version error.")
+        } catch {
             XCTAssertEqual(error as? StoreError, .unsupportedVersion(99))
         }
     }
 
-    func testMigratesLegacySchemaVersion() throws {
+    func testMigratesLegacySchemaVersion() async throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let fileURL = tempDir.appendingPathComponent("store.json")
         let json = """
@@ -66,7 +69,7 @@ final class JSONStoreTests: XCTestCase {
         try json.data(using: .utf8)?.write(to: fileURL, options: [.atomic])
 
         let store = JSONStore(fileURL: fileURL)
-        let loaded = try store.load()
+        let loaded = try await store.load()
         XCTAssertEqual(loaded.schemaVersion, StoreState.currentSchemaVersion)
         XCTAssertEqual(loaded.hosts.count, 0)
         XCTAssertEqual(loaded.trustedHostKeys.count, 0)

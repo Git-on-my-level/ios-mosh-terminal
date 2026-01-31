@@ -7,9 +7,14 @@ final class KeyManagementViewModel: ObservableObject {
     @Published var alertMessage: String?
 
     private let store: KeychainPrivateKeyStore
+    private let hostRepository: HostRepository
 
-    init(store: KeychainPrivateKeyStore = KeychainPrivateKeyStore()) {
+    init(
+        store: KeychainPrivateKeyStore = KeychainPrivateKeyStore(),
+        hostRepository: HostRepository = HostRepository(store: JSONStore())
+    ) {
         self.store = store
+        self.hostRepository = hostRepository
     }
 
     func loadKeys() {
@@ -21,23 +26,48 @@ final class KeyManagementViewModel: ObservableObject {
     }
 
     func importKeyFromFile(data: Data, label: String?) {
-        let text = String(data: data, encoding: .utf8)
-            ?? String(data: data, encoding: .ascii)
-        guard let text else {
-            alertMessage = "Unable to read key as text."
-            return
+        do {
+            let normalizedData = try normalizePrivateKeyData(data)
+            guard let text = String(data: normalizedData, encoding: .utf8) else {
+                alertMessage = "Unable to read key as text."
+                return
+            }
+            importKey(text: text, data: normalizedData, label: label)
+        } catch {
+            alertMessage = error.localizedDescription
         }
-        importKey(text: text, data: data, label: label)
     }
 
     func importKeyFromPaste(text: String, label: String?) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let data = Data(trimmed.utf8)
-        importKey(text: trimmed, data: data, label: label)
+        do {
+            let data = Data(text.utf8)
+            let normalizedData = try normalizePrivateKeyData(data)
+            guard let normalizedText = String(data: normalizedData, encoding: .utf8) else {
+                alertMessage = "Unable to read key as text."
+                return
+            }
+            importKey(text: normalizedText, data: normalizedData, label: label)
+        } catch {
+            alertMessage = error.localizedDescription
+        }
     }
 
-    func deleteKeys(at offsets: IndexSet) {
+    func deleteKeys(at offsets: IndexSet) async {
         let ids = offsets.map { keys[$0].id }
+        guard !ids.isEmpty else {
+            return
+        }
+        do {
+            let hosts = try await hostRepository.all()
+            let referencedHosts = hosts.filter { ids.contains($0.keyRefId) }
+            if !referencedHosts.isEmpty {
+                alertMessage = makeDeletionBlockedMessage(hosts: referencedHosts, keyCount: ids.count)
+                return
+            }
+        } catch {
+            alertMessage = error.localizedDescription
+            return
+        }
         for id in ids {
             do {
                 try store.deleteKey(keyRefId: id)
@@ -65,12 +95,57 @@ final class KeyManagementViewModel: ObservableObject {
             alertMessage = error.localizedDescription
         }
     }
+
+    private func normalizePrivateKeyData(_ data: Data) throws -> Data {
+        let decoded = String(data: data, encoding: .utf8)
+            ?? String(data: data, encoding: .ascii)
+        guard var text = decoded else {
+            throw NSError(domain: "KeyManagement", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to read key as text"])
+        }
+
+        let bomScalars: [UInt32] = [0xFEFF, 0xFFFE, 0xEFBBBF]
+        if let firstScalar = text.unicodeScalars.first, bomScalars.contains(firstScalar.value) {
+            text.removeFirst()
+        }
+
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        text = text.replacingOccurrences(of: "\r\n", with: "\n")
+        text = text.replacingOccurrences(of: "\r", with: "\n")
+
+        guard let normalized = text.data(using: .utf8) else {
+            throw NSError(domain: "KeyManagement", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to encode normalized key"])
+        }
+
+        return normalized
+    }
+
+    private func makeDeletionBlockedMessage(hosts: [HostProfile], keyCount: Int) -> String {
+        let names = Array(Set(hosts.map { $0.resolvedDisplayName })).sorted()
+        let keyPhrase = keyCount == 1 ? "This key is" : "One or more selected keys are"
+        if names.count == 1 {
+            let updatePhrase = "Update that host to a different key before deleting."
+            return "\(keyPhrase) still assigned to the host \"\(names[0])\". \(updatePhrase)"
+        }
+        let list = names.map { "- \($0)" }.joined(separator: "\n")
+        let updatePhrase = "Update those hosts to a different key before deleting."
+        return "\(keyPhrase) still assigned to these hosts:\n\(list)\n\(updatePhrase)"
+    }
 }
 
 struct KeyManagementView: View {
-    @StateObject private var viewModel = KeyManagementViewModel()
+    @StateObject private var viewModel: KeyManagementViewModel
     @State private var isShowingFileImporter = false
     @State private var isShowingPasteSheet = false
+
+    init(hostRepository: HostRepository, keyStore: KeychainPrivateKeyStore) {
+        _viewModel = StateObject(
+            wrappedValue: KeyManagementViewModel(
+                store: keyStore,
+                hostRepository: hostRepository
+            )
+        )
+    }
 
     var body: some View {
         List {
@@ -81,7 +156,9 @@ struct KeyManagementView: View {
                 ForEach(viewModel.keys) { key in
                     KeyRow(metadata: key)
                 }
-                .onDelete(perform: viewModel.deleteKeys)
+                .onDelete { offsets in
+                    Task { await viewModel.deleteKeys(at: offsets) }
+                }
             }
         }
         .navigationTitle("Keys")
@@ -114,7 +191,7 @@ struct KeyManagementView: View {
                 }
             }
         }
-        .alert("Key Import", isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })) {
+        .alert("Keys", isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(viewModel.alertMessage ?? "")
@@ -251,6 +328,9 @@ private struct KeyFileDocumentPicker: UIViewControllerRepresentable {
 
 #Preview {
     NavigationStack {
-        KeyManagementView()
+        KeyManagementView(
+            hostRepository: HostRepository(store: JSONStore()),
+            keyStore: KeychainPrivateKeyStore()
+        )
     }
 }

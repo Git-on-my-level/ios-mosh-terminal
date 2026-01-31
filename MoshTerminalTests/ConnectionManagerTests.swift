@@ -45,7 +45,7 @@ final class ConnectionManagerTests: XCTestCase {
             hostKeyPrompter: SSHHostKeyPrompt { _ in true }
         )
 
-        await waitUntil { bootstrapper.isWaiting }
+        await waitUntil(bootstrapper.isWaiting)
         lifecycle.send(.foreground)
         network.setStatus(.satisfied)
         lifecycle.send(.foreground)
@@ -88,7 +88,7 @@ final class ConnectionManagerTests: XCTestCase {
 
         engines[0].emit(.disconnected)
 
-        await waitUntil { bootstrapper.callCount >= 2 }
+        await waitUntil(bootstrapper.callCount >= 2)
         await awaitState(manager) { state in
             if case .connected = state { return true }
             return false
@@ -198,6 +198,8 @@ final class ConnectionManagerTests: XCTestCase {
             return false
         }
 
+        await waitUntil(!hostRepository.upsertedHosts.isEmpty)
+
         let updatedHost = hostRepository.upsertedHosts.last
         XCTAssertEqual(updatedHost?.id, host.id)
         XCTAssertNotNil(updatedHost?.lastConnectedAt)
@@ -255,7 +257,7 @@ final class ConnectionManagerTests: XCTestCase {
     }
 
     private func waitUntil(
-        _ condition: @escaping () -> Bool,
+        _ condition: @autoclosure @escaping () -> Bool,
         timeout: TimeInterval = 1.5
     ) async {
         let start = Date()
@@ -324,7 +326,7 @@ private struct TestKeyStore: PrivateKeyStoring {
 private final class TestHostRepository: HostPersisting {
     private(set) var upsertedHosts: [HostProfile] = []
 
-    func upsert(_ host: HostProfile) throws {
+    func upsert(_ host: HostProfile) async throws {
         upsertedHosts.append(host)
     }
 }

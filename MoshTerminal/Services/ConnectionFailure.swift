@@ -9,6 +9,7 @@ struct ConnectionFailure: Identifiable, Equatable {
 
 enum ConnectionFailureReason: Error, Equatable {
     case udpUnreachable
+    case udpTimeout
     case networkUnavailable
     case disconnected
 }
@@ -53,6 +54,12 @@ struct ConnectionErrorMapper {
             return ConnectionFailure(
                 title: "UDP blocked",
                 message: "This network appears to block UDP. Mosh requires UDP.",
+                allowsRetry: true
+            )
+        case .udpTimeout:
+            return ConnectionFailure(
+                title: "UDP timeout",
+                message: "No UDP response was received yet. This can happen on slow or lossy networks. Try again.",
                 allowsRetry: true
             )
         case .networkUnavailable:

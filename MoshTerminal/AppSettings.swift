@@ -37,6 +37,7 @@ final class AppSettings: ObservableObject {
         static let keepAwake = "settings.keepAwake"
 #if DEBUG
         static let debugOverlayEnabled = "settings.debugOverlayEnabled"
+        static let debugLoggingEnabled = "settings.debugLoggingEnabled"
 #endif
     }
 
@@ -66,6 +67,13 @@ final class AppSettings: ObservableObject {
             defaults.set(debugOverlayEnabled, forKey: Keys.debugOverlayEnabled)
         }
     }
+    
+    @Published var debugLoggingEnabled: Bool {
+        didSet {
+            defaults.set(debugLoggingEnabled, forKey: Keys.debugLoggingEnabled)
+            DebugLogger.shared.isEnabled = debugLoggingEnabled
+        }
+    }
 #endif
 
     init(defaults: UserDefaults = .standard) {
@@ -82,6 +90,8 @@ final class AppSettings: ObservableObject {
 
 #if DEBUG
         debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false
+        debugLoggingEnabled = defaults.object(forKey: Keys.debugLoggingEnabled) as? Bool ?? false
+        DebugLogger.shared.isEnabled = debugLoggingEnabled
 #endif
     }
 }

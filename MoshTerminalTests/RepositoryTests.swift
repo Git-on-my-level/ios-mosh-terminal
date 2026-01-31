@@ -2,7 +2,7 @@ import XCTest
 @testable import MoshTerminal
 
 final class RepositoryTests: XCTestCase {
-    func testHostRepositoryUpsertDeleteReplace() throws {
+    func testHostRepositoryUpsertDeleteReplace() async throws {
         let store = JSONStore(fileURL: makeTempFileURL())
         let repo = HostRepository(store: store)
 
@@ -23,25 +23,27 @@ final class RepositoryTests: XCTestCase {
             lastConnectedAt: Date(timeIntervalSince1970: 1_700_000_100)
         )
 
-        try repo.upsert(hostA)
-        try repo.upsert(hostB)
-        XCTAssertEqual(try repo.all().count, 2)
+        try await repo.upsert(hostA)
+        try await repo.upsert(hostB)
+        let initialCount = try await repo.all().count
+        XCTAssertEqual(initialCount, 2)
 
         var updated = hostA
         updated.displayName = "Lab Updated"
-        try repo.upsert(updated)
-        let all = try repo.all()
+        try await repo.upsert(updated)
+        let all = try await repo.all()
         XCTAssertTrue(all.contains(where: { $0.displayName == "Lab Updated" }))
 
-        try repo.delete(id: hostB.id)
-        XCTAssertEqual(try repo.all().count, 1)
+        try await repo.delete(id: hostB.id)
+        let remainingCount = try await repo.all().count
+        XCTAssertEqual(remainingCount, 1)
 
-        try repo.replaceAll([hostB])
-        let replaced = try repo.all()
+        try await repo.replaceAll([hostB])
+        let replaced = try await repo.all()
         XCTAssertEqual(replaced, [hostB])
     }
 
-    func testTrustedHostKeyRepositoryDeduplicatesAndSorts() throws {
+    func testTrustedHostKeyRepositoryDeduplicatesAndSorts() async throws {
         let store = JSONStore(fileURL: makeTempFileURL())
         let repo = TrustedHostKeyRepository(store: store)
 
@@ -64,21 +66,21 @@ final class RepositoryTests: XCTestCase {
             addedAt: Date(timeIntervalSince1970: 1_700_000_100)
         )
 
-        try repo.upsert(keyB)
-        try repo.upsert(keyA)
-        try repo.upsert(keyC)
-        try repo.upsert(keyA) // dedupe same fingerprint
+        try await repo.upsert(keyB)
+        try await repo.upsert(keyA)
+        try await repo.upsert(keyC)
+        try await repo.upsert(keyA) // dedupe same fingerprint
 
-        let all = try repo.all()
+        let all = try await repo.all()
         XCTAssertEqual(all.count, 3)
         XCTAssertEqual(all.first?.hostname, "alpha")
         XCTAssertEqual(all.first?.fingerprint, "SHA256:aaa")
 
-        let alphaKeys = try repo.keys(for: "alpha", port: 22)
+        let alphaKeys = try await repo.keys(for: "alpha", port: 22)
         XCTAssertEqual(alphaKeys.count, 2)
     }
 
-    func testConcurrentHostUpsertsPreserveBothChanges() throws {
+    func testConcurrentHostUpsertsPreserveBothChanges() async throws {
         let store = JSONStore(fileURL: makeTempFileURL())
         let repo = HostRepository(store: store)
 
@@ -99,38 +101,35 @@ final class RepositoryTests: XCTestCase {
             lastConnectedAt: Date(timeIntervalSince1970: 1_700_000_100)
         )
 
-        let group = DispatchGroup()
-        let lock = NSLock()
-        var errors: [Error] = []
-
-        group.enter()
-        DispatchQueue.global().async {
-            defer { group.leave() }
-            do {
-                try repo.upsert(hostA)
-            } catch {
-                lock.lock()
-                errors.append(error)
-                lock.unlock()
+        let errors = await withTaskGroup(of: Error?.self) { group in
+            group.addTask {
+                do {
+                    try await repo.upsert(hostA)
+                    return nil
+                } catch {
+                    return error
+                }
             }
+            group.addTask {
+                do {
+                    try await repo.upsert(hostB)
+                    return nil
+                } catch {
+                    return error
+                }
+            }
+            var results: [Error] = []
+            for await result in group {
+                if let result {
+                    results.append(result)
+                }
+            }
+            return results
         }
 
-        group.enter()
-        DispatchQueue.global().async {
-            defer { group.leave() }
-            do {
-                try repo.upsert(hostB)
-            } catch {
-                lock.lock()
-                errors.append(error)
-                lock.unlock()
-            }
-        }
-
-        XCTAssertEqual(group.wait(timeout: .now() + 2), .success)
         XCTAssertTrue(errors.isEmpty)
 
-        let all = try repo.all()
+        let all = try await repo.all()
         XCTAssertEqual(all.count, 2)
         XCTAssertTrue(all.contains(where: { $0.id == hostA.id }))
         XCTAssertTrue(all.contains(where: { $0.id == hostB.id }))

@@ -11,7 +11,7 @@ final class TOFUHostKeyVerifier: SSHHostKeyVerifying, @unchecked Sendable {
 
     func verify(hostname: String, port: Int, fingerprint: String) async throws {
         do {
-            let existing = try repository.keys(for: hostname, port: port)
+            let existing = try await repository.keys(for: hostname, port: port)
             if existing.isEmpty {
                 let shouldTrust = await prompter.promptTrust(
                     hostKey: SSHHostKey(hostname: hostname, port: port, fingerprint: fingerprint)
@@ -20,7 +20,7 @@ final class TOFUHostKeyVerifier: SSHHostKeyVerifying, @unchecked Sendable {
                     throw SSHClientError.hostKeyUntrusted(fingerprint: fingerprint)
                 }
                 let key = TrustedHostKey(hostname: hostname, port: port, fingerprint: fingerprint)
-                try repository.upsert(key)
+                try await repository.upsert(key)
                 return
             }
 

@@ -18,6 +18,83 @@ final class DatagramSocketTests: XCTestCase {
 
         XCTAssertEqual(echoed, payload)
     }
+
+    func testRoamingDatagramSocketThrowsWhenNoSocketsAvailable() throws {
+        let mockSocket = MockDatagramSocket()
+        var config = RoamingDatagramSocket.Configuration()
+        config.enablePortHopping = false
+        config.socketFactory = { _, _ in mockSocket }
+
+        let socket = try RoamingDatagramSocket(host: "127.0.0.1", port: 12345, configuration: config)
+        defer { socket.close() }
+
+        mockSocket.close()
+
+        let expectation = XCTestExpectation(description: "Receive should complete with error")
+        Task {
+            do {
+                _ = try await socket.receive()
+                XCTFail("Expected error when no sockets available")
+            } catch {
+                if case DatagramSocketError.closed = error {
+                    expectation.fulfill()
+                } else {
+                    XCTFail("Expected DatagramSocketError.closed, got: \(error)")
+                }
+            }
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+
+        let payload = Data("test".utf8)
+        do {
+            try socket.send(payload)
+            XCTFail("Expected error when trying to send with no sockets")
+        } catch {
+            if case DatagramSocketError.closed = error {
+            } else {
+                XCTFail("Expected DatagramSocketError.closed, got: \(error)")
+            }
+        }
+    }
+}
+
+final class MockDatagramSocket: DatagramSocket, @unchecked Sendable {
+    private let stateLock = NSLock()
+    private var _isClosed = false
+    private var _continuation: AsyncThrowingStream<Data, Error>.Continuation?
+    private let _stream: AsyncThrowingStream<Data, Error>
+
+    init() {
+        var continuation: AsyncThrowingStream<Data, Error>.Continuation?
+        let stream = AsyncThrowingStream<Data, Error> { continuation = $0 }
+        _stream = stream
+        _continuation = continuation
+    }
+
+    func send(_ data: Data) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        if _isClosed {
+            throw DatagramSocketError.closed
+        }
+    }
+
+    func receive() async throws -> Data {
+        var iterator = _stream.makeAsyncIterator()
+        guard let data = try await iterator.next() else {
+            throw DatagramSocketError.closed
+        }
+        return data
+    }
+
+    func close() {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        _isClosed = true
+        _continuation?.finish(throwing: DatagramSocketError.closed)
+        _continuation = nil
+    }
 }
 
 private final class UDPEchoServer {

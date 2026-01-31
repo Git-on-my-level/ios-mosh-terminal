@@ -59,7 +59,7 @@ final class HostEditorViewModel: ObservableObject {
         }
     }
 
-    func save(onSuccess: (HostProfile) -> Void) {
+    func save(onSuccess: (HostProfile) -> Void) async {
         guard validationErrors.isEmpty else {
             alertMessage = validationSummary
             return
@@ -85,7 +85,7 @@ final class HostEditorViewModel: ObservableObject {
             lastConnectedAt: existingHost?.lastConnectedAt
         )
         do {
-            try hostRepository.upsert(host)
+            try await hostRepository.upsert(host)
             onSuccess(host)
         } catch {
             alertMessage = error.localizedDescription
@@ -123,6 +123,8 @@ final class HostEditorViewModel: ObservableObject {
 struct HostEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: HostEditorViewModel
+    private let hostRepository: HostRepository
+    private let keyStore: KeychainPrivateKeyStore
     private let onSave: (HostProfile) -> Void
 
     init(
@@ -138,6 +140,8 @@ struct HostEditorView: View {
                 host: host
             )
         )
+        self.hostRepository = hostRepository
+        self.keyStore = keyStore
         self.onSave = onSave
     }
 
@@ -171,7 +175,10 @@ struct HostEditorView: View {
                     }
                 }
                 NavigationLink("Manage Keys") {
-                    KeyManagementView()
+                    KeyManagementView(
+                        hostRepository: hostRepository,
+                        keyStore: keyStore
+                    )
                 }
             }
 
@@ -192,9 +199,11 @@ struct HostEditorView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    viewModel.save { host in
-                        onSave(host)
-                        dismiss()
+                    Task {
+                        await viewModel.save { host in
+                            onSave(host)
+                            dismiss()
+                        }
                     }
                 }
                 .disabled(!viewModel.isFormValid)

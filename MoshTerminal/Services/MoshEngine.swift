@@ -49,6 +49,7 @@ struct MoshEngineDebugSnapshot: Sendable, Equatable {
     let sendIntervalMillis: UInt64?
     let rtoMillis: UInt64?
     let localPort: UInt16?
+    let consecutiveUnreachableSends: Int?
 }
 
 protocol MoshEngineDebugProviding: AnyObject, Sendable {

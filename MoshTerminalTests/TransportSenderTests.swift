@@ -104,7 +104,22 @@ final class TransportSenderTests: XCTestCase {
         _ = sender.tick(nowMillis: 8)
 
         let timeout = UInt64(8) + TransportSender.Constants.activeRetryTimeoutMillis + 1
-        XCTAssertTrue(sender.tick(nowMillis: timeout).isEmpty)
+        let instructions = sender.tick(nowMillis: timeout)
+        if !instructions.isEmpty {
+            XCTAssertTrue(instructions.allSatisfy { $0.diff.isEmpty })
+        }
+    }
+
+    func testTransportSenderEmitsKeepaliveWhenIdle() {
+        let sender = TransportSender(keepaliveIntervalMillis: 100)
+        sender.setConnected(true, nowMillis: 0)
+
+        XCTAssertTrue(sender.tick(nowMillis: 0).isEmpty)
+
+        let instructions = sender.tick(nowMillis: 100)
+        XCTAssertEqual(instructions.count, 1)
+        XCTAssertTrue(instructions[0].diff.isEmpty)
+        XCTAssertEqual(instructions[0].ackNum, 0)
     }
 
     func testTransportSenderUsesDeterministicChaff() {
@@ -116,6 +131,17 @@ final class TransportSenderTests: XCTestCase {
         let instructions = sender.tick(nowMillis: 8)
         XCTAssertEqual(instructions.count, 1)
         XCTAssertEqual(instructions[0].chaff, Data([1, 2, 3, 4, 5]))
+    }
+
+    func testTransportSenderHandlesRNGFailureGracefully() {
+        let failingRng = FailingRandomSource()
+        let sender = TransportSender(randomBytes: failingRng.next)
+        sender.setConnected(true, nowMillis: 0)
+        sender.currentState.append(.keystroke(Data("a".utf8)))
+
+        let instructions = sender.tick(nowMillis: 8)
+        XCTAssertEqual(instructions.count, 1)
+        XCTAssertEqual(instructions[0].chaff, Data())
     }
 }
 
@@ -139,5 +165,11 @@ private final class DeterministicRandomSource {
         let slice = Array(bytes.prefix(count))
         bytes.removeFirst(count)
         return slice
+    }
+}
+
+private final class FailingRandomSource {
+    func next(count: Int) -> [UInt8] {
+        return []
     }
 }

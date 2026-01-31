@@ -28,7 +28,10 @@ struct SettingsView: View {
 
             Section("Keys") {
                 NavigationLink("Manage Keys") {
-                    KeyManagementView()
+                    KeyManagementView(
+                        hostRepository: environment.dependencies.hostRepository,
+                        keyStore: environment.dependencies.keyStore
+                    )
                 }
                 NavigationLink("Trusted Host Keys") {
                     TrustedHostKeysView(repository: environment.dependencies.trustedHostKeyRepository)
@@ -44,6 +47,7 @@ struct SettingsView: View {
 #if DEBUG
             Section("Debug") {
                 Toggle("Show Debug Overlay", isOn: $settings.debugOverlayEnabled)
+                Toggle("Enable Debug Logging", isOn: $settings.debugLoggingEnabled)
             }
 #endif
         }

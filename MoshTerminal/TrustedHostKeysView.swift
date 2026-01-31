@@ -11,25 +11,25 @@ final class TrustedHostKeysViewModel: ObservableObject {
         self.repository = repository
     }
 
-    func loadKeys() {
+    func loadKeys() async {
         do {
-            keys = try repository.all()
+            keys = try await repository.all()
         } catch {
             alertMessage = error.localizedDescription
         }
     }
 
-    func deleteKeys(at offsets: IndexSet) {
+    func deleteKeys(at offsets: IndexSet) async {
         let toDelete = offsets.map { keys[$0] }
         for key in toDelete {
             do {
-                try repository.delete(hostname: key.hostname, port: key.port, fingerprint: key.fingerprint)
+                try await repository.delete(hostname: key.hostname, port: key.port, fingerprint: key.fingerprint)
             } catch {
                 alertMessage = error.localizedDescription
                 break
             }
         }
-        loadKeys()
+        await loadKeys()
     }
 }
 
@@ -53,7 +53,9 @@ struct TrustedHostKeysView: View {
                 ForEach(viewModel.keys, id: \.self) { key in
                     TrustedHostKeyRow(key: key)
                 }
-                .onDelete(perform: viewModel.deleteKeys)
+                .onDelete { offsets in
+                    Task { await viewModel.deleteKeys(at: offsets) }
+                }
             }
         }
         .navigationTitle("Trusted Host Keys")
@@ -65,8 +67,8 @@ struct TrustedHostKeysView: View {
         } message: {
             Text(viewModel.alertMessage ?? "")
         }
-        .onAppear {
-            viewModel.loadKeys()
+        .task {
+            await viewModel.loadKeys()
         }
     }
 }
