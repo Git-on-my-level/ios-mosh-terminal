@@ -38,6 +38,10 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         predictionCoordinator.predictionNetworkProvider = provider
     }
 
+    func setPredictionDisplayPreference(_ preference: PredictionDisplayPreference) {
+        predictionCoordinator.setDisplayPreference(preference)
+    }
+
     func focus() {
         terminalView?.becomeFirstResponder()
     }

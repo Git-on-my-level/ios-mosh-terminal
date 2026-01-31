@@ -10,13 +10,17 @@ final class TerminalPredictionCoordinator {
 
     init() {}
 
+    func setDisplayPreference(_ preference: PredictionDisplayPreference) {
+        engine.displayPreference = preference
+    }
+
     func reset() {
         engine.reset()
         updateOverlayWithEmpty()
     }
 
     func handleUserInput(data: Data) {
-        withConfirmedGrid { confirmedGrid, nowMillis in
+        withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
 
             let visibleModel = engine.currentRenderModel(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
@@ -28,7 +32,7 @@ final class TerminalPredictionCoordinator {
     }
 
     func handleConfirmedOutputApplied() {
-        withConfirmedGrid { confirmedGrid, nowMillis in
+        withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         }
@@ -40,7 +44,7 @@ final class TerminalPredictionCoordinator {
     }
 
     func handleEchoAckUpdated() {
-        withConfirmedGrid { confirmedGrid, nowMillis in
+        withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         }
