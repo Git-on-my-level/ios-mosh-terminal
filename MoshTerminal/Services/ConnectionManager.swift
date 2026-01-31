@@ -435,6 +435,7 @@ final class ConnectionManager: ObservableObject {
         controller.onSizeChange = { [weak self] size in
             Task { await self?.engine?.updateTerminalSize(cols: size.cols, rows: size.rows) }
         }
+        controller.attachPredictionNetworkProvider(engine as? PredictionNetworkSnapshotProviding)
     }
 
     private func handleEngineState(_ engineState: MoshEngineState) {
