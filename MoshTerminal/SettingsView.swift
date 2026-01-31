@@ -7,14 +7,16 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Appearance") {
-                Picker("Theme", selection: $settings.themeMode) {
+                Picker(selection: $settings.themeMode) {
                     ForEach(AppSettings.ThemeMode.allCases) { mode in
                         Text(mode.displayName).tag(mode)
                     }
+                } label: {
+                    Label("Theme", systemImage: "paintbrush")
                 }
                 Stepper(value: $settings.fontSize, in: 10...24, step: 1) {
                     HStack {
-                        Text("Font Size")
+                        Label("Font Size", systemImage: "textformat.size")
                         Spacer()
                         Text("\(Int(settings.fontSize))")
                             .foregroundStyle(.secondary)
@@ -23,31 +25,43 @@ struct SettingsView: View {
             }
 
             Section("Session") {
-                Toggle("Keep Awake", isOn: $settings.keepAwake)
+                Toggle(isOn: $settings.keepAwake) {
+                    Label("Keep Awake", systemImage: "sun.max")
+                }
             }
 
             Section("Keys") {
-                NavigationLink("Manage Keys") {
+                NavigationLink {
                     KeyManagementView(
                         hostRepository: environment.dependencies.hostRepository,
                         keyStore: environment.dependencies.keyStore
                     )
+                } label: {
+                    Label("Manage Keys", systemImage: "key")
                 }
-                NavigationLink("Trusted Host Keys") {
+                NavigationLink {
                     TrustedHostKeysView(repository: environment.dependencies.trustedHostKeyRepository)
+                } label: {
+                    Label("Trusted Host Keys", systemImage: "checkmark.shield")
                 }
             }
 
             Section("About") {
-                NavigationLink("Licenses") {
+                NavigationLink {
                     LicensesView()
+                } label: {
+                    Label("Licenses", systemImage: "doc.text")
                 }
             }
 
 #if DEBUG
             Section("Debug") {
-                Toggle("Show Debug Overlay", isOn: $settings.debugOverlayEnabled)
-                Toggle("Enable Debug Logging", isOn: $settings.debugLoggingEnabled)
+                Toggle(isOn: $settings.debugOverlayEnabled) {
+                    Label("Show Debug Overlay", systemImage: "ladybug")
+                }
+                Toggle(isOn: $settings.debugLoggingEnabled) {
+                    Label("Enable Debug Logging", systemImage: "doc.text.magnifyingglass")
+                }
             }
 #endif
         }

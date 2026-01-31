@@ -9,6 +9,7 @@ final class HostEditorViewModel: ObservableObject {
     @Published var selectedKeyId: String?
     @Published var keyOptions: [StoredPrivateKeyMetadata] = []
     @Published var alertMessage: String?
+    @Published var hasAttemptedSave = false
 
     private let hostRepository: HostRepository
     private let keyStore: KeychainPrivateKeyStore
@@ -37,6 +38,42 @@ final class HostEditorViewModel: ObservableObject {
         validationErrors.isEmpty
     }
 
+    // MARK: - Inline field validation errors
+
+    var hostnameError: String? {
+        guard hasAttemptedSave else { return nil }
+        let trimmed = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "Hostname is required"
+        }
+        return nil
+    }
+
+    var usernameError: String? {
+        guard hasAttemptedSave else { return nil }
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "Username is required"
+        }
+        return nil
+    }
+
+    var portError: String? {
+        guard hasAttemptedSave else { return nil }
+        if portValue == nil {
+            return "Port must be 1-65535"
+        }
+        return nil
+    }
+
+    var keyError: String? {
+        guard hasAttemptedSave else { return nil }
+        if selectedKeyId == nil {
+            return "SSH key is required"
+        }
+        return nil
+    }
+
     var validationSummary: String {
         if validationErrors.isEmpty {
             return ""
@@ -60,8 +97,8 @@ final class HostEditorViewModel: ObservableObject {
     }
 
     func save(onSuccess: (HostProfile) -> Void) async {
+        hasAttemptedSave = true
         guard validationErrors.isEmpty else {
-            alertMessage = validationSummary
             return
         }
         guard let portValue = portValue else {
@@ -148,18 +185,50 @@ struct HostEditorView: View {
     var body: some View {
         Form {
             Section("Identity") {
-                TextField("Display name", text: $viewModel.displayName)
-                TextField("Hostname", text: $viewModel.hostname)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                TextField("Username", text: $viewModel.username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Display name", text: $viewModel.displayName)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Hostname", text: $viewModel.hostname)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                    if let error = viewModel.hostnameError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    TextField("Username", text: $viewModel.username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .textContentType(.username)
+                    if let error = viewModel.usernameError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
             }
 
             Section("Connection") {
-                TextField("SSH port", text: $viewModel.sshPortText)
-                    .keyboardType(.numberPad)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Port")
+                            .foregroundStyle(.secondary)
+                        TextField("22", text: $viewModel.sshPortText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    if let error = viewModel.portError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
             }
 
             Section("SSH Key") {
@@ -167,10 +236,17 @@ struct HostEditorView: View {
                     ContentUnavailableView("No Keys", systemImage: "key.horizontal", description: Text("Import a private key in Settings before saving this host."))
                         .listRowBackground(Color.clear)
                 } else {
-                    Picker("Key", selection: $viewModel.selectedKeyId) {
-                        Text("Select a key").tag(String?.none)
-                        ForEach(viewModel.keyOptions, id: \.id) { key in
-                            Text(key.label).tag(Optional(key.id))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Picker("Key", selection: $viewModel.selectedKeyId) {
+                            Text("Select a key").tag(String?.none)
+                            ForEach(viewModel.keyOptions, id: \.id) { key in
+                                Text(key.label).tag(Optional(key.id))
+                            }
+                        }
+                        if let error = viewModel.keyError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
                         }
                     }
                 }
@@ -179,14 +255,6 @@ struct HostEditorView: View {
                         hostRepository: hostRepository,
                         keyStore: keyStore
                     )
-                }
-            }
-
-            if !viewModel.isFormValid {
-                Section {
-                    Text(viewModel.validationSummary)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
                 }
             }
         }

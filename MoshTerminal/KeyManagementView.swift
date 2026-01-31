@@ -155,6 +155,32 @@ struct KeyManagementView: View {
             } else {
                 ForEach(viewModel.keys) { key in
                     KeyRow(metadata: key)
+                        .swipeActions(edge: .trailing) {
+                            Button("Delete", role: .destructive) {
+                                Task {
+                                    if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
+                                        await viewModel.deleteKeys(at: IndexSet(integer: index))
+                                    }
+                                }
+                            }
+                        }
+                        .contextMenu {
+                            Button {
+                                UIPasteboard.general.string = key.label
+                            } label: {
+                                Label("Copy Name", systemImage: "doc.on.doc")
+                            }
+                            Divider()
+                            Button(role: .destructive) {
+                                Task {
+                                    if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
+                                        await viewModel.deleteKeys(at: IndexSet(integer: index))
+                                    }
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                 }
                 .onDelete { offsets in
                     Task { await viewModel.deleteKeys(at: offsets) }

@@ -103,6 +103,25 @@ struct HostsListView: View {
                         }
                         .tint(.blue)
                     }
+                    .contextMenu {
+                        Button {
+                            editorContext = HostEditorContext(mode: .edit(host))
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            Task {
+                                if connectionManager.activeHostId == host.id {
+                                    await connectionManager.disconnect(clearSession: true)
+                                }
+                                await viewModel.deleteHost(id: host.id)
+                                await viewModel.loadHosts()
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
                 .onDelete { offsets in
                     Task {

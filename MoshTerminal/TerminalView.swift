@@ -9,6 +9,7 @@ struct TerminalView: View {
     @ObservedObject private var connectionManager: ConnectionManager
     @StateObject private var controller: TerminalSessionController
     @StateObject private var viewModel: TerminalSessionViewModel
+    @StateObject private var keyboardObserver = KeyboardObserver()
     @EnvironmentObject private var settings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
@@ -39,17 +40,35 @@ struct TerminalView: View {
                     }
                 }
                 ToolbarItemGroup(placement: .keyboard) {
-                    TerminalAccessoryRow(controller: controller)
+                    if keyboardObserver.isKeyboardVisible {
+                        TerminalAccessoryRow(controller: controller)
+                    }
                 }
             }
             .overlay(alignment: .bottomTrailing) {
+                VStack(spacing: 12) {
 #if DEBUG
-                if settings.debugOverlayEnabled {
-                    TerminalDebugOverlay(connectionManager: connectionManager)
-                        .padding(.trailing, 12)
-                        .padding(.bottom, 12)
-                }
+                    if settings.debugOverlayEnabled {
+                        TerminalDebugOverlay(connectionManager: connectionManager)
+                    }
 #endif
+                    if !keyboardObserver.isKeyboardVisible {
+                        Button {
+                            controller.focus()
+                        } label: {
+                            Image(systemName: "keyboard")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 50, height: 50)
+                                .background(Color.accentColor)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        }
+                        .accessibilityLabel("Show keyboard")
+                    }
+                }
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
             }
             .onAppear {
                 isVisible = true
@@ -239,23 +258,28 @@ private struct TerminalContainerView: UIViewRepresentable {
 private struct TerminalAccessoryRow: View {
     @ObservedObject var controller: TerminalSessionController
 
+    // iOS HIG recommends minimum 44pt touch targets
+    private let minTouchTarget: CGFloat = 44
+    private let hapticFeedback = UIImpactFeedbackGenerator(style: .light)
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                // Modifier keys (most used, grouped first)
+                accessoryButton("Ctrl", isActive: controller.isCtrlActive) {
+                    controller.toggleCtrl()
+                }
                 accessoryButton("Esc") {
                     controller.sendControl(0x1B)
                 }
-                Button {
-                    controller.toggleCtrl()
-                } label: {
-                    Text("Ctrl")
-                        .frame(minWidth: 36)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(controller.isCtrlActive ? .orange : .secondary)
                 accessoryButton("Tab") {
                     controller.sendControl(0x09)
                 }
+
+                Divider()
+                    .frame(height: 24)
+
+                // Common symbols
                 accessoryButton("|") {
                     controller.sendText("|")
                 }
@@ -268,20 +292,30 @@ private struct TerminalAccessoryRow: View {
                 accessoryButton(":") {
                     controller.sendText(":")
                 }
+                accessoryButton("~") {
+                    controller.sendText("~")
+                }
             }
-            .font(.callout)
             .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.vertical, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            hapticFeedback.prepare()
+        }
     }
 
-    private func accessoryButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func accessoryButton(_ title: String, isActive: Bool = false, action: @escaping () -> Void) -> some View {
+        Button {
+            hapticFeedback.impactOccurred()
+            action()
+        } label: {
             Text(title)
-                .frame(minWidth: 28)
+                .font(.system(size: 15, weight: .medium))
+                .frame(minWidth: minTouchTarget, minHeight: minTouchTarget)
         }
         .buttonStyle(.bordered)
+        .tint(isActive ? .orange : nil)
     }
 }
 
@@ -350,6 +384,29 @@ private struct TerminalErrorBanner: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.red.opacity(0.85))
+    }
+}
+
+/// Observes keyboard visibility changes using NotificationCenter
+private final class KeyboardObserver: ObservableObject {
+    @Published private(set) var isKeyboardVisible = false
+
+    private var cancellables = Set<AnyCancellable>()
+
+    init() {
+        NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.isKeyboardVisible = true
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.isKeyboardVisible = false
+            }
+            .store(in: &cancellables)
     }
 }
 
