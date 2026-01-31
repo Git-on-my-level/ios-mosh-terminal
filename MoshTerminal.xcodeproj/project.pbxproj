@@ -96,6 +96,7 @@
 		E5A6B7C8D9EA0B1C2D3E4F50 /* TerminalPredictionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */; };
 		C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */; };
 		D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */; };
+		BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -202,6 +203,7 @@
 		B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionParserTests.swift; sourceTree = "<group>"; };
 		A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionTypes.swift; sourceTree = "<group>"; };
 		B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngineInputTests.swift; sourceTree = "<group>"; };
+		ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionSwiftTermIntegrationTests.swift; sourceTree = "<group>"; };
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1A1A1A1A1A1A1A1A1A1A1B1 /* Frameworks */ = {
@@ -351,6 +353,7 @@
 				5887890B1C9820791F281160 /* ProtoCodecTests.swift */,
 				B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */,
 				B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */,
+					ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */,
 			);
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
@@ -614,6 +617,7 @@
 				33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */,
 				7F260B101DBF8462D9057D25 /* PredictionParserTests.swift in Sources */,
 				D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */,
+					BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
