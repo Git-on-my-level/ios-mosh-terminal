@@ -91,6 +91,9 @@ struct HostsListView: View {
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
                             Task {
+                                if connectionManager.activeHostId == host.id {
+                                    await connectionManager.disconnect(clearSession: true)
+                                }
                                 await viewModel.deleteHost(id: host.id)
                                 await viewModel.loadHosts()
                             }
@@ -102,7 +105,15 @@ struct HostsListView: View {
                     }
                 }
                 .onDelete { offsets in
-                    Task { await viewModel.deleteHosts(at: offsets) }
+                    Task {
+                        for offset in offsets {
+                            let hostId = viewModel.hosts[offset].id
+                            if connectionManager.activeHostId == hostId {
+                                await connectionManager.disconnect(clearSession: true)
+                            }
+                        }
+                        await viewModel.deleteHosts(at: offsets)
+                    }
                 }
             }
         }
