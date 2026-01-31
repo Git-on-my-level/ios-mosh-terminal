@@ -1,5 +1,8 @@
 import Darwin
 import Foundation
+#if DEBUG
+import os
+#endif
 
 actor MoshRuntime {
     enum Event: Sendable {
@@ -53,9 +56,15 @@ actor MoshRuntime {
     private var lastRoundtripSuccessMillis: UInt64?
     private var consecutiveCorruptPackets: Int = 0
     private var consecutiveUnreachableSends: Int = 0
+#if DEBUG
+    private var debugLogger: DebugLogProviding?
+#endif
 
     init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
+#if DEBUG
+        self.debugLogger = DebugLogger.shared
+#endif
     }
 
     func setHandlers(
@@ -173,6 +182,18 @@ actor MoshRuntime {
         state = .idle
 
         if reason == .remote || reason == .liveness {
+#if DEBUG
+            let reasonString: String
+            switch reason {
+            case .remote:
+                reasonString = "remote"
+            case .liveness:
+                reasonString = "liveness timeout"
+            default:
+                reasonString = "unknown"
+            }
+            logLivenessEvent(.disconnected(reason: reasonString))
+#endif
             emitEvent(.disconnected)
         }
     }
@@ -196,6 +217,9 @@ actor MoshRuntime {
                 consecutiveCorruptPackets = 0
                 if !hasEmittedConnected {
                     hasEmittedConnected = true
+#if DEBUG
+                    logLivenessEvent(.connected)
+#endif
                     emitEvent(.connected)
                 }
             } catch {
@@ -205,7 +229,13 @@ actor MoshRuntime {
                 let now = Clock.nowMillis()
                 if shouldCountCorrupt(error) {
                     consecutiveCorruptPackets += 1
+#if DEBUG
+                    logLivenessEvent(.corruptPacket(consecutiveCount: consecutiveCorruptPackets))
+#endif
                     if consecutiveCorruptPackets >= configuration.livenessPolicy.corruptPacketThreshold {
+#if DEBUG
+                        logLivenessEvent(.failed(error: "Integrity failure"))
+#endif
                         emitEvent(.failed(.integrityFailure))
                         await stopInternal(reason: .failure)
                         break
@@ -214,6 +244,9 @@ actor MoshRuntime {
                     continue
                 }
 
+#if DEBUG
+                logLivenessEvent(.failed(error: error.localizedDescription))
+#endif
                 emitEvent(.failed(.startFailed(message: error.localizedDescription)))
                 await stopInternal(reason: .failure)
                 break
@@ -247,6 +280,9 @@ actor MoshRuntime {
             guard let sender, let framing, let socket else { break }
             let instructions = sender.tick(nowMillis: Clock.nowMillis())
             if instructions.isEmpty {
+#if DEBUG
+                logLivenessEvent(.keepaliveSent)
+#endif
                 continue
             }
 
@@ -299,7 +335,11 @@ actor MoshRuntime {
         if let lastHeardMillis {
             let silenceDeadline = lastHeardMillis &+ configuration.livenessPolicy.inboundSilenceMillis
             if now > silenceDeadline {
+                let lastHeardAge = now &- lastHeardMillis
                 let graceDeadline = silenceDeadline &+ configuration.livenessPolicy.idleGraceMillis
+#if DEBUG
+                logLivenessEvent(.livenessCheck(lastHeardAge: lastHeardAge, consecutiveUnreachable: consecutiveUnreachableSends))
+#endif
                 if consecutiveUnreachableSends > 0 || now > graceDeadline {
                     await stopInternal(reason: .liveness)
                     return true
@@ -330,6 +370,9 @@ actor MoshRuntime {
             if case .sendFailed(let errno) = socketError {
                 if isUnreachableErrno(errno) {
                     consecutiveUnreachableSends += 1
+#if DEBUG
+                    logLivenessEvent(.unreachableSend(consecutiveCount: consecutiveUnreachableSends))
+#endif
                     if consecutiveUnreachableSends >= configuration.livenessPolicy.unreachableSendThreshold {
                         return .udpUnreachable
                     }
@@ -349,3 +392,12 @@ actor MoshRuntime {
         }
     }
 }
+
+#if DEBUG
+extension MoshRuntime {
+    private func logLivenessEvent(_ kind: LivenessDebugEvent.Kind) {
+        let event = LivenessDebugEvent(kind: kind, timestamp: Clock.nowMillis())
+        debugLogger?.logLivenessEvent(event)
+    }
+}
+#endif

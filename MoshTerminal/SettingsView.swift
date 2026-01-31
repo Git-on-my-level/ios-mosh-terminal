@@ -47,6 +47,7 @@ struct SettingsView: View {
 #if DEBUG
             Section("Debug") {
                 Toggle("Show Debug Overlay", isOn: $settings.debugOverlayEnabled)
+                Toggle("Enable Debug Logging", isOn: $settings.debugLoggingEnabled)
             }
 #endif
         }

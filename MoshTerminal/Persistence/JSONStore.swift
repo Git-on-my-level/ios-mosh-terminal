@@ -56,21 +56,21 @@ final class JSONStore: @unchecked Sendable {
 
     func load() async throws -> StoreState {
         try await runOnQueue {
-            try loadUnlocked()
+            try self.loadUnlocked()
         }
     }
 
     func save(_ state: StoreState) async throws {
         try await runOnQueue {
-            try saveUnlocked(state)
+            try self.saveUnlocked(state)
         }
     }
 
     func update<T>(_ transform: @escaping (inout StoreState) throws -> T) async throws -> T {
         try await runOnQueue {
-            var state = try loadUnlocked()
+            var state = try self.loadUnlocked()
             let result = try transform(&state)
-            try saveUnlocked(state)
+            try self.saveUnlocked(state)
             return result
         }
     }
@@ -129,7 +129,8 @@ final class JSONStore: @unchecked Sendable {
         if excludeFromBackup {
             var values = URLResourceValues()
             values.isExcludedFromBackup = true
-            try fileURL.setResourceValues(values)
+            var mutableURL = fileURL
+            try mutableURL.setResourceValues(values)
         }
     }
 

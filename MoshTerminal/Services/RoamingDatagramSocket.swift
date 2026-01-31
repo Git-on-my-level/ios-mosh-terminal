@@ -1,4 +1,7 @@
 import Foundation
+#if DEBUG
+import os
+#endif
 
 final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
     struct Configuration {
@@ -33,6 +36,9 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
     private var streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
     private let stream: AsyncThrowingStream<Data, Error>
     private var iterator: AsyncThrowingStream<Data, Error>.Iterator
+#if DEBUG
+    private var debugLogger: DebugLogProviding?
+#endif
 
     init(host: String, port: UInt16, configuration: Configuration = Configuration()) throws {
         self.configuration = configuration
@@ -47,6 +53,11 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         self.stream = stream
         self.iterator = stream.makeAsyncIterator()
         self.streamContinuation = continuation
+
+#if DEBUG
+        self.debugLogger = DebugLogger.shared
+        logTransportEvent(.connectAttempt(host: host, port: port))
+#endif
 
         let entry = try Self.makeEntry(
             host: host,
@@ -73,6 +84,13 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         do {
             try socket.send(data)
         } catch {
+#if DEBUG
+            if let socketError = error as? DatagramSocketError {
+                if case .sendFailed(let errno) = socketError {
+                    logTransportEvent(.sendError(errno: errno))
+                }
+            }
+#endif
             if configuration.enableLogging, let socketError = error as? DatagramSocketError {
                 if case .sendFailed(let errno) = socketError {
                     configuration.logHandler(DatagramSocketLogEvent(kind: .sendError(errno: errno)))
@@ -110,6 +128,11 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         for entry in entriesToClose {
             entry.receiverTask?.cancel()
             entry.socket.close()
+#if DEBUG
+            if let port = entry.localPort {
+                logTransportEvent(.socketClosed(localPort: port))
+            }
+#endif
             if configuration.enableLogging, let port = entry.localPort {
                 configuration.logHandler(DatagramSocketLogEvent(kind: .closed(localPort: port)))
             }
@@ -141,6 +164,9 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
                 openedAt: now
             )
             if let toPort = entry.localPort, let fromPort = currentLocalPort() {
+#if DEBUG
+                logTransportEvent(.portHop(from: fromPort, to: toPort))
+#endif
                 addEntry(entry, setCurrent: true, logEvent: .hop(from: fromPort, to: toPort))
             } else {
                 addEntry(entry, setCurrent: true, logEvent: nil)
@@ -161,6 +187,11 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
                 remaining.removeValue(forKey: id)
                 entry.receiverTask?.cancel()
                 entry.socket.close()
+#if DEBUG
+                if let port = entry.localPort {
+                    logTransportEvent(.socketClosed(localPort: port))
+                }
+#endif
                 if configuration.enableLogging, let port = entry.localPort {
                     configuration.logHandler(DatagramSocketLogEvent(kind: .closed(localPort: port)))
                 }
@@ -175,6 +206,11 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
                 remaining.removeValue(forKey: entry.id)
                 entry.receiverTask?.cancel()
                 entry.socket.close()
+#if DEBUG
+                if let port = entry.localPort {
+                    logTransportEvent(.socketClosed(localPort: port))
+                }
+#endif
                 if configuration.enableLogging, let port = entry.localPort {
                     configuration.logHandler(DatagramSocketLogEvent(kind: .closed(localPort: port)))
                 }
@@ -197,6 +233,12 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
 
         startReceiver(for: entry)
 
+#if DEBUG
+        if setCurrent, let port = entry.localPort {
+            logTransportEvent(.socketOpened(localPort: port))
+        }
+#endif
+
         if configuration.enableLogging, let logEvent {
             configuration.logHandler(DatagramSocketLogEvent(kind: logEvent))
         }
@@ -208,6 +250,9 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
                 do {
                     let data = try await entry.socket.receive()
                     self?.recordRoundtripSuccess()
+#if DEBUG
+                    self?.logRoundtripSuccess()
+#endif
                     if let continuation = self?.streamContinuation {
                         continuation.yield(data)
                     }
@@ -287,3 +332,16 @@ extension RoamingDatagramSocket: DatagramSocketPortProviding {
         currentLocalPort() ?? 0
     }
 }
+
+#if DEBUG
+extension RoamingDatagramSocket {
+    private func logTransportEvent(_ kind: TransportDebugEvent.Kind) {
+        let event = TransportDebugEvent(kind: kind, timestamp: Clock.nowMillis())
+        debugLogger?.logTransportEvent(event)
+    }
+    
+    private func logRoundtripSuccess() {
+        logTransportEvent(.roundtripSuccess)
+    }
+}
+#endif
