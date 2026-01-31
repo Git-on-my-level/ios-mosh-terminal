@@ -56,6 +56,10 @@ protocol MoshEngineDebugProviding: AnyObject, Sendable {
     func debugSnapshot() async -> MoshEngineDebugSnapshot
 }
 
+protocol PredictionNetworkSnapshotProviding: AnyObject, Sendable {
+    func predictionNetworkSnapshot() -> PredictionNetworkSnapshot
+}
+
 typealias MoshEngineFactory = @Sendable () -> MoshEngine
 
 struct DefaultMoshEngineFactory {

@@ -71,7 +71,7 @@ final class PredictionNetworkSnapshotStore: Sendable {
     }
 }
 
-actor MoshRuntime {
+actor MoshRuntime: PredictionNetworkSnapshotProviding {
     enum Event: Sendable {
         case connected
         case disconnected

@@ -169,6 +169,13 @@ private struct TerminalDebugOverlay: View {
             Text("RTO: \(formatMillis(snapshot?.rtoMillis))")
             Text("Local UDP: \(snapshot?.localPort.map(String.init) ?? "n/a")")
             Text("Unreachable sends: \(snapshot?.consecutiveUnreachableSends.map(String.init) ?? "n/a")")
+            if let net = snapshot?.predictionNetwork {
+                Divider()
+                Text("Sent: \(net.lastSentStateNum)")
+                Text("Acked: \(net.lastAckedStateNum)")
+                Text("EchoAck: \(net.echoAck)")
+                Text("SRTT: \(net.srttMillis.map { "\($0)ms" } ?? "n/a")")
+            }
         }
         .font(.caption2)
         .padding(8)

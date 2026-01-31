@@ -107,6 +107,7 @@ final class ConnectionManager: ObservableObject {
         let rtoMillis: UInt64?
         let localPort: UInt16?
         let consecutiveUnreachableSends: Int?
+        let predictionNetwork: PredictionNetworkSnapshot?
     }
 
     init(
@@ -203,12 +204,14 @@ final class ConnectionManager: ObservableObject {
     func debugSnapshot() async -> DebugSnapshot? {
         guard let engine = engine as? MoshEngineDebugProviding else { return nil }
         let snapshot = await engine.debugSnapshot()
+        let predictionNetwork = (engine as? PredictionNetworkSnapshotProviding)?.predictionNetworkSnapshot()
         return DebugSnapshot(
             lastHeardAgeMillis: snapshot.lastHeardAgeMillis,
             sendIntervalMillis: snapshot.sendIntervalMillis,
             rtoMillis: snapshot.rtoMillis,
             localPort: snapshot.localPort,
-            consecutiveUnreachableSends: snapshot.consecutiveUnreachableSends
+            consecutiveUnreachableSends: snapshot.consecutiveUnreachableSends,
+            predictionNetwork: predictionNetwork
         )
     }
 
