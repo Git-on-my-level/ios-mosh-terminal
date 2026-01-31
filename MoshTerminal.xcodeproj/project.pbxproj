@@ -85,14 +85,9 @@
 		F4F4F4F4F4F4F4F4F4F4F404 /* MoshCoreRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F408 /* TrustedHostKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F407 /* TrustedHostKeysView.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F40A /* MoshRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */; };
-/* End PBXBuildFile section */
-		B4FBEBFCAC29595959CC90DA /* PredictionDisplayPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */; };
-		2F2436ECD97129B05D68D4A0 /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */; };
-		13304A19E4ECF1EF8219771D /* PredictionNetworkSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */; };
-		B1BAC2FB8757AFE109C45D0F /* PredictionRenderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */; };
-		506B7B911103490917543F19 /* TerminalPredictionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */; };
 		7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */; };
 		7F260B101DBF8462D9057D25 /* PredictionParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		C1C1C1C1C1C1C1C1C1C1C1F6 /* PBXContainerItemProxy */ = {
@@ -291,21 +286,9 @@
 				A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */,
 				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
 				F789644648F649058124AEA475E31280 /* Bridging-Header.h */,
+				D1D1D1D1D1D1D1D1D1E6 /* Prediction */,
 			);
 			path = MoshTerminal;
-				D1D1D1D1D1D1D1D1D1E6 /* Prediction */ = {
-					isa = PBXGroup;
-					children = (
-						0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */,
-						FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */,
-						00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */,
-						D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */,
-						55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */,
-						E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */,
-					);
-					path = Prediction;
-					sourceTree = "<group>";
-				};
 			sourceTree = "<group>";
 		};
 		A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */ = {
@@ -351,6 +334,7 @@
 				A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */,
 				7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */,
 				5887890B1C9820791F281160 /* ProtoCodecTests.swift */,
+				B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */,
 			);
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
@@ -362,6 +346,14 @@
 				D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */,
 			);
 			path = Security;
+			sourceTree = "<group>";
+		};
+		D1D1D1D1D1D1D1D1D1E6 /* Prediction */ = {
+			isa = PBXGroup;
+			children = (
+				E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */,
+			);
+			path = Prediction;
 			sourceTree = "<group>";
 		};
 		F1BB48837A1C4A6A8D7CE93AB5CCACA0 /* OCB */ = {
@@ -569,11 +561,6 @@
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
-				B4FBEBFCAC29595959CC90DA /* PredictionDisplayPreference.swift in Sources */,
-				2F2436ECD97129B05D68D4A0 /* PredictionEngine.swift in Sources */,
-				13304A19E4ECF1EF8219771D /* PredictionNetworkSnapshot.swift in Sources */,
-				B1BAC2FB8757AFE109C45D0F /* PredictionRenderModel.swift in Sources */,
-				506B7B911103490917543F19 /* TerminalPredictionCoordinator.swift in Sources */,
 				7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

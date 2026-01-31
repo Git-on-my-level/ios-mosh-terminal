@@ -1,6 +1,6 @@
 import Foundation
 
-enum ParsedAction {
+enum ParsedAction: Equatable {
     case print(Character, width: Int)
     case backspace
     case carriageReturn
@@ -13,6 +13,7 @@ final class UTF8ByteParser {
     private enum State {
         case normal
         case utf8Continuing(bytesNeeded: Int, accumulated: [UInt8])
+        case skipUTF8Invalid(bytesToSkip: Int)
         case esc
         case csi
         case ss3
@@ -30,6 +31,14 @@ final class UTF8ByteParser {
 
             case .utf8Continuing(let bytesNeeded, let accumulated):
                 handleUTF8Continuing(byte: byte, bytesNeeded: bytesNeeded, accumulated: accumulated, actions: &actions)
+
+            case .skipUTF8Invalid(let bytesToSkip):
+                if bytesToSkip == 0 {
+                    state = .normal
+                    handleNormal(byte: byte, actions: &actions)
+                } else {
+                    state = .skipUTF8Invalid(bytesToSkip: bytesToSkip - 1)
+                }
 
             case .esc:
                 handleESC(byte: byte, actions: &actions)
@@ -71,6 +80,10 @@ final class UTF8ByteParser {
 
         case 0xF0...0xF4:
             state = .utf8Continuing(bytesNeeded: 3, accumulated: [byte])
+
+        case 0xC0...0xC1:
+            actions.append(.unknown)
+            state = .skipUTF8Invalid(bytesToSkip: 1)
 
         default:
             actions.append(.unknown)

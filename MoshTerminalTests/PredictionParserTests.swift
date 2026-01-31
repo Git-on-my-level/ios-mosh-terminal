@@ -205,12 +205,12 @@ final class PredictionParserTests: XCTestCase {
         XCTAssertEqual(actions2[1], .print("d", width: 1))
 
         let actions3 = parser.feed(Data(chunk3))
-        XCTAssertEqual(actions3.count, 0)
+        XCTAssertEqual(actions3.count, 2)
+        XCTAssertEqual(actions3[0], .arrowLeft)
+        XCTAssertEqual(actions3[1], .print("e", width: 1))
 
         let actions4 = parser.feed(Data(chunk4))
-        XCTAssertEqual(actions4.count, 2)
-        XCTAssertEqual(actions4[0], .arrowLeft)
-        XCTAssertEqual(actions4[1], .print("e", width: 1))
+        XCTAssertEqual(actions4.count, 0)
     }
 
     func testUnknownEscapeSequence() {
