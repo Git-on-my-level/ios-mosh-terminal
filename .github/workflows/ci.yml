@@ -15,7 +15,9 @@ jobs:
         run: brew install swiftlint
       - name: Lint
         run: swiftlint --config .swiftlint.yml
-      - name: Build (Simulator)
+      - name: Build (Simulator, Debug)
         run: ./scripts/build_sim.sh
+      - name: Build (Simulator, Release)
+        run: CONFIGURATION=Release ./scripts/build_sim.sh
       - name: Test (Simulator)
         run: ./scripts/test_sim.sh

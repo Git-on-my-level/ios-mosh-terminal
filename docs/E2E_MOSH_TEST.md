@@ -15,6 +15,10 @@ Run the one-shot test script (recommended):
 ./scripts/e2e_mosh_test.sh
 ```
 
+The script automatically selects the newest available iPhone simulator.
+
+This will:
+
 This will:
 1. Start the Docker harness (if not already running).
 2. Export the required `MOSH_*` env vars for the test.
@@ -32,7 +36,8 @@ Test Case '-[MoshE2EIntegrationTests testMoshBootstrapAndHandshake]' passed (X.X
 ```
 
 ## Configuration
-You can customize the simulator destination and timeout:
+
+The script automatically selects the newest available iPhone simulator. You can customize the simulator destination and timeout:
 
 ```bash
 DESTINATION="platform=iOS Simulator,name=iPhone 17 Pro" ./scripts/e2e_mosh_test.sh
@@ -77,6 +82,7 @@ The test also uses a temporary JSON store for TOFU host keys and deletes it afte
 No SSH keys or host keys are persisted in the repo or Keychain.
 
 ## Troubleshooting
+- `No available iPhone simulator found`: Install an iPhone simulator runtime in Xcode (Preferences > Components).
 - `Missing MOSH_* env vars`: Run `./scripts/e2e_mosh_test.sh` (it sets them for the test).
 - `Missing required command: docker` or `ssh-keygen`: Install Docker or OpenSSH tools.
 - `Harness already running`: Stop it with `./scripts/mosh_harness.sh stop`.

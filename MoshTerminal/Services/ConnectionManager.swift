@@ -97,6 +97,7 @@ final class ConnectionManager: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
     private var reconnectBackoff: ReconnectBackoffState
+    private var autoReconnectAllowed = true
 #if DEBUG
     private var debugLogger: DebugLogProviding?
 #endif
@@ -167,6 +168,7 @@ final class ConnectionManager: ObservableObject {
         hostKeyPrompter: SSHHostKeyPrompting,
         passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
     ) {
+        autoReconnectAllowed = true
         self.activeHost = host
         self.activeHostId = host.id
         self.controller = controller
@@ -225,6 +227,7 @@ final class ConnectionManager: ObservableObject {
         guard connectTask == nil else { return }
         guard !isConnecting else { return }
         guard state != .connected else { return }
+        guard autoReconnectAllowed else { return }
 
         let reasonString: String
         switch reason {
@@ -454,11 +457,14 @@ final class ConnectionManager: ObservableObject {
             )
             state = .failed(message: mappedFailure.title)
             failure = mappedFailure
+            autoReconnectAllowed = mappedFailure.allowsRetry
 #if DEBUG
             logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? "Disconnected")
 #endif
             resumeConnectWaiter(connected: false)
-            requestReconnect(reason: .engineDisconnected)
+            if autoReconnectAllowed {
+                requestReconnect(reason: .engineDisconnected)
+            }
         case .failed(let error):
             reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
@@ -468,11 +474,14 @@ final class ConnectionManager: ObservableObject {
             )
             state = .failed(message: mappedFailure.title)
             failure = mappedFailure
+            autoReconnectAllowed = mappedFailure.allowsRetry
 #if DEBUG
             logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
 #endif
             resumeConnectWaiter(connected: false)
-            requestReconnect(reason: .engineDisconnected)
+            if autoReconnectAllowed {
+                requestReconnect(reason: .engineDisconnected)
+            }
         }
     }
 
@@ -492,6 +501,7 @@ final class ConnectionManager: ObservableObject {
         )
         state = .failed(message: mappedFailure.title)
         failure = mappedFailure
+        autoReconnectAllowed = mappedFailure.allowsRetry
 #if DEBUG
         logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
 #endif
@@ -516,6 +526,7 @@ final class ConnectionManager: ObservableObject {
         guard let passphrase else {
             state = .idle
             failure = nil
+            autoReconnectAllowed = false
             return nil
         }
         return passphrase
