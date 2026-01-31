@@ -71,6 +71,7 @@ final class AppSettings: ObservableObject {
     @Published var debugLoggingEnabled: Bool {
         didSet {
             defaults.set(debugLoggingEnabled, forKey: Keys.debugLoggingEnabled)
+            DebugLogger.shared.isEnabled = debugLoggingEnabled
         }
     }
 #endif
@@ -90,6 +91,7 @@ final class AppSettings: ObservableObject {
 #if DEBUG
         debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false
         debugLoggingEnabled = defaults.object(forKey: Keys.debugLoggingEnabled) as? Bool ?? false
+        DebugLogger.shared.isEnabled = debugLoggingEnabled
 #endif
     }
 }

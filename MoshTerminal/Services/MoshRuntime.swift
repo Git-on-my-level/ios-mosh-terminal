@@ -280,9 +280,6 @@ actor MoshRuntime {
             guard let sender, let framing, let socket else { break }
             let instructions = sender.tick(nowMillis: Clock.nowMillis())
             if instructions.isEmpty {
-#if DEBUG
-                logLivenessEvent(.keepaliveSent)
-#endif
                 continue
             }
 
@@ -296,6 +293,11 @@ actor MoshRuntime {
                         try socket.send(datagram)
                         consecutiveUnreachableSends = 0
                     }
+#if DEBUG
+                    if instruction.diff.isEmpty && instruction.newNum == 0 {
+                        logLivenessEvent(.keepaliveSent)
+                    }
+#endif
                 } catch {
                     if Task.isCancelled || state != .running {
                         return
