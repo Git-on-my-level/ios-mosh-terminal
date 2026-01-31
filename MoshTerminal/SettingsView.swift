@@ -48,9 +48,9 @@ struct SettingsView: View {
 
             Section("About") {
                 NavigationLink {
-                    LicensesView()
+                    AboutView()
                 } label: {
-                    Label("Licenses", systemImage: "doc.text")
+                    Label("About", systemImage: "info.circle")
                 }
             }
 
