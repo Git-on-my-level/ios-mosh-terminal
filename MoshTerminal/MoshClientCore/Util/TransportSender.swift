@@ -13,6 +13,7 @@ final class TransportSender {
         static let ackIntervalMillis: UInt64 = 3_000
         static let ackDelayMillis: UInt64 = 100
         static let activeRetryTimeoutMillis: UInt64 = 10_000
+        static let keepaliveIntervalMillis: UInt64 = 5_000
         static let sendMinDelayMillis: UInt64 = 8
         static let maxSentStates = 32
     }
@@ -24,6 +25,7 @@ final class TransportSender {
     private(set) var ackNum: UInt64 = 0
     var isConnected: Bool = false
 
+    private let keepaliveIntervalMillis: UInt64
     private let randomBytes: RandomBytesProvider
     private var lastAckedState = UserState()
     private(set) var lastAckedStateNum: UInt64 = 0
@@ -34,22 +36,31 @@ final class TransportSender {
     private var lastActivityMillis: UInt64?
     private var nextAckTimeMillis: UInt64?
     private var nextSendTimeMillis: UInt64?
+    private var nextKeepaliveTimeMillis: UInt64?
     private var ackDirty = false
     private var srttMillis: Double?
     private var rttvarMillis: Double?
     private var rtoMillis: UInt64?
 
-    init(randomBytes: @escaping RandomBytesProvider = SecureRandom.nonThrowingBytes) {
+    init(
+        keepaliveIntervalMillis: UInt64 = Constants.keepaliveIntervalMillis,
+        randomBytes: @escaping RandomBytesProvider = SecureRandom.nonThrowingBytes
+    ) {
+        self.keepaliveIntervalMillis = keepaliveIntervalMillis
         self.randomBytes = randomBytes
     }
 
     func setConnected(_ connected: Bool, nowMillis: UInt64) {
         isConnected = connected
         if connected {
+            if keepaliveIntervalMillis > 0 {
+                nextKeepaliveTimeMillis = nowMillis + keepaliveIntervalMillis
+            }
             scheduleIfNeeded(nowMillis: nowMillis)
         } else {
             nextAckTimeMillis = nil
             nextSendTimeMillis = nil
+            nextKeepaliveTimeMillis = nil
             srttMillis = nil
             rttvarMillis = nil
             rtoMillis = nil
@@ -102,8 +113,10 @@ final class TransportSender {
         let dueSend = canSendNewState && (nextSendTimeMillis.map { nowMillis >= $0 } ?? false)
         let minDelayPassed = lastSendMillis.map { nowMillis >= $0 + Constants.minSendIntervalMillis } ?? true
         let canResend = shouldResend(nowMillis: nowMillis, allowStale: isBackpressured)
+        let dueKeepalive = keepaliveIntervalMillis > 0
+            && (nextKeepaliveTimeMillis.map { nowMillis >= $0 } ?? false)
 
-        if !(minDelayPassed && (dueSend || dueAck || canResend)) {
+        if !(minDelayPassed && (dueSend || dueAck || canResend || dueKeepalive)) {
             return []
         }
 
@@ -153,6 +166,9 @@ final class TransportSender {
         } else {
             nextSendTimeMillis = nil
         }
+        if keepaliveIntervalMillis > 0 {
+            nextKeepaliveTimeMillis = nowMillis + keepaliveIntervalMillis
+        }
 
         if ackDirty || dueAck {
             ackDirty = false
@@ -180,6 +196,10 @@ final class TransportSender {
 
         if let nextAck = nextAckTimeMillis {
             candidates.append(applyMinSendInterval(to: nextAck))
+        }
+
+        if let nextKeepalive = nextKeepaliveTimeMillis, keepaliveIntervalMillis > 0 {
+            candidates.append(applyMinSendInterval(to: nextKeepalive))
         }
 
         if let resendTime = nextResendTime(nowMillis: nowMillis, allowStale: isBackpressured) {
@@ -230,6 +250,10 @@ final class TransportSender {
 
         if ackDirty && nextAckTimeMillis == nil {
             nextAckTimeMillis = nowMillis + Constants.ackDelayMillis
+        }
+
+        if keepaliveIntervalMillis > 0, nextKeepaliveTimeMillis == nil {
+            nextKeepaliveTimeMillis = nowMillis + keepaliveIntervalMillis
         }
     }
 

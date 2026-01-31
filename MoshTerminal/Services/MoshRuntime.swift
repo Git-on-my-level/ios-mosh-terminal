@@ -12,6 +12,8 @@ actor MoshRuntime {
         struct LivenessPolicy: Sendable {
             /// Disconnect if we have seen no inbound UDP packets for this long.
             var inboundSilenceMillis: UInt64 = 15_000
+            /// Allow extra idle time before disconnecting if no network errors are observed.
+            var idleGraceMillis: UInt64 = 30_000
             /// Fail the session after this many consecutive corrupted packets.
             var corruptPacketThreshold: Int = 6
             /// Fail the session after this many consecutive UDP unreachable send errors.
@@ -23,6 +25,7 @@ actor MoshRuntime {
             try RoamingDatagramSocket(host: host, port: port)
         }
         var idleTickSleepMillis: UInt64 = 250
+        var keepaliveIntervalMillis: UInt64 = TransportSender.Constants.keepaliveIntervalMillis
         var livenessPolicy: LivenessPolicy = LivenessPolicy()
     }
 
@@ -79,7 +82,7 @@ actor MoshRuntime {
         let ocbSession = try OCBSession(key16: sessionKey)
         let packetCodec = OCBPacketCodec(session: ocbSession)
         let framing = TransportFraming(packetCodec: packetCodec)
-        let sender = TransportSender()
+        let sender = TransportSender(keepaliveIntervalMillis: configuration.keepaliveIntervalMillis)
         sender.setConnected(true, nowMillis: Clock.nowMillis())
         sender.currentState.append(.resize(cols: initialSize.cols, rows: initialSize.rows))
 
@@ -294,9 +297,13 @@ actor MoshRuntime {
         guard state == .running else { return true }
         let now = Clock.nowMillis()
         if let lastHeardMillis {
-            if now > lastHeardMillis + configuration.livenessPolicy.inboundSilenceMillis {
-                await stopInternal(reason: .liveness)
-                return true
+            let silenceDeadline = lastHeardMillis &+ configuration.livenessPolicy.inboundSilenceMillis
+            if now > silenceDeadline {
+                let graceDeadline = silenceDeadline &+ configuration.livenessPolicy.idleGraceMillis
+                if consecutiveUnreachableSends > 0 || now > graceDeadline {
+                    await stopInternal(reason: .liveness)
+                    return true
+                }
             }
         }
         return false

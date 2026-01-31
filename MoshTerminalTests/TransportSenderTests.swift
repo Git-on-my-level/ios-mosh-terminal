@@ -104,7 +104,22 @@ final class TransportSenderTests: XCTestCase {
         _ = sender.tick(nowMillis: 8)
 
         let timeout = UInt64(8) + TransportSender.Constants.activeRetryTimeoutMillis + 1
-        XCTAssertTrue(sender.tick(nowMillis: timeout).isEmpty)
+        let instructions = sender.tick(nowMillis: timeout)
+        if !instructions.isEmpty {
+            XCTAssertTrue(instructions.allSatisfy { $0.diff.isEmpty })
+        }
+    }
+
+    func testTransportSenderEmitsKeepaliveWhenIdle() {
+        let sender = TransportSender(keepaliveIntervalMillis: 100)
+        sender.setConnected(true, nowMillis: 0)
+
+        XCTAssertTrue(sender.tick(nowMillis: 0).isEmpty)
+
+        let instructions = sender.tick(nowMillis: 100)
+        XCTAssertEqual(instructions.count, 1)
+        XCTAssertTrue(instructions[0].diff.isEmpty)
+        XCTAssertEqual(instructions[0].ackNum, 0)
     }
 
     func testTransportSenderUsesDeterministicChaff() {

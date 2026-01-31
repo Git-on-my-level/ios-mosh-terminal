@@ -81,6 +81,7 @@
 		C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */; };
 		0FE22A9F977F4DE5866962DB /* MoshClientCoreUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */; };
 		1AB459535CE46863FA6D7E24 /* TransportSenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */; };
+		A7E6B7A2F6F14E3F9C1C2D3F /* MoshRuntimeKeepaliveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */; };
 		810FCC2B47F82E36AE63CB27 /* PacketCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */; };
 		33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5887890B1C9820791F281160 /* ProtoCodecTests.swift */; };
 		E2E2E2E2E2E2E2E2E2E2E2F2 /* MoshE2EIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2F1 /* MoshE2EIntegrationTests.swift */; };
@@ -170,6 +171,7 @@
 		C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStore.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStoreTests.swift; sourceTree = "<group>"; };
 		1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSenderTests.swift; sourceTree = "<group>"; };
+		A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshRuntimeKeepaliveTests.swift; sourceTree = "<group>"; };
 		7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketCodecTests.swift; sourceTree = "<group>"; };
 		5887890B1C9820791F281160 /* ProtoCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtoCodecTests.swift; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E2F1 /* MoshE2EIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshE2EIntegrationTests.swift; sourceTree = "<group>"; };
@@ -364,6 +366,7 @@
 				D1D1D1D1D1D1D1D1D1D1D1F1 /* DatagramSocketTests.swift */,
 				FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */,
 				1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */,
+				A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */,
 				7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */,
 				5887890B1C9820791F281160 /* ProtoCodecTests.swift */,
 			);
@@ -556,6 +559,7 @@
 				D1D1D1D1D1D1D1D1D1D1D1F2 /* DatagramSocketTests.swift in Sources */,
 				0FE22A9F977F4DE5866962DB /* MoshClientCoreUtilTests.swift in Sources */,
 				1AB459535CE46863FA6D7E24 /* TransportSenderTests.swift in Sources */,
+				A7E6B7A2F6F14E3F9C1C2D3F /* MoshRuntimeKeepaliveTests.swift in Sources */,
 				810FCC2B47F82E36AE63CB27 /* PacketCodecTests.swift in Sources */,
 				33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */,
 			);
