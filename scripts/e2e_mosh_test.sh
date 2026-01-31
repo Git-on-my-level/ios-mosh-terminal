@@ -2,9 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HARNESS_SCRIPT="$ROOT_DIR/scripts/mosh_harness.sh"
+SCRIPT_DIR="$ROOT_DIR/scripts"
+source "$SCRIPT_DIR/simctl_helpers.sh"
+
+HARNESS_SCRIPT="$SCRIPT_DIR/mosh_harness.sh"
 STATE_FILE=${MOSH_HARNESS_STATE_FILE:-/tmp/mosh-harness.state}
-DESTINATION=${DESTINATION:-"platform=iOS Simulator,name=iPhone 17 Pro"}
+DESTINATION=${DESTINATION:-$(get_available_iphone_simulator)}
 TEST_IDENTIFIER="MoshTerminalTests/MoshE2EIntegrationTests/testMoshBootstrapAndHandshake"
 ERASE_SIM=${MOSH_E2E_ERASE_SIM:-1}
 
