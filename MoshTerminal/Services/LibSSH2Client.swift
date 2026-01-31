@@ -70,13 +70,13 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         }
 
         do {
-        try await run {
-            guard let session = self.session else {
-                throw SSHClientError.notConnected
-            }
-            let auth = try Self.authenticate(
-                session: session,
-                username: username,
+            try await run {
+                guard let session = self.session else {
+                    throw SSHClientError.notConnected
+                }
+                let auth = try Self.authenticate(
+                    session: session,
+                    username: username,
                     privateKey: privateKey,
                     passphrase: passphrase
                 )
@@ -188,11 +188,58 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         }
     }
 
-    private static func authenticate(
+    struct AuthFunctions {
+        let userauthPublicKeyFromMemory: (
+            OpaquePointer,
+            UnsafePointer<Int8>,
+            Int,
+            UnsafePointer<Int8>?,
+            Int,
+            UnsafePointer<Int8>,
+            Int,
+            UnsafePointer<Int8>?
+        ) -> Int32
+        let userauthPublicKeyFromFile: (
+            OpaquePointer,
+            UnsafePointer<Int8>,
+            UInt32,
+            UnsafePointer<Int8>?,
+            UnsafePointer<Int8>,
+            UnsafePointer<Int8>?
+        ) -> Int32
+
+        static let live = AuthFunctions(
+            userauthPublicKeyFromMemory: { session, username, usernameLength, publicKey, publicKeyLength, privateKey, privateKeyLength, passphrase in
+                Int32(libssh2_userauth_publickey_frommemory(
+                    session,
+                    username,
+                    usernameLength,
+                    publicKey,
+                    publicKeyLength,
+                    privateKey,
+                    privateKeyLength,
+                    passphrase
+                ))
+            },
+            userauthPublicKeyFromFile: { session, username, usernameLength, publicKey, privateKeyPath, passphrase in
+                Int32(libssh2_userauth_publickey_fromfile_ex(
+                    session,
+                    username,
+                    usernameLength,
+                    publicKey,
+                    privateKeyPath,
+                    passphrase
+                ))
+            }
+        )
+    }
+
+    static func authenticate(
         session: OpaquePointer,
         username: String,
         privateKey: Data,
-        passphrase: String?
+        passphrase: String?,
+        authFunctions: AuthFunctions = .live
     ) throws -> Int32 {
         let memoryResult = try privateKey.withUnsafeBytes { privateKeyBuffer in
             guard let privateKeyBase = privateKeyBuffer.bindMemory(to: Int8.self).baseAddress else {
@@ -201,7 +248,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             return try username.withCString { usernameCString in
                 if let passphrase = passphrase {
                     return passphrase.withCString { passphraseCString in
-                        let result = libssh2_userauth_publickey_frommemory(
+                        authFunctions.userauthPublicKeyFromMemory(
                             session,
                             usernameCString,
                             username.utf8.count,
@@ -211,10 +258,9 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                             privateKey.count,
                             passphraseCString
                         )
-                        return Int32(result)
                     }
                 } else {
-                    let result = libssh2_userauth_publickey_frommemory(
+                    authFunctions.userauthPublicKeyFromMemory(
                         session,
                         usernameCString,
                         username.utf8.count,
@@ -224,56 +270,10 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                         privateKey.count,
                         nil
                     )
-                    return Int32(result)
                 }
             }
         }
-        if memoryResult == 0 {
-            return 0
-        }
-
-        let tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let keyURL = tempDir.appendingPathComponent("id_key")
-        do {
-            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            try privateKey.write(to: keyURL, options: .atomic)
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: keyURL.path)
-        } catch {
-            throw SSHClientError.authenticationFailed
-        }
-        defer {
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-
-        return try username.withCString { usernameCString in
-            let usernameLength = UInt32(username.utf8.count)
-            return try keyURL.path.withCString { keyPathCString in
-                if let passphrase = passphrase {
-                    return passphrase.withCString { passphraseCString in
-                        let result = libssh2_userauth_publickey_fromfile_ex(
-                            session,
-                            usernameCString,
-                            usernameLength,
-                            nil,
-                            keyPathCString,
-                            passphraseCString
-                        )
-                        return Int32(result)
-                    }
-                } else {
-                    let result = libssh2_userauth_publickey_fromfile_ex(
-                        session,
-                        usernameCString,
-                        usernameLength,
-                        nil,
-                        keyPathCString,
-                        nil
-                    )
-                    return Int32(result)
-                }
-            }
-        }
+        return memoryResult
     }
 
     private static func readChannelOutput(channel: OpaquePointer) throws -> (Data, Data) {
