@@ -4,6 +4,73 @@ import Foundation
 import os
 #endif
 
+struct PredictionNetworkSnapshot: Sendable, Equatable {
+    let lastSentStateNum: UInt64
+    let lastAckedStateNum: UInt64
+    let echoAck: UInt64
+    let srttMillis: UInt64?
+}
+
+final class PredictionNetworkSnapshotStore: Sendable {
+    private let lock = NSLock()
+    private var _snapshot = PredictionNetworkSnapshot(
+        lastSentStateNum: 0,
+        lastAckedStateNum: 0,
+        echoAck: 0,
+        srttMillis: nil
+    )
+
+    func setLastSent(_ value: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        _snapshot = PredictionNetworkSnapshot(
+            lastSentStateNum: value,
+            lastAckedStateNum: _snapshot.lastAckedStateNum,
+            echoAck: _snapshot.echoAck,
+            srttMillis: _snapshot.srttMillis
+        )
+    }
+
+    func setLastAcked(_ value: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        _snapshot = PredictionNetworkSnapshot(
+            lastSentStateNum: _snapshot.lastSentStateNum,
+            lastAckedStateNum: value,
+            echoAck: _snapshot.echoAck,
+            srttMillis: _snapshot.srttMillis
+        )
+    }
+
+    func setEchoAck(_ value: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        _snapshot = PredictionNetworkSnapshot(
+            lastSentStateNum: _snapshot.lastSentStateNum,
+            lastAckedStateNum: _snapshot.lastAckedStateNum,
+            echoAck: value,
+            srttMillis: _snapshot.srttMillis
+        )
+    }
+
+    func setSrtt(_ value: UInt64?) {
+        lock.lock()
+        defer { lock.unlock() }
+        _snapshot = PredictionNetworkSnapshot(
+            lastSentStateNum: _snapshot.lastSentStateNum,
+            lastAckedStateNum: _snapshot.lastAckedStateNum,
+            echoAck: _snapshot.echoAck,
+            srttMillis: value
+        )
+    }
+
+    func snapshot() -> PredictionNetworkSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return _snapshot
+    }
+}
+
 actor MoshRuntime {
     enum Event: Sendable {
         case connected
@@ -56,6 +123,7 @@ actor MoshRuntime {
     private var lastRoundtripSuccessMillis: UInt64?
     private var consecutiveCorruptPackets: Int = 0
     private var consecutiveUnreachableSends: Int = 0
+    private let predictionNetworkStore = PredictionNetworkSnapshotStore()
 #if DEBUG
     private var debugLogger: DebugLogProviding?
 #endif
@@ -101,12 +169,18 @@ actor MoshRuntime {
         let resizeHandler: (Int, Int) -> Void = { [weak self] cols, rows in
             Task { await self?.emitRemoteResize(cols: cols, rows: rows) }
         }
+        let echoAckHandler: (UInt64) -> Void = { [weak self] value in
+            self?.predictionNetworkStore.setEchoAck(value)
+#if DEBUG
+            os_log("echoAck: %llu", log: .default, type: .debug, value)
+#endif
+        }
         let receiver = TransportReceiver(
             transportSender: sender,
             hostApplier: HostDiffApplier(
                 onTerminalOutput: outputHandler,
                 onResize: resizeHandler,
-                onEchoAck: nil
+                onEchoAck: echoAckHandler
             ),
             onDisconnect: { [weak self] in
                 Task { await self?.handleRemoteDisconnect() }
@@ -157,6 +231,10 @@ actor MoshRuntime {
             localPort: normalizedPort,
             consecutiveUnreachableSends: consecutiveUnreachableSends
         )
+    }
+
+    nonisolated func predictionNetworkSnapshot() -> PredictionNetworkSnapshot {
+        return predictionNetworkStore.snapshot()
     }
 
     private enum StopReason {
@@ -213,6 +291,7 @@ actor MoshRuntime {
                 let currentAck = sender?.lastAckedStateNum ?? previousAck
                 if currentAck > previousAck {
                     lastRoundtripSuccessMillis = now
+                    predictionNetworkStore.setLastAcked(currentAck)
                 }
                 consecutiveCorruptPackets = 0
                 if !hasEmittedConnected {
@@ -278,7 +357,22 @@ actor MoshRuntime {
             }
 
             guard let sender, let framing, let socket else { break }
-            let instructions = sender.tick(nowMillis: Clock.nowMillis())
+            let tickNow = Clock.nowMillis()
+            let instructions = sender.tick(nowMillis: tickNow)
+            
+            predictionNetworkStore.setLastSent(sender.lastSentStateNumPublic)
+            if let srtt = sender.srttMillisPublic {
+                predictionNetworkStore.setSrtt(srtt)
+            }
+            
+#if DEBUG
+            let snap = predictionNetworkStore.snapshot()
+            os_log("Network snapshot: sent=%llu, acked=%llu, echoAck=%llu, srtt=%@",
+                   log: .default, type: .debug,
+                   snap.lastSentStateNum, snap.lastAckedStateNum, snap.echoAck,
+                   snap.srttMillis.map { String($0) } ?? "nil")
+#endif
+            
             if instructions.isEmpty {
                 continue
             }
