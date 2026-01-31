@@ -85,7 +85,7 @@ struct HostsListView: View {
                     } label: {
                         HostRowView(
                             host: host,
-                            connectionState: connectionManager.activeHostId == host.id ? connectionManager.state : nil
+                            connectionState: connectionManager.activeHostId == host.id ? connectionManager.state : .idle
                         )
                     }
                     .swipeActions(edge: .trailing) {
@@ -174,7 +174,7 @@ struct HostsListView: View {
 
 private struct HostRowView: View {
     let host: HostProfile
-    let connectionState: ConnectionManager.State?
+    let connectionState: ConnectionManager.State
 
     private var lastConnectedText: String? {
         guard let date = host.lastConnectedAt else {
@@ -188,15 +188,13 @@ private struct HostRowView: View {
             HStack(spacing: 8) {
                 Text(host.resolvedDisplayName)
                     .font(.headline)
-                if let connectionState {
-                    Text(connectionState.shortStatusText)
-                        .font(.caption2)
-                        .foregroundStyle(statusColor(for: connectionState))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(statusColor(for: connectionState).opacity(0.15))
-                        .clipShape(Capsule())
-                }
+                Text(connectionState.shortStatusText)
+                    .font(.caption2)
+                    .foregroundStyle(statusColor(for: connectionState))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(statusColor(for: connectionState).opacity(0.15))
+                    .clipShape(Capsule())
             }
             Text("\(host.username)@\(host.hostname)")
                 .font(.caption)
