@@ -11,26 +11,26 @@ final class HostsListViewModel: ObservableObject {
         self.hostRepository = hostRepository
     }
 
-    func loadHosts() {
+    func loadHosts() async {
         do {
-            let loaded = try hostRepository.all()
+            let loaded = try await hostRepository.all()
             hosts = loaded.sorted(by: HostsListViewModel.sortHosts)
         } catch {
             alertMessage = error.localizedDescription
         }
     }
 
-    func deleteHosts(at offsets: IndexSet) {
+    func deleteHosts(at offsets: IndexSet) async {
         let ids = offsets.map { hosts[$0].id }
         for id in ids {
-            deleteHost(id: id)
+            await deleteHost(id: id)
         }
-        loadHosts()
+        await loadHosts()
     }
 
-    func deleteHost(id: UUID) {
+    func deleteHost(id: UUID) async {
         do {
-            try hostRepository.delete(id: id)
+            try await hostRepository.delete(id: id)
         } catch {
             alertMessage = error.localizedDescription
         }
@@ -90,8 +90,10 @@ struct HostsListView: View {
                     }
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
-                            viewModel.deleteHost(id: host.id)
-                            viewModel.loadHosts()
+                            Task {
+                                await viewModel.deleteHost(id: host.id)
+                                await viewModel.loadHosts()
+                            }
                         }
                         Button("Edit") {
                             editorContext = HostEditorContext(mode: .edit(host))
@@ -99,7 +101,9 @@ struct HostsListView: View {
                         .tint(.blue)
                     }
                 }
-                .onDelete(perform: viewModel.deleteHosts)
+                .onDelete { offsets in
+                    Task { await viewModel.deleteHosts(at: offsets) }
+                }
             }
         }
         .navigationTitle("Hosts")
@@ -120,7 +124,7 @@ struct HostsListView: View {
                     hostRepository: hostRepository,
                     keyStore: keyStore
                 ) { _ in
-                    viewModel.loadHosts()
+                    Task { await viewModel.loadHosts() }
                 }
             }
         }
@@ -132,8 +136,8 @@ struct HostsListView: View {
         } message: {
             Text(viewModel.alertMessage ?? "")
         }
-        .onAppear {
-            viewModel.loadHosts()
+        .task {
+            await viewModel.loadHosts()
         }
     }
 }

@@ -59,7 +59,7 @@ final class HostEditorViewModel: ObservableObject {
         }
     }
 
-    func save(onSuccess: (HostProfile) -> Void) {
+    func save(onSuccess: (HostProfile) -> Void) async {
         guard validationErrors.isEmpty else {
             alertMessage = validationSummary
             return
@@ -85,7 +85,7 @@ final class HostEditorViewModel: ObservableObject {
             lastConnectedAt: existingHost?.lastConnectedAt
         )
         do {
-            try hostRepository.upsert(host)
+            try await hostRepository.upsert(host)
             onSuccess(host)
         } catch {
             alertMessage = error.localizedDescription
@@ -199,9 +199,11 @@ struct HostEditorView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    viewModel.save { host in
-                        onSave(host)
-                        dismiss()
+                    Task {
+                        await viewModel.save { host in
+                            onSave(host)
+                            dismiss()
+                        }
                     }
                 }
                 .disabled(!viewModel.isFormValid)

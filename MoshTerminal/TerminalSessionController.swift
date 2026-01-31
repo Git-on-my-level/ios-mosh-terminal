@@ -12,6 +12,7 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
     private var pendingRemoteResize: TerminalSize?
+    private var outputBuffer = [UInt8]()
 
     func attach(view: TerminalUIKitView) {
         terminalView = view
@@ -34,8 +35,12 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     }
 
     func feedOutput(_ data: Data) {
-        let bytes = Array(data)
-        terminalView?.feed(byteArray: bytes[...])
+        guard !data.isEmpty else { return }
+        if outputBuffer.count < data.count {
+            outputBuffer = Array(repeating: 0, count: data.count)
+        }
+        data.copyBytes(to: &outputBuffer, count: data.count)
+        terminalView?.feed(byteArray: outputBuffer[..<data.count])
     }
 
     func applyRemoteResize(cols: Int, rows: Int) {

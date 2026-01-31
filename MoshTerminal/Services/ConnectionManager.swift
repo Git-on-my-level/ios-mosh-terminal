@@ -26,7 +26,7 @@ protocol PrivateKeyStoring {
 }
 
 protocol HostPersisting {
-    func upsert(_ host: HostProfile) throws
+    func upsert(_ host: HostProfile) async throws
 }
 
 extension AppLifecycleService: AppLifecycleProviding {
@@ -391,7 +391,9 @@ final class ConnectionManager: ObservableObject {
             failure = nil
             reconnectBackoff.recordSuccess()
             resumeConnectWaiter(connected: true)
-            recordLastConnected()
+            Task { @MainActor [weak self] in
+                await self?.recordLastConnected()
+            }
         case .disconnected:
             reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
@@ -459,12 +461,12 @@ final class ConnectionManager: ObservableObject {
         return passphrase
     }
 
-    private func recordLastConnected() {
+    private func recordLastConnected() async {
         guard var host = activeHost else { return }
         host.lastConnectedAt = Date()
         activeHost = host
         do {
-            try hostRepository.upsert(host)
+            try await hostRepository.upsert(host)
         } catch {
             return
         }

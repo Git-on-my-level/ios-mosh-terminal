@@ -52,13 +52,13 @@ final class KeyManagementViewModel: ObservableObject {
         }
     }
 
-    func deleteKeys(at offsets: IndexSet) {
+    func deleteKeys(at offsets: IndexSet) async {
         let ids = offsets.map { keys[$0].id }
         guard !ids.isEmpty else {
             return
         }
         do {
-            let hosts = try hostRepository.all()
+            let hosts = try await hostRepository.all()
             let referencedHosts = hosts.filter { ids.contains($0.keyRefId) }
             if !referencedHosts.isEmpty {
                 alertMessage = makeDeletionBlockedMessage(hosts: referencedHosts, keyCount: ids.count)
@@ -156,7 +156,9 @@ struct KeyManagementView: View {
                 ForEach(viewModel.keys) { key in
                     KeyRow(metadata: key)
                 }
-                .onDelete(perform: viewModel.deleteKeys)
+                .onDelete { offsets in
+                    Task { await viewModel.deleteKeys(at: offsets) }
+                }
             }
         }
         .navigationTitle("Keys")
