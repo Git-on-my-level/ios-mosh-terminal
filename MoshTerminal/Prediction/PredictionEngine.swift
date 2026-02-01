@@ -135,10 +135,25 @@ final class PredictionEngine {
             underlinePredictions = true
         }
 
+        var earlyConfirmedRows: Set<Int> = []
         for rowIndex in activeRowIndices {
             guard rowIndex < overlayRows.count else { continue }
             for cellIndex in overlayRows[rowIndex].cells.indices {
                 var cell = overlayRows[rowIndex].cells[cellIndex]
+                if echoAck < cell.expirationFrame,
+                   cell.active,
+                   !cell.unknown,
+                   let replacement = cell.replacement,
+                   replacement != .blank {
+                    let current = confirmedGrid.cell(atRow: rowIndex, col: cell.col)
+                    if current == replacement,
+                       !cell.originalContents.contains(where: { $0 == replacement }) {
+                        earlyConfirmedRows.insert(rowIndex)
+                        resetCell(&cell, row: rowIndex)
+                        overlayRows[rowIndex].cells[cellIndex] = cell
+                        continue
+                    }
+                }
                 switch cellValidity(cell, row: rowIndex, confirmedGrid: confirmedGrid) {
                 case .incorrectOrExpired:
                     if cell.tentativeUntilEpoch > confirmedEpoch {
@@ -186,6 +201,17 @@ final class PredictionEngine {
                     break
                 }
                 overlayRows[rowIndex].cells[cellIndex] = cell
+            }
+        }
+        
+        if !earlyConfirmedRows.isEmpty {
+            for rowIndex in earlyConfirmedRows {
+                guard rowIndex < overlayRows.count else { continue }
+                for cellIndex in overlayRows[rowIndex].cells.indices {
+                    if overlayRows[rowIndex].cells[cellIndex].active {
+                        overlayRows[rowIndex].cells[cellIndex].tentativeUntilEpoch = confirmedEpoch
+                    }
+                }
             }
         }
 
@@ -396,6 +422,36 @@ final class PredictionEngine {
         }
         overlayRows.removeFirst()
         overlayRows.append(OverlayRowState(unknownRow: false, cells: []))
+        if !activeRowIndices.isEmpty || !activeCellPositions.isEmpty || !cursorPredictions.isEmpty {
+            var shiftedRowIndices: Set<Int> = []
+            for row in activeRowIndices {
+                if row > 0 {
+                    shiftedRowIndices.insert(row - 1)
+                }
+            }
+            activeRowIndices = shiftedRowIndices
+
+            var shiftedPositions: Set<CellPosition> = []
+            for pos in activeCellPositions {
+                if pos.row > 0 {
+                    shiftedPositions.insert(CellPosition(row: pos.row - 1, col: pos.col))
+                }
+            }
+            activeCellPositions = shiftedPositions
+
+            cursorPredictions = cursorPredictions.compactMap { prediction in
+                guard prediction.row > 0 else {
+                    return nil
+                }
+                return CursorPrediction(
+                    row: prediction.row - 1,
+                    col: prediction.col,
+                    expirationFrame: prediction.expirationFrame,
+                    predictionTime: prediction.predictionTime,
+                    tentativeUntilEpoch: prediction.tentativeUntilEpoch
+                )
+            }
+        }
     }
 
     private func ensureGridSize(_ displayGrid: DisplayGrid) {
@@ -419,8 +475,12 @@ final class PredictionEngine {
             return .incorrectOrExpired
         }
         if echoAck < cell.expirationFrame {
+            guard !cell.unknown, let replacement = cell.replacement, replacement != .blank else {
+                return .pending
+            }
             return .pending
         }
+        let current = confirmedGrid.cell(atRow: row, col: cell.col)
         if cell.unknown {
             return .correctNoCredit
         }
@@ -430,7 +490,6 @@ final class PredictionEngine {
         if replacement == .blank {
             return .correctNoCredit
         }
-        let current = confirmedGrid.cell(atRow: row, col: cell.col)
         if current == replacement {
             if cell.originalContents.contains(where: { $0 == replacement }) {
                 return .correctNoCredit

@@ -59,9 +59,11 @@ final class PredictionOverlayView: UIView {
 
         redrawWorkItem?.cancel()
         redrawWorkItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            self.pendingRedraw = false
-            self.setNeedsDisplay()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.pendingRedraw = false
+                self.setNeedsDisplay()
+            }
         }
         redrawQueue.asyncAfter(deadline: .now() + minFrameInterval, execute: redrawWorkItem!)
     }
