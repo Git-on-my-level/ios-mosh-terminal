@@ -16,12 +16,30 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     /// based on keyboard visibility. See `TerminalContainerView` docs for details.
     var accessoryView: UIView?
 
+    /// Holds a reference to the prediction overlay view for updating render models.
+    var predictionOverlayView: PredictionOverlayView? {
+        didSet {
+            predictionCoordinator.overlayView = predictionOverlayView
+        }
+    }
+
+    private let predictionCoordinator = TerminalPredictionCoordinator()
+
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
     private var pendingRemoteResize: TerminalSize?
     private var outputBuffer = [UInt8]()
 
     func attach(view: TerminalUIKitView) {
         terminalView = view
+        predictionCoordinator.terminalView = view
+    }
+
+    func attachPredictionNetworkProvider(_ provider: PredictionNetworkSnapshotProviding?) {
+        predictionCoordinator.predictionNetworkProvider = provider
+    }
+
+    func setPredictionDisplayPreference(_ preference: PredictionDisplayPreference) {
+        predictionCoordinator.setDisplayPreference(preference)
     }
 
     func focus() {
@@ -33,11 +51,11 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     }
 
     func sendText(_ text: String) {
-        onInput?(Data(text.utf8))
+        forwardUserInput(Data(text.utf8))
     }
 
     func sendControl(_ byte: UInt8) {
-        onInput?(Data([byte]))
+        forwardUserInput(Data([byte]))
     }
 
     func feedOutput(_ data: Data) {
@@ -47,12 +65,14 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         }
         data.copyBytes(to: &outputBuffer, count: data.count)
         terminalView?.feed(byteArray: outputBuffer[..<data.count])
+        predictionCoordinator.handleConfirmedOutputApplied()
     }
 
     func applyRemoteResize(cols: Int, rows: Int) {
         let size = TerminalSize(cols: cols, rows: rows)
         guard size != currentSize else { return }
         currentSize = size
+        predictionCoordinator.handleResize(cols: cols, rows: rows)
         guard let terminalView else { return }
         pendingRemoteResize = size
         terminalView.resize(cols: cols, rows: rows)
@@ -69,11 +89,16 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
             }
         }
         onSizeChange?(size)
+        predictionCoordinator.handleResize(cols: newCols, rows: newRows)
     }
 
     func setTerminalTitle(source: TerminalUIKitView, title: String) {}
     func hostCurrentDirectoryUpdate(source: TerminalUIKitView, directory: String?) {}
-    func scrolled(source: TerminalUIKitView, position: Double) {}
+    func scrolled(source: TerminalUIKitView, position: Double) {
+        if position < 0.999 {
+            predictionCoordinator.reset()
+        }
+    }
     func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {}
     func bell(source: TerminalUIKitView) {}
     func clipboardCopy(source: TerminalUIKitView, content: Data) {}
@@ -82,10 +107,20 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     func send(source: TerminalUIKitView, data: ArraySlice<UInt8>) {
         if let transformed = applyCtrlIfNeeded(data) {
-            onInput?(Data(transformed))
+            forwardUserInput(Data(transformed))
         } else {
-            onInput?(Data(data))
+            forwardUserInput(Data(data))
         }
+    }
+
+    private func forwardUserInput(_ data: Data) {
+        guard !data.isEmpty else { return }
+        if data.count > 100 {
+            predictionCoordinator.reset()
+        } else {
+            predictionCoordinator.handleUserInput(data: data)
+        }
+        onInput?(data)
     }
 
     private func applyCtrlIfNeeded(_ data: ArraySlice<UInt8>) -> [UInt8]? {
@@ -96,6 +131,10 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
             return nil
         }
         return [ctrlByte]
+    }
+
+    func handleEchoAckUpdated() {
+        predictionCoordinator.handleEchoAckUpdated()
     }
 
     private func controlByte(for byte: UInt8) -> UInt8? {

@@ -35,9 +35,11 @@ final class AppSettings: ObservableObject {
         static let fontSize = "settings.fontSize"
         static let themeMode = "settings.themeMode"
         static let keepAwake = "settings.keepAwake"
+        static let predictionDisplayPreference = "settings.predictionDisplayPreference"
 #if DEBUG
-        static let debugOverlayEnabled = "settings.debugOverlayEnabled"
-        static let debugLoggingEnabled = "settings.debugLoggingEnabled"
+    static let debugOverlayEnabled = "settings.debugOverlayEnabled"
+    static let debugLoggingEnabled = "settings.debugLoggingEnabled"
+    static let debugPredictionEnabled = "settings.debugPredictionEnabled"
 #endif
     }
 
@@ -61,6 +63,12 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var predictionDisplayPreference: PredictionDisplayPreference {
+        didSet {
+            defaults.set(predictionDisplayPreference.rawValue, forKey: Keys.predictionDisplayPreference)
+        }
+    }
+
 #if DEBUG
     @Published var debugOverlayEnabled: Bool {
         didSet {
@@ -72,6 +80,12 @@ final class AppSettings: ObservableObject {
         didSet {
             defaults.set(debugLoggingEnabled, forKey: Keys.debugLoggingEnabled)
             DebugLogger.shared.isEnabled = debugLoggingEnabled
+        }
+    }
+
+    @Published var debugPredictionEnabled: Bool {
+        didSet {
+            defaults.set(debugPredictionEnabled, forKey: Keys.debugPredictionEnabled)
         }
     }
 #endif
@@ -87,10 +101,17 @@ final class AppSettings: ObservableObject {
             themeMode = .system
         }
         keepAwake = defaults.object(forKey: Keys.keepAwake) as? Bool ?? false
+        if let storedPreference = defaults.string(forKey: Keys.predictionDisplayPreference),
+           let preference = PredictionDisplayPreference(rawValue: storedPreference) {
+            predictionDisplayPreference = preference
+        } else {
+            predictionDisplayPreference = .adaptive
+        }
 
 #if DEBUG
         debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false
         debugLoggingEnabled = defaults.object(forKey: Keys.debugLoggingEnabled) as? Bool ?? false
+        debugPredictionEnabled = defaults.object(forKey: Keys.debugPredictionEnabled) as? Bool ?? false
         DebugLogger.shared.isEnabled = debugLoggingEnabled
 #endif
     }

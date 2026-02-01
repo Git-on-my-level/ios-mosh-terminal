@@ -108,6 +108,7 @@ final class ConnectionManager: ObservableObject {
         let rtoMillis: UInt64?
         let localPort: UInt16?
         let consecutiveUnreachableSends: Int?
+        let predictionNetwork: PredictionNetworkSnapshot?
     }
 
     init(
@@ -205,12 +206,14 @@ final class ConnectionManager: ObservableObject {
     func debugSnapshot() async -> DebugSnapshot? {
         guard let engine = engine as? MoshEngineDebugProviding else { return nil }
         let snapshot = await engine.debugSnapshot()
+        let predictionNetwork = (engine as? PredictionNetworkSnapshotProviding)?.predictionNetworkSnapshot()
         return DebugSnapshot(
             lastHeardAgeMillis: snapshot.lastHeardAgeMillis,
             sendIntervalMillis: snapshot.sendIntervalMillis,
             rtoMillis: snapshot.rtoMillis,
             localPort: snapshot.localPort,
-            consecutiveUnreachableSends: snapshot.consecutiveUnreachableSends
+            consecutiveUnreachableSends: snapshot.consecutiveUnreachableSends,
+            predictionNetwork: predictionNetwork
         )
     }
 
@@ -431,6 +434,15 @@ final class ConnectionManager: ObservableObject {
         }
         controller.onSizeChange = { [weak self] size in
             Task { await self?.engine?.updateTerminalSize(cols: size.cols, rows: size.rows) }
+        }
+        controller.attachPredictionNetworkProvider(engine as? PredictionNetworkSnapshotProviding)
+        if let notifier = engine as? PredictionEchoAckNotifying {
+            notifier.onEchoAck = { [weak self, weak controller, weak engine] _ in
+                Task { @MainActor in
+                    guard let self, let controller, self.engine === engine else { return }
+                    controller.handleEchoAckUpdated()
+                }
+            }
         }
     }
 

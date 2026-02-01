@@ -28,6 +28,21 @@ struct TerminalView: View {
     var body: some View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
+            .onAppear {
+                updatePredictionPreference()
+                updateIdleTimer()
+                if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
+                    viewModel.start(autoConnect: autoConnect)
+                }
+            }
+            .onChange(of: settings.predictionDisplayPreference) { _ in
+                updatePredictionPreference()
+            }
+#if DEBUG
+            .onChange(of: settings.debugPredictionEnabled) { _ in
+                updatePredictionPreference()
+            }
+#endif
             .onTapGesture {
                 controller.focus()
             }
@@ -150,6 +165,16 @@ struct TerminalView: View {
         }
         return "\(context.keyLabel)\n\(context.hostDisplayName)\n\(hostLine)"
     }
+
+    private func updatePredictionPreference() {
+        var preference = settings.predictionDisplayPreference
+#if DEBUG
+        if settings.debugPredictionEnabled {
+            preference = .always
+        }
+#endif
+        controller.setPredictionDisplayPreference(preference)
+    }
 }
 
 #if DEBUG
@@ -169,6 +194,13 @@ private struct TerminalDebugOverlay: View {
             Text("RTO: \(formatMillis(snapshot?.rtoMillis))")
             Text("Local UDP: \(snapshot?.localPort.map(String.init) ?? "n/a")")
             Text("Unreachable sends: \(snapshot?.consecutiveUnreachableSends.map(String.init) ?? "n/a")")
+            if let net = snapshot?.predictionNetwork {
+                Divider()
+                Text("Sent: \(net.lastSentStateNum)")
+                Text("Acked: \(net.lastAckedStateNum)")
+                Text("EchoAck: \(net.echoAck)")
+                Text("SRTT: \(net.srttMillis.map { "\($0)ms" } ?? "n/a")")
+            }
         }
         .font(.caption2)
         .padding(8)
@@ -222,40 +254,69 @@ private struct TerminalContainerView: UIViewRepresentable {
     let palette: AppTheme.TerminalPalette
     let isKeyboardVisible: Bool
 
-    func makeUIView(context: Context) -> TerminalUIKitView {
-        let view = TerminalUIKitView(
+    func makeUIView(context: Context) -> ContainerView {
+        let containerView = ContainerView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+
+        let terminalView = TerminalUIKitView(
             frame: .zero,
             font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         )
-        // Create the accessory view once and store it for reuse
+        terminalView.translatesAutoresizingMaskIntoConstraints = false
+        terminalView.terminalDelegate = context.coordinator
+        applyPalette(palette, to: terminalView)
+        controller.attach(view: terminalView)
+
+        let overlayView = PredictionOverlayView()
+        overlayView.translatesAutoresizingMaskIntoConstraints = false
+        overlayView.isUserInteractionEnabled = false
+        overlayView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        controller.predictionOverlayView = overlayView
+
+        containerView.addSubview(terminalView)
+        containerView.addSubview(overlayView)
+        containerView.terminalView = terminalView
+        containerView.overlayView = overlayView
+
+        NSLayoutConstraint.activate([
+            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            overlayView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            overlayView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+
         context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
-        // Start with no accessory - keyboard is not visible on initial load
-        view.inputAccessoryView = nil
-        view.terminalDelegate = context.coordinator
-        applyPalette(palette, to: view)
-        controller.attach(view: view)
+        terminalView.inputAccessoryView = nil
+
         DispatchQueue.main.async {
             controller.focus()
         }
-        return view
+
+        return containerView
     }
 
-    func updateUIView(_ uiView: TerminalUIKitView, context: Context) {
-        if controller.terminalView !== uiView {
-            controller.attach(view: uiView)
-        }
-        if uiView.font.pointSize != CGFloat(fontSize) {
-            uiView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        }
-        applyPalette(palette, to: uiView)
+    func updateUIView(_ containerView: ContainerView, context: Context) {
+        guard let terminalView = containerView.terminalView,
+              let overlayView = containerView.overlayView else { return }
 
-        // IMPORTANT: Dynamically attach/detach accessory based on keyboard visibility.
-        // This prevents the accessory bar from appearing when the keyboard is hidden.
-        // See struct documentation for rationale.
+        if controller.terminalView !== terminalView {
+            controller.attach(view: terminalView)
+        }
+        if terminalView.font.pointSize != CGFloat(fontSize) {
+            let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+            terminalView.font = font
+            overlayView.font = font
+        }
+        applyPalette(palette, to: terminalView)
+
         let expectedAccessory: UIView? = isKeyboardVisible ? context.coordinator.accessoryView : nil
-        if uiView.inputAccessoryView !== expectedAccessory {
-            uiView.inputAccessoryView = expectedAccessory
-            uiView.reloadInputViews()
+        if terminalView.inputAccessoryView !== expectedAccessory {
+            terminalView.inputAccessoryView = expectedAccessory
+            terminalView.reloadInputViews()
         }
     }
 
@@ -275,6 +336,11 @@ private struct TerminalContainerView: UIViewRepresentable {
         if view.backgroundColor != background {
             view.backgroundColor = background
         }
+    }
+
+    final class ContainerView: UIView {
+        var terminalView: TerminalUIKitView?
+        var overlayView: PredictionOverlayView?
     }
 }
 
