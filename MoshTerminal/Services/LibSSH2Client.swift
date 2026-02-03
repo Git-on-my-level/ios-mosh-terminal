@@ -7,6 +7,23 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
     private static let channelWindowDefault: UInt32 = 2 * 1024 * 1024
     private static let channelPacketDefault: UInt32 = 32768
     private static let connectTimeoutSeconds: TimeInterval = 15
+    private static let logsEnabled: Bool = {
+#if DEBUG
+        return true
+#else
+#if targetEnvironment(simulator)
+        return true
+#else
+        return ProcessInfo.processInfo.environment["MOSH_DEBUG_LOGS"] == "1"
+#endif
+#endif
+    }()
+    private static func log(_ message: String) {
+        guard logsEnabled else { return }
+        NSLog("[ssh] \(message)")
+        print("[ssh] \(message)")
+        DebugLogBuffer.shared.append("[ssh] \(message)")
+    }
     private let queue = DispatchQueue(label: "com.moshterminal.ssh")
     private let hostKeyVerifier: SSHHostKeyVerifying?
     private let connectStateLock = NSLock()
@@ -32,10 +49,12 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         passphrase: String?
     ) async throws {
         resetCancellationState()
+        Self.log("connect begin host=\(host):\(port) user=\(username)")
         let fingerprint = try await run {
             if self.session != nil {
                 throw SSHClientError.alreadyConnected
             }
+            Self.log("open socket")
             let socketFD = try self.openSocket(host: host, port: port)
             self.socketFD = socketFD
 
@@ -48,10 +67,17 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             libssh2_session_set_blocking(session, 1)
             libssh2_session_set_timeout(session, 15000)
 
+            Self.log("handshake start")
             let handshake = libssh2_session_handshake(session, socketFD)
             guard handshake == 0 else {
-                throw SSHClientError.connectionFailed(message: "Handshake failed (\(handshake)).")
+                var errorMessage: UnsafeMutablePointer<Int8>?
+                var errorLength: Int32 = 0
+                let lastError = libssh2_session_last_error(session, &errorMessage, &errorLength, 0)
+                let message = errorMessage.map { String(cString: $0) } ?? "Handshake failed."
+                Self.log("handshake failed code=\(handshake) lastError=\(lastError) msg=\(message)")
+                throw SSHClientError.connectionFailed(message: "Handshake failed (\(handshake)): \(message)")
             }
+            Self.log("handshake ok")
 
             let fingerprint = try Self.hostKeyFingerprintSHA256(session: session)
             self.hostKeyFingerprint = fingerprint
@@ -62,8 +88,11 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
 
         if let verifier = hostKeyVerifier {
             do {
+                Self.log("verify host key")
                 try await verifier.verify(hostname: host, port: port, fingerprint: fingerprint)
+                Self.log("host key verified")
             } catch {
+                Self.log("host key verification failed: \(error.localizedDescription)")
                 await disconnect()
                 throw error
             }
@@ -74,6 +103,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                 guard let session = self.session else {
                     throw SSHClientError.notConnected
                 }
+                Self.log("auth start")
                 let auth = try Self.authenticate(
                     session: session,
                     username: username,
@@ -83,8 +113,10 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                 guard auth == 0 else {
                     throw SSHClientError.authenticationFailed
                 }
+                Self.log("auth ok")
             }
         } catch {
+            Self.log("auth failed: \(error.localizedDescription)")
             await disconnect()
             throw error
         }
@@ -104,6 +136,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             guard let session = self.session else {
                 throw SSHClientError.notConnected
             }
+            Self.log("exec open channel")
 
             guard let channel = libssh2_channel_open_ex(
                 session,
@@ -133,12 +166,14 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             guard execResult == 0 else {
                 throw SSHClientError.connectionFailed(message: "Command exec failed (\(execResult)).")
             }
+            Self.log("exec started")
 
             let (stdoutData, stderrData) = try Self.readChannelOutput(channel: channel)
             let exitStatus = libssh2_channel_get_exit_status(channel)
 
             let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
             let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+            Self.log("exec done exit=\(exitStatus) stdout=\(stdout.count) stderr=\(stderr.count)")
             return SSHCommandResult(stdout: stdout, stderr: stderr, exitStatus: Int32(exitStatus))
         }
     }
@@ -325,6 +360,23 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         return "SHA256:\(hashData.base64EncodedString())"
     }
 
+    private func describeAddress(_ addr: UnsafePointer<sockaddr>, length: socklen_t) -> String {
+        var hostBuffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        let result = getnameinfo(
+            addr,
+            length,
+            &hostBuffer,
+            socklen_t(hostBuffer.count),
+            nil,
+            0,
+            NI_NUMERICHOST
+        )
+        if result == 0 {
+            return String(cString: hostBuffer)
+        }
+        return "unknown"
+    }
+
     private func openSocket(host: String, port: Int) throws -> Int32 {
         var hints = addrinfo(
             ai_flags: 0,
@@ -352,6 +404,9 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             if remaining == 0 {
                 throw SSHClientError.connectionFailed(message: "Connection timed out.")
             }
+            let addrDescription = describeAddress(addrInfo.pointee.ai_addr, length: addrInfo.pointee.ai_addrlen)
+            let family = addrInfo.pointee.ai_family == AF_INET6 ? "ipv6" : "ipv4"
+            Self.log("socket attempt addr=\(addrDescription) family=\(family) remainingMs=\(remaining)")
             let socketFD = socket(addrInfo.pointee.ai_family, addrInfo.pointee.ai_socktype, addrInfo.pointee.ai_protocol)
             if socketFD >= 0 {
                 setPendingSocket(socketFD)
@@ -388,6 +443,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                     }
                     _ = fcntl(socketFD, F_SETFL, originalFlags)
                     _ = clearPendingSocket(socketFD)
+                    Self.log("socket connected addr=\(addrDescription)")
                     return socketFD
                 }
 
@@ -402,6 +458,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                             }
                             _ = fcntl(socketFD, F_SETFL, originalFlags)
                             _ = clearPendingSocket(socketFD)
+                            Self.log("socket connected (async) addr=\(addrDescription)")
                             return socketFD
                         }
                         lastError = "Connection timed out."

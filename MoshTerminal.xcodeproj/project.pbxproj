@@ -69,6 +69,9 @@
 		E2E2E2E2E2E2E2E2E2E2E403 /* Frameworks/libcrypto.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E320 /* Frameworks/libcrypto.xcframework */; };
 		E4C5D6F7A8B9C0D1E2F3A4B6 /* DiffMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C5D6F7A8B9C0D1E2F3A4B5 /* DiffMessageCodec.swift */; };
 		EB52B07CD023C7F74660A5E0 /* ProtoCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */; };
+		F5A1B2C3D4E5F60718293A4C /* HostAddressResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A1B2C3D4E5F60718293A4B /* HostAddressResolver.swift */; };
+		F6A1B2C3D4E5F60718293A4E /* DebugLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A1B2C3D4E5F60718293A4D /* DebugLogView.swift */; };
+		F6A1B2C3D4E5F60718293A50 /* DebugLogBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A1B2C3D4E5F60718293A4F /* DebugLogBuffer.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */; };
@@ -118,6 +121,9 @@
 		1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshBootstrapperTests.swift; sourceTree = "<group>"; };
 		1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSenderTests.swift; sourceTree = "<group>"; };
 		2966B88DEC24B6A75F059FCB /* UserState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserState.swift; sourceTree = "<group>"; };
+		F5A1B2C3D4E5F60718293A4B /* HostAddressResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostAddressResolver.swift; sourceTree = "<group>"; };
+		F6A1B2C3D4E5F60718293A4D /* DebugLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogView.swift; sourceTree = "<group>"; };
+		F6A1B2C3D4E5F60718293A4F /* DebugLogBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogBuffer.swift; sourceTree = "<group>"; };
 		2CF4BD2B2A5946CF9F9B9FD50BC3AF01 /* ae.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ae.h; sourceTree = "<group>"; };
 		2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoff.swift; sourceTree = "<group>"; };
 		2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtoCodec.swift; sourceTree = "<group>"; };
@@ -292,6 +298,7 @@
 				E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */,
 				D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */,
+				F6A1B2C3D4E5F60718293A4D /* DebugLogView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */,
 			A1A1A1A1A1A1A1A1A1A1A1E0 /* AboutView.swift */,
 				89E508C0249C443DB5EBB2E5 /* Licenses.swift */,
@@ -406,6 +413,8 @@
 				F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2C1 /* DatagramSocket.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2C2 /* RoamingDatagramSocket.swift */,
+				F5A1B2C3D4E5F60718293A4B /* HostAddressResolver.swift */,
+				F6A1B2C3D4E5F60718293A4F /* DebugLogBuffer.swift */,
 				419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */,
 				2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */,
@@ -549,6 +558,7 @@
 				E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */,
+				F6A1B2C3D4E5F60718293A4E /* DebugLogView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1E1 /* AboutView.swift in Sources */,
 				74BCF1FED6F14F2BB1B9A388 /* Licenses.swift in Sources */,
@@ -560,6 +570,8 @@
 				F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2D1 /* DatagramSocket.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2D2 /* RoamingDatagramSocket.swift in Sources */,
+				F5A1B2C3D4E5F60718293A4C /* HostAddressResolver.swift in Sources */,
+				F6A1B2C3D4E5F60718293A50 /* DebugLogBuffer.swift in Sources */,
 				57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */,
 				67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */,

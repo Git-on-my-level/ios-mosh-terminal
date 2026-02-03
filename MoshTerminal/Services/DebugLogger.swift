@@ -30,16 +30,19 @@ final class DebugLogger: DebugLogProviding {
     func logConnectionEvent(_ event: ConnectionDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
+        DebugLogBuffer.shared.append(event.description)
     }
     
     func logTransportEvent(_ event: TransportDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
+        DebugLogBuffer.shared.append(event.description)
     }
     
     func logLivenessEvent(_ event: LivenessDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
+        DebugLogBuffer.shared.append(event.description)
     }
 }
 

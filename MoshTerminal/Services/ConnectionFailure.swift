@@ -132,7 +132,7 @@ struct ConnectionErrorMapper {
             }
             return ConnectionFailure(
                 title: "SSH connection failed",
-                message: "Check the host address, port, and network, then try again.",
+                message: "Check the host address, port, and network, then try again.\n\(message)",
                 helpInfo: nil,
                 allowsRetry: true
             )

@@ -119,15 +119,37 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
     private var receiveTask: Task<Void, Never>?
     private var tickTask: Task<Void, Never>?
     private var hasEmittedConnected = false
+    private var hasLoggedFirstSend = false
     private var lastSize: TerminalSize?
     private var lastHeardMillis: UInt64?
     private var lastRoundtripSuccessMillis: UInt64?
     private var consecutiveCorruptPackets: Int = 0
     private var consecutiveUnreachableSends: Int = 0
     private let predictionNetworkStore = PredictionNetworkSnapshotStore()
+    private static let logsEnabled: Bool = {
+#if DEBUG
+        return true
+#else
+#if targetEnvironment(simulator)
+        return true
+#else
+        return ProcessInfo.processInfo.environment["MOSH_DEBUG_LOGS"] == "1"
+#endif
+#endif
+    }()
 #if DEBUG
     private var debugLogger: DebugLogProviding?
+    private let udpLogger = Logger(subsystem: "com.moshterminal", category: "udp")
 #endif
+    private func udpLog(_ message: String) {
+        guard Self.logsEnabled else { return }
+#if DEBUG
+        udpLogger.info("\(message, privacy: .public)")
+#endif
+        NSLog("[udp] \(message)")
+        print("[udp] \(message)")
+        DebugLogBuffer.shared.append("[udp] \(message)")
+    }
 
     init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -152,6 +174,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         guard state == .idle else { return }
         state = .running
         hasEmittedConnected = false
+        hasLoggedFirstSend = false
         lastSize = initialSize
         lastHeardMillis = Clock.nowMillis()
         lastRoundtripSuccessMillis = nil
@@ -188,6 +211,8 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         )
 
         let socket = try configuration.socketFactory(serverHost, udpPort)
+        let localPort = (socket as? DatagramSocketPortProviding)?.localPort ?? 0
+        udpLog("socket opened remote=\(serverHost):\(udpPort) local=\(localPort)")
 
         self.socket = socket
         self.framing = framing
@@ -296,6 +321,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
                 consecutiveCorruptPackets = 0
                 if !hasEmittedConnected {
                     hasEmittedConnected = true
+                    udpLog("connected (first inbound packet)")
 #if DEBUG
                     logLivenessEvent(.connected)
 #endif
@@ -385,6 +411,10 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
                     )
                     for datagram in datagrams {
                         try socket.send(datagram)
+                        if !hasLoggedFirstSend {
+                            hasLoggedFirstSend = true
+                            udpLog("first outbound datagram sent")
+                        }
                         consecutiveUnreachableSends = 0
                     }
 #if DEBUG
@@ -474,6 +504,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
             if case .sendFailed(let errno) = socketError {
                 if isUnreachableErrno(errno) {
                     consecutiveUnreachableSends += 1
+                    udpLog("send unreachable errno=\(errno) consecutive=\(self.consecutiveUnreachableSends)")
 #if DEBUG
                     logLivenessEvent(.unreachableSend(consecutiveCount: consecutiveUnreachableSends))
 #endif

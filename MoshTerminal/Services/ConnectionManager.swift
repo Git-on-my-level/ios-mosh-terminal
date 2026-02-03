@@ -98,9 +98,39 @@ final class ConnectionManager: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var reconnectBackoff: ReconnectBackoffState
     private var autoReconnectAllowed = true
+    private static let logsEnabled: Bool = {
+#if DEBUG
+        return true
+#else
+#if targetEnvironment(simulator)
+        return true
+#else
+        return ProcessInfo.processInfo.environment["MOSH_DEBUG_LOGS"] == "1"
+#endif
+#endif
+    }()
 #if DEBUG
     private var debugLogger: DebugLogProviding?
+    private let udpLogger = Logger(subsystem: "com.moshterminal", category: "udp")
 #endif
+    private func udpLog(_ message: String) {
+        guard Self.logsEnabled else { return }
+#if DEBUG
+        udpLogger.info("\(message, privacy: .public)")
+#endif
+        NSLog("[udp] \(message)")
+        print("[udp] \(message)")
+        DebugLogBuffer.shared.append("[udp] \(message)")
+    }
+    private func connLog(_ message: String) {
+        guard Self.logsEnabled else { return }
+#if DEBUG
+        udpLogger.info("\(message, privacy: .public)")
+#endif
+        NSLog("[conn] \(message)")
+        print("[conn] \(message)")
+        DebugLogBuffer.shared.append("[conn] \(message)")
+    }
 
     struct DebugSnapshot: Sendable, Equatable {
         let lastHeardAgeMillis: UInt64?
@@ -287,6 +317,7 @@ final class ConnectionManager: ObservableObject {
         if isReconnect {
             state = .reconnecting
             if let connectInfo = lastConnectInfo {
+                connLog("reconnect attempt using lastConnectInfo remote=\(connectInfo.serverAddress):\(connectInfo.udpPort)")
                 let resumed = await attemptEngineStart(
                     connectInfo: connectInfo,
                     controller: controller,
@@ -300,6 +331,7 @@ final class ConnectionManager: ObservableObject {
 
         state = .bootstrappingSSH
         do {
+            connLog("ssh bootstrap start host=\(host.hostname):\(host.sshPort) user=\(host.username)")
             let privateKey = try keyStore.loadPrivateKeyData(keyRefId: host.keyRefId)
             let metadata = try keyStore.metadata(keyRefId: host.keyRefId)
             let requiresPassphrase = metadata?.requiresPassphrase == true
@@ -321,6 +353,7 @@ final class ConnectionManager: ObservableObject {
 #if DEBUG
             logSSHBootstrap(success: true, errorDescription: nil)
 #endif
+            connLog("ssh bootstrap ok remote=\(connectInfo.serverAddress):\(connectInfo.udpPort)")
             guard connectToken == token else { return }
             lastConnectInfo = connectInfo
             state = .connectingUDP
@@ -346,43 +379,75 @@ final class ConnectionManager: ObservableObject {
         token: UUID
     ) async -> Bool {
         guard connectToken == token else { return false }
-        let engine = moshEngineFactory()
-        self.engine = engine
-        attachEngine(engine, controller: controller)
-
         let size = controller?.currentSize ?? TerminalSize(cols: 80, rows: 24)
-        state = .connectingUDP
-        do {
-            try await engine.start(connectInfo: connectInfo, initialTerminalSize: size)
+        let fallbackAddress = HostAddressResolver.fallbackAddress(
+            hostname: connectInfo.serverAddress,
+            preferredHostname: activeHost?.hostname
+        )
+
+        for (index, address) in [connectInfo.serverAddress, fallbackAddress].enumerated() {
+            guard connectToken == token else { return false }
+            guard let address else { continue }
+            let isFallbackAttempt = index == 1
+            let attemptLabel = isFallbackAttempt ? "fallback" : "primary"
+            udpLog("connect attempt=\(attemptLabel) remote=\(address):\(connectInfo.udpPort)")
+            let nextConnectInfo = MoshConnectInfo(
+                udpPort: connectInfo.udpPort,
+                sessionKey: connectInfo.sessionKey,
+                serverAddress: address
+            )
+
+            let engine = moshEngineFactory()
+            self.engine = engine
+            attachEngine(engine, controller: controller)
+
+            state = .connectingUDP
+            do {
+                try await engine.start(connectInfo: nextConnectInfo, initialTerminalSize: size)
 #if DEBUG
-            logUDPConnect(success: true, timeoutMillis: nil)
+                logUDPConnect(success: true, timeoutMillis: nil)
 #endif
-        } catch {
-            if connectToken != token { return false }
+            } catch {
+                if connectToken != token { return false }
 #if DEBUG
-            logUDPConnect(success: false, timeoutMillis: nil)
+                logUDPConnect(success: false, timeoutMillis: nil)
 #endif
-            handleConnectionFailure(error)
+                handleConnectionFailure(error)
+                return false
+            }
+
+            guard waitForConnection else { return true }
+            let connected = await waitForConnected(timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
+            if connected {
+                udpLog("connect attempt succeeded remote=\(address):\(connectInfo.udpPort)")
+                return true
+            }
+
+            await stopEngine()
+
+            if connectToken != token || state != .connectingUDP {
+                return false
+            }
+
+            if !isFallbackAttempt {
+                udpLog("connect attempt timed out; trying fallback if available")
+                continue
+            }
+
+            #if DEBUG
+            logUDPConnect(success: false, timeoutMillis: connectionTimeoutNanoseconds / 1_000_000)
+            #endif
+            udpLog("connect timed out after fallback remote=\(address):\(connectInfo.udpPort)")
+            handleConnectionFailure(ConnectionFailureReason.udpTimeout)
             return false
         }
 
-        guard waitForConnection else { return true }
-        let connected = await waitForConnected(timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
-        if !connected {
-            if connectToken == token, state == .connectingUDP {
-#if DEBUG
-                logUDPConnect(success: false, timeoutMillis: connectionTimeoutNanoseconds / 1_000_000)
-#endif
-                handleConnectionFailure(ConnectionFailureReason.udpTimeout)
-            }
-            await stopEngine()
-            return false
-        }
-        return true
+        return false
     }
 
     private func waitForConnected(timeoutNanoseconds: UInt64, token: UUID) async -> Bool {
         if state == .connected { return true }
+        connLog("waitForConnected start timeoutMs=\(timeoutNanoseconds / 1_000_000)")
         return await withCheckedContinuation { continuation in
             let waiterToken = UUID()
             connectWaiterToken = waiterToken
@@ -393,6 +458,7 @@ final class ConnectionManager: ObservableObject {
                 guard connectWaiterToken == waiterToken else { return }
                 connectWaiterToken = nil
                 connectWaiter = nil
+                connLog("waitForConnected timeout")
                 continuation.resume(returning: false)
             }
         }
@@ -449,10 +515,13 @@ final class ConnectionManager: ObservableObject {
     private func handleEngineState(_ engineState: MoshEngineState) {
         switch engineState {
         case .idle:
+            connLog("engine state=idle")
             state = .idle
         case .starting:
+            connLog("engine state=starting")
             state = .connectingUDP
         case .connected:
+            connLog("engine state=connected")
             state = .connected
             failure = nil
             reconnectBackoff.recordSuccess()
@@ -461,6 +530,7 @@ final class ConnectionManager: ObservableObject {
                 await self?.recordLastConnected()
             }
         case .disconnected:
+            connLog("engine state=disconnected")
             reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
                 error: ConnectionFailureReason.disconnected,
@@ -478,6 +548,7 @@ final class ConnectionManager: ObservableObject {
                 requestReconnect(reason: .engineDisconnected)
             }
         case .failed(let error):
+            connLog("engine state=failed error=\(error.localizedDescription)")
             reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
                 error: error,

@@ -58,7 +58,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
             case random(range: ClosedRange<UInt16>)
         }
 
-        var localPortStrategy: LocalPortStrategy = .random(range: 60001...60999)
+        var localPortStrategy: LocalPortStrategy = .ephemeral
         var maxDatagramSize: Int = 65535
         var queue: DispatchQueue = DispatchQueue(label: "DatagramSocket.read")
     }

@@ -30,11 +30,29 @@ final class MoshBootstrapper: Sendable {
         passphrase: String?,
         hostKeyPrompter: SSHHostKeyPrompting
     ) async throws -> MoshConnectInfo {
+        let logsEnabled: Bool = {
+#if DEBUG
+            return true
+#else
+#if targetEnvironment(simulator)
+            return true
+#else
+            return ProcessInfo.processInfo.environment["MOSH_DEBUG_LOGS"] == "1"
+#endif
+#endif
+        }()
+        let log: (String) -> Void = { message in
+            guard logsEnabled else { return }
+            NSLog("[ssh] \(message)")
+            print("[ssh] \(message)")
+            DebugLogBuffer.shared.append("[ssh] \(message)")
+        }
         let client = sshClientFactory(hostKeyPrompter)
         defer {
             Task { await client.disconnect() }
         }
 
+        log("connect start host=\(host.hostname):\(host.sshPort) user=\(host.username)")
         try await client.connect(
             host: host.hostname,
             port: host.sshPort,
@@ -42,8 +60,18 @@ final class MoshBootstrapper: Sendable {
             privateKey: privateKey,
             passphrase: passphrase
         )
+        log("connect ok, running mosh-server new")
 
-        let result = try await client.execute(command: "mosh-server new")
+        let result = try await client.execute(command: "printf 'SSH_CONNECTION=%s\\n' \"$SSH_CONNECTION\"; mosh-server new")
+        let summary = [result.stdout, result.stderr]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+            .prefix(200)
+        if summary.isEmpty {
+            log("mosh-server returned no output")
+        } else {
+            log("mosh-server output: \(summary)")
+        }
         return try Self.parseConnectInfo(from: result, serverAddress: host.hostname)
     }
 
@@ -56,6 +84,8 @@ final class MoshBootstrapper: Sendable {
             .joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
+        let resolvedServerAddress = resolveServerAddress(from: output) ?? serverAddress
+
         if let match = matchConnectLine(in: output) {
             guard let udpPort = Int(match.port), (1...65535).contains(udpPort) else {
                 throw MoshBootstrapError.unexpectedOutput(message: "Invalid UDP port in output.")
@@ -63,7 +93,7 @@ final class MoshBootstrapper: Sendable {
             return MoshConnectInfo(
                 udpPort: udpPort,
                 sessionKey: match.key,
-                serverAddress: serverAddress
+                serverAddress: resolvedServerAddress
             )
         }
 
@@ -97,6 +127,32 @@ final class MoshBootstrapper: Sendable {
         let port = String(output[portRange])
         let key = String(output[keyRange])
         return (port, key)
+    }
+
+    private static func resolveServerAddress(from output: String) -> String? {
+        guard let connectionLine = matchSingleLine(in: output, pattern: #"(?m)^SSH_CONNECTION=(.*)$"#) else {
+            return nil
+        }
+        let trimmed = connectionLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let fields = trimmed.split(separator: " ")
+        guard fields.count >= 4 else { return nil }
+        let serverIP = String(fields[2]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return serverIP.isEmpty ? nil : serverIP
+    }
+
+    private static func matchSingleLine(in output: String, pattern: String) -> String? {
+        guard !output.isEmpty else { return nil }
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return nil
+        }
+        let range = NSRange(output.startIndex..<output.endIndex, in: output)
+        guard let match = regex.firstMatch(in: output, options: [], range: range),
+              match.numberOfRanges == 2,
+              let valueRange = Range(match.range(at: 1), in: output) else {
+            return nil
+        }
+        return String(output[valueRange])
     }
 
     private static func isMissingMoshServer(output: String, exitStatus: Int32) -> Bool {

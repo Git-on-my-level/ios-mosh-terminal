@@ -609,6 +609,7 @@ private struct TerminalErrorBanner: View {
     let failure: ConnectionFailure
     let onRetry: () -> Void
     let onBack: () -> Void
+    @State private var showingHelp = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -631,7 +632,10 @@ private struct TerminalErrorBanner: View {
                 .foregroundStyle(.white.opacity(0.8))
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    UIPasteboard.general.string = helpInfo
+                    showingHelp = true
+                }
+                .sheet(isPresented: $showingHelp) {
+                    HelpInfoSheet(text: helpInfo)
                 }
             }
             HStack(spacing: 8) {
@@ -651,6 +655,24 @@ private struct TerminalErrorBanner: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.red.opacity(0.85))
+    }
+}
+
+private struct HelpInfoSheet: View {
+    let text: String
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(text)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+            }
+            .navigationTitle("UDP Help")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 }
 

@@ -69,6 +69,11 @@ struct SettingsView: View {
                 Toggle(isOn: $settings.debugLoggingEnabled) {
                     Label("Enable Debug Logging", systemImage: "doc.text.magnifyingglass")
                 }
+                NavigationLink {
+                    DebugLogView()
+                } label: {
+                    Label("Debug Logs", systemImage: "doc.text")
+                }
                 Toggle(isOn: $settings.debugPredictionEnabled) {
                     Label("Enable Predictions", systemImage: "bolt")
                 }
