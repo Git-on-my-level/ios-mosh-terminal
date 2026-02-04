@@ -33,7 +33,7 @@ private actor NativeMoshEngineState {
     }
 }
 
-final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, PredictionEchoAckNotifying, @unchecked Sendable {
+final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, PredictionNetworkSnapshotProviding, PredictionEchoAckNotifying, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?
     var onStateChange: (@Sendable (MoshEngineState) -> Void)?
@@ -108,5 +108,9 @@ final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, PredictionEc
 
     func debugSnapshot() async -> MoshEngineDebugSnapshot {
         await runtime.debugSnapshot()
+    }
+
+    nonisolated func predictionNetworkSnapshot() -> PredictionNetworkSnapshot {
+        runtime.predictionNetworkSnapshot()
     }
 }

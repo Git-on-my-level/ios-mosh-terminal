@@ -88,5 +88,6 @@ No SSH keys or host keys are persisted in the repo or Keychain.
 - `Harness already running`: Stop it with `./scripts/mosh_harness.sh stop`.
 - `Mosh handshake failed`: Check that Docker is running and the UDP port range is free. If the simulator cannot reach `127.0.0.1`, set `MOSH_HARNESS_BIND_HOST=0.0.0.0` and try `MOSH_HARNESS_HOST=<your-host-ip>`.
 - `Did not observe sentinel output`: Verify `MOSH_E2E_COMMAND` runs on the target shell and that the sentinel matches.
+- `UDP timeout after UI changes`: Ensure `TerminalUIKitView` remains the root view; the prediction overlay must be a subview (not a wrapper container).
 - `mosh-server was not found`: Ensure the harness container built correctly (try `./scripts/mosh_harness.sh stop` then `start`).
 - Simulator build failures: confirm Xcode CLI setup and run `./scripts/build_sim.sh` to validate basics first.

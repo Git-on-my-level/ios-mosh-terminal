@@ -28,13 +28,6 @@ struct TerminalView: View {
     var body: some View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
-            .onAppear {
-                updatePredictionPreference()
-                updateIdleTimer()
-                if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
-                    viewModel.start(autoConnect: autoConnect)
-                }
-            }
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
@@ -82,6 +75,7 @@ struct TerminalView: View {
             }
             .onAppear {
                 isVisible = true
+                updatePredictionPreference()
                 updateIdleTimer()
                 if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
                     viewModel.start(autoConnect: autoConnect)
@@ -254,64 +248,33 @@ private struct TerminalContainerView: UIViewRepresentable {
     let palette: AppTheme.TerminalPalette
     let isKeyboardVisible: Bool
 
-    func makeUIView(context: Context) -> ContainerView {
-        let containerView = ContainerView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-
+    func makeUIView(context: Context) -> TerminalUIKitView {
         let terminalView = TerminalUIKitView(
             frame: .zero,
             font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         )
-        terminalView.translatesAutoresizingMaskIntoConstraints = false
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
-
-        let overlayView = PredictionOverlayView()
-        overlayView.translatesAutoresizingMaskIntoConstraints = false
-        overlayView.isUserInteractionEnabled = false
-        overlayView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        controller.predictionOverlayView = overlayView
-
-        containerView.addSubview(terminalView)
-        containerView.addSubview(overlayView)
-        containerView.terminalView = terminalView
-        containerView.overlayView = overlayView
-
-        NSLayoutConstraint.activate([
-            terminalView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            terminalView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            terminalView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            terminalView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            overlayView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            overlayView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            overlayView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            overlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-        ])
-
+        installPredictionOverlay(in: terminalView, controller: controller)
         context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
         terminalView.inputAccessoryView = nil
 
         DispatchQueue.main.async {
             controller.focus()
         }
-
-        return containerView
+        return terminalView
     }
 
-    func updateUIView(_ containerView: ContainerView, context: Context) {
-        guard let terminalView = containerView.terminalView,
-              let overlayView = containerView.overlayView else { return }
-
+    func updateUIView(_ terminalView: TerminalUIKitView, context: Context) {
         if controller.terminalView !== terminalView {
             controller.attach(view: terminalView)
         }
         if terminalView.font.pointSize != CGFloat(fontSize) {
-            let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            terminalView.font = font
-            overlayView.font = font
+            terminalView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
         applyPalette(palette, to: terminalView)
+        installPredictionOverlay(in: terminalView, controller: controller)
 
         let expectedAccessory: UIView? = isKeyboardVisible ? context.coordinator.accessoryView : nil
         if terminalView.inputAccessoryView !== expectedAccessory {
@@ -338,10 +301,35 @@ private struct TerminalContainerView: UIViewRepresentable {
         }
     }
 
-    final class ContainerView: UIView {
-        var terminalView: TerminalUIKitView?
-        var overlayView: PredictionOverlayView?
+}
+
+// IMPORTANT: The prediction overlay must be a subview of SwiftTerm's TerminalUIKitView.
+// Wrapping TerminalUIKitView in a container view regressed UDP connectivity.
+@MainActor
+@discardableResult
+func installPredictionOverlay(
+    in terminalView: TerminalUIKitView,
+    controller: TerminalSessionController
+) -> PredictionOverlayView {
+    let overlayTag = 0x4D4F5348 // "MOSH"
+    if let existing = terminalView.viewWithTag(overlayTag) as? PredictionOverlayView {
+        existing.font = terminalView.font
+        controller.predictionOverlayView = existing
+        terminalView.bringSubviewToFront(existing)
+        return existing
     }
+
+    let overlayView = PredictionOverlayView()
+    overlayView.tag = overlayTag
+    overlayView.translatesAutoresizingMaskIntoConstraints = true
+    overlayView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overlayView.frame = terminalView.bounds
+    overlayView.isUserInteractionEnabled = false
+    overlayView.font = terminalView.font
+    terminalView.addSubview(overlayView)
+    terminalView.bringSubviewToFront(overlayView)
+    controller.predictionOverlayView = overlayView
+    return overlayView
 }
 
 /// UIKit hosting view that wraps the SwiftUI TerminalAccessoryRow for use as inputAccessoryView
