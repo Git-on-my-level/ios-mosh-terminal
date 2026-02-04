@@ -52,6 +52,10 @@ final class UTF8ByteParser {
             }
         }
 
+        if case .utf8Continuing = state {
+            state = .normal
+        }
+
         return actions
     }
 

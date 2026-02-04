@@ -90,7 +90,7 @@ final class PredictionEngine {
                 applyPrintable(char: char, width: width, displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .backspace:
-                applyBackspace(nowMillis: nowMillis)
+                applyBackspace(displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .carriageReturn:
                 applyCarriageReturn(nowMillis: nowMillis)
@@ -256,14 +256,14 @@ final class PredictionEngine {
 
         let filteredRows = overlayRows.enumerated().map { index, row in
             let visibleCells = row.cells.filter { cell in
-                cell.active && cell.tentativeUntilEpoch <= confirmedEpoch
+                cell.active && cell.tentativeUntilEpoch == confirmedEpoch
             }
             let hasVisibleCells = !visibleCells.isEmpty
             let visibleUnknown = row.unknownRow && hasVisibleCells
             return OverlayRowState(unknownRow: visibleUnknown, cells: visibleCells)
         }
 
-        let visibleCursors = cursorPredictions.filter { $0.tentativeUntilEpoch <= confirmedEpoch }
+        let visibleCursors = cursorPredictions.filter { $0.tentativeUntilEpoch == confirmedEpoch }
 
         return PredictionRenderModel(
             overlayRows: filteredRows,
@@ -332,7 +332,7 @@ final class PredictionEngine {
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
-    private func applyBackspace(nowMillis: Int64) {
+    private func applyBackspace(displayGrid: DisplayGrid, nowMillis: Int64) {
         if predictedCursorCol > 0 {
             predictedCursorCol -= 1
         } else {
@@ -342,8 +342,9 @@ final class PredictionEngine {
 
         let hadPredictions = !overlayRows[predictedCursorRow].cells.isEmpty
         shiftRowLeft(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
-        // Mark last column unknown if we had existing predictions, otherwise mark backspace position
-        if hadPredictions {
+        let currentCell = displayGrid.cell(atRow: predictedCursorRow, col: predictedCursorCol)
+        // Mark last column unknown if we had existing predictions or the confirmed cell is blank.
+        if hadPredictions || currentCell == .blank {
             markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
         } else {
             markCellUnknown(rowIndex: predictedCursorRow, col: predictedCursorCol, nowMillis: nowMillis)
@@ -554,13 +555,9 @@ final class PredictionEngine {
         if row >= confirmedGrid.rows || cell.col >= confirmedGrid.cols {
             return .incorrectOrExpired
         }
-                if echoAck >= cell.expirationFrame {
-                    return .incorrectOrExpired
-                }
-                guard !cell.unknown, let replacement = cell.replacement, replacement != .blank else {
-                    return .pending
-                }
-                return .pending
+        if echoAck < cell.expirationFrame {
+            return .pending
+        }
         let current = confirmedGrid.cell(atRow: row, col: cell.col)
         if cell.unknown {
             return .correctNoCredit
