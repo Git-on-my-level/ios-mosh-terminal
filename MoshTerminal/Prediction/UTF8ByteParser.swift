@@ -211,7 +211,24 @@ final class UTF8ByteParser {
     private func characterWidth(_ char: Character) -> Int {
         guard let scalar = char.unicodeScalars.first else { return 0 }
         let width = wcwidth(wchar_t(scalar.value))
-        return max(0, Int(width))
+        if width >= 0 {
+            return Int(width)
+        }
+        // wcwidth returns -1 for some valid characters on certain platforms;
+        // treat common printable ranges as width 1
+        let cp = scalar.value
+        // Basic Multilingual Plane (excluding CJK blocks that can be width 2)
+        if cp <= 0xFFFF {
+            // Common ranges for width-1 characters
+            // Latin Extended, Greek, Cyrillic, etc.
+            return 1
+        }
+        // Treat other printable chars as width 1
+        // (excluding emoji/symbols that should be width 2)
+        if cp >= 0x10000 && cp < 0x1F600 {
+            return 1
+        }
+        return 0
     }
 
     func reset() {

@@ -340,8 +340,14 @@ final class PredictionEngine {
             return
         }
 
+        let hadPredictions = !overlayRows[predictedCursorRow].cells.isEmpty
         shiftRowLeft(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
-        markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
+        // Mark last column unknown if we had existing predictions, otherwise mark backspace position
+        if hadPredictions {
+            markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
+        } else {
+            markCellUnknown(rowIndex: predictedCursorRow, col: predictedCursorCol, nowMillis: nowMillis)
+        }
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
@@ -431,6 +437,20 @@ final class PredictionEngine {
         let cell = OverlayCellState(
             active: true,
             col: lastCol,
+            replacement: nil,
+            unknown: true,
+            originalContents: [],
+            expirationFrame: localFrameSent + 1,
+            predictionTime: nowMillis,
+            tentativeUntilEpoch: predictionEpoch
+        )
+        upsertCell(row: rowIndex, cell: cell)
+    }
+
+    private func markCellUnknown(rowIndex: Int, col: Int, nowMillis: Int64) {
+        let cell = OverlayCellState(
+            active: true,
+            col: col,
             replacement: nil,
             unknown: true,
             originalContents: [],
@@ -534,12 +554,13 @@ final class PredictionEngine {
         if row >= confirmedGrid.rows || cell.col >= confirmedGrid.cols {
             return .incorrectOrExpired
         }
-        if echoAck < cell.expirationFrame {
-            guard !cell.unknown, let replacement = cell.replacement, replacement != .blank else {
+                if echoAck >= cell.expirationFrame {
+                    return .incorrectOrExpired
+                }
+                guard !cell.unknown, let replacement = cell.replacement, replacement != .blank else {
+                    return .pending
+                }
                 return .pending
-            }
-            return .pending
-        }
         let current = confirmedGrid.cell(atRow: row, col: cell.col)
         if cell.unknown {
             return .correctNoCredit
