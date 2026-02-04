@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 enum ParsedAction: Equatable {
@@ -59,7 +60,7 @@ final class UTF8ByteParser {
         case 0x1B:
             state = .esc
 
-        case 0x7F:
+        case 0x08, 0x7F:
             actions.append(.backspace)
 
         case 0x0D:
@@ -209,16 +210,8 @@ final class UTF8ByteParser {
 
     private func characterWidth(_ char: Character) -> Int {
         guard let scalar = char.unicodeScalars.first else { return 0 }
-
-        if scalar.value < 0x80 {
-            return 1
-        }
-
-        if scalar.isASCII {
-            return 1
-        }
-
-        return 2
+        let width = wcwidth(wchar_t(scalar.value))
+        return max(0, Int(width))
     }
 
     func reset() {
