@@ -3,7 +3,6 @@ import UIKit
 final class PredictionOverlayView: UIView {
     var model: PredictionRenderModel = PredictionRenderModel() {
         didSet {
-            guard oldValue != model else { return }
             scheduleRedraw()
         }
     }
@@ -69,6 +68,9 @@ final class PredictionOverlayView: UIView {
     }
 
     override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        // Always clear previous drawing; this view is transparent.
+        context.clear(rect)
         guard model.showPredictions else { return }
 
         let metrics = cellMetrics
