@@ -124,7 +124,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
     private var lastRoundtripSuccessMillis: UInt64?
     private var consecutiveCorruptPackets: Int = 0
     private var consecutiveUnreachableSends: Int = 0
-    private let predictionNetworkStore = PredictionNetworkSnapshotStore()
+    private nonisolated let predictionNetworkStore = PredictionNetworkSnapshotStore()
 #if DEBUG
     private var debugLogger: DebugLogProviding?
 #endif
@@ -172,15 +172,22 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         let resizeHandler: (Int, Int) -> Void = { [weak self] cols, rows in
             Task { await self?.emitRemoteResize(cols: cols, rows: rows) }
         }
-        let echoAckHandler: (UInt64) -> Void = { [weak self] value in
-            Task { await self?.handleEchoAck(value) }
+        let echoAckUpdateHandler: (UInt64) -> Void = { [predictionNetworkStore] value in
+            predictionNetworkStore.setEchoAck(value)
+#if DEBUG
+            os_log("echoAck: %llu", log: .default, type: .debug, value)
+#endif
+        }
+        let echoAckStandaloneHandler: (UInt64) -> Void = { [weak self] value in
+            Task { await self?.emitEchoAck(value) }
         }
         let receiver = TransportReceiver(
             transportSender: sender,
             hostApplier: HostDiffApplier(
                 onTerminalOutput: outputHandler,
                 onResize: resizeHandler,
-                onEchoAck: echoAckHandler
+                onEchoAckUpdate: echoAckUpdateHandler,
+                onEchoAckStandalone: echoAckStandaloneHandler
             ),
             onDisconnect: { [weak self] in
                 Task { await self?.handleRemoteDisconnect() }
@@ -416,11 +423,7 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         onRemoteResize?(size)
     }
 
-    private func handleEchoAck(_ value: UInt64) {
-        predictionNetworkStore.setEchoAck(value)
-#if DEBUG
-        os_log("echoAck: %llu", log: .default, type: .debug, value)
-#endif
+    private func emitEchoAck(_ value: UInt64) {
         onEchoAck?(value)
     }
 
