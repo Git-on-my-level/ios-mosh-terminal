@@ -28,12 +28,23 @@ final class PredictionEngineInputTests: XCTestCase {
         let state = engine.debugState
         XCTAssertEqual(state.cursorPredictions.last?.row, 0)
         XCTAssertEqual(state.cursorPredictions.last?.col, 2)
-        XCTAssertTrue(state.overlayRows[0].unknownRow)
+        XCTAssertFalse(state.overlayRows[0].unknownRow)
 
         let rowCells = state.overlayRows[0].cells
         XCTAssertEqual(rowCells.count, 1)
-        XCTAssertEqual(rowCells.first?.col, 2)
+        XCTAssertEqual(rowCells.first?.col, 9)
         XCTAssertEqual(rowCells.first?.unknown, true)
+    }
+
+    func testInsertModeShiftsRightAndMarksLastColumnUnknown() {
+        let grid = FakeDisplayGrid(cols: 5, rows: 2, cursorRow: 0, cursorCol: 2, isInsertMode: true)
+        let engine = PredictionEngine()
+
+        engine.newUserBytes(Data("x".utf8), displayGrid: grid, nowMillis: 2500)
+
+        let rowCells = engine.debugState.overlayRows[0].cells
+        XCTAssertTrue(rowCells.contains(where: { $0.col == 2 && $0.replacement?.char == "x" }))
+        XCTAssertTrue(rowCells.contains(where: { $0.col == 4 && $0.unknown }))
     }
 
     func testArrowLeftRightUpdatesCursorPrediction() {

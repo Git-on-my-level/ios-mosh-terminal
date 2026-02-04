@@ -291,6 +291,7 @@ final class PredictionEngine {
 
         if displayGrid.isInsertMode {
             shiftRowRight(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
+            markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
         }
 
         let replacement = DisplayCell(char: char, width: width)
@@ -324,23 +325,13 @@ final class PredictionEngine {
     private func applyBackspace(nowMillis: Int64) {
         if predictedCursorCol > 0 {
             predictedCursorCol -= 1
+        } else {
+            appendCursorPrediction(nowMillis: nowMillis)
+            return
         }
 
-        if predictedCursorRow >= 0 && predictedCursorRow < overlayRows.count {
-            overlayRows[predictedCursorRow].unknownRow = true
-        }
-
-        let cell = OverlayCellState(
-            active: true,
-            col: predictedCursorCol,
-            replacement: nil,
-            unknown: true,
-            originalContents: [],
-            expirationFrame: localFrameSent + 1,
-            predictionTime: nowMillis,
-            tentativeUntilEpoch: predictionEpoch
-        )
-        upsertCell(row: predictedCursorRow, cell: cell)
+        shiftRowLeft(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
+        markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
@@ -395,22 +386,63 @@ final class PredictionEngine {
     private func shiftRowRight(rowIndex: Int, startCol: Int) {
         guard rowIndex >= 0, rowIndex < overlayRows.count else { return }
         var shifted: [OverlayCellState] = []
-        let positionsToRemove = activeCellPositions.filter { pos in pos.row == rowIndex && pos.col >= startCol }
-        for pos in positionsToRemove {
-            activeCellPositions.remove(pos)
-        }
         for var cell in overlayRows[rowIndex].cells {
             if cell.col >= startCol {
                 cell.col += 1
             }
             if cell.col < cols {
                 shifted.append(cell)
-                if cell.active {
-                    activeCellPositions.insert(CellPosition(row: rowIndex, col: cell.col))
-                }
             }
         }
         overlayRows[rowIndex].cells = shifted
+        rebuildActivePositionsForRow(rowIndex)
+    }
+
+    private func shiftRowLeft(rowIndex: Int, startCol: Int) {
+        guard rowIndex >= 0, rowIndex < overlayRows.count else { return }
+        var shifted: [OverlayCellState] = []
+        for var cell in overlayRows[rowIndex].cells {
+            if cell.col > startCol {
+                cell.col -= 1
+            } else if cell.col == startCol {
+                continue
+            }
+            if cell.col >= 0 && cell.col < cols {
+                shifted.append(cell)
+            }
+        }
+        overlayRows[rowIndex].cells = shifted
+        rebuildActivePositionsForRow(rowIndex)
+    }
+
+    private func markLastColumnUnknown(rowIndex: Int, nowMillis: Int64) {
+        guard cols > 0 else { return }
+        let lastCol = cols - 1
+        let cell = OverlayCellState(
+            active: true,
+            col: lastCol,
+            replacement: nil,
+            unknown: true,
+            originalContents: [],
+            expirationFrame: localFrameSent + 1,
+            predictionTime: nowMillis,
+            tentativeUntilEpoch: predictionEpoch
+        )
+        upsertCell(row: rowIndex, cell: cell)
+    }
+
+    private func rebuildActivePositionsForRow(_ rowIndex: Int) {
+        activeCellPositions = activeCellPositions.filter { $0.row != rowIndex }
+        var hasActiveCells = false
+        for cell in overlayRows[rowIndex].cells where cell.active {
+            activeCellPositions.insert(CellPosition(row: rowIndex, col: cell.col))
+            hasActiveCells = true
+        }
+        if hasActiveCells {
+            activeRowIndices.insert(rowIndex)
+        } else {
+            activeRowIndices.remove(rowIndex)
+        }
     }
 
     private func upsertCell(row: Int, cell: OverlayCellState) {
