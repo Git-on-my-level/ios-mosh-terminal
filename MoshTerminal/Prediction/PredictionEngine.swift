@@ -10,10 +10,13 @@ final class PredictionEngine {
     }
 
     private enum Constants {
+        static let initialSrttMillis: Int64 = 1000
         static let srttTriggerLow: Int64 = 20
         static let srttTriggerHigh: Int64 = 30
         static let flagTriggerLow: Int64 = 50
         static let flagTriggerHigh: Int64 = 80
+        static let sendIntervalMin: Int64 = 20
+        static let sendIntervalMax: Int64 = 250
         static let glitchThreshold: Int64 = 250
         static let glitchRepairCount: Int = 10
         static let glitchRepairMinInterval: Int64 = 150
@@ -39,7 +42,7 @@ final class PredictionEngine {
     private var localFrameSent: Int64 = 0
     private var localFrameAcked: Int64 = 0
     private var echoAck: Int64 = 0
-    private var srttMillis: Int64 = 0
+    private var srttMillis: Int64 = Constants.initialSrttMillis
     private var srttTrigger = false
     private var glitchTrigger = 0
     private var underlinePredictions = false
@@ -59,7 +62,7 @@ final class PredictionEngine {
         localFrameSent = Int64(snapshot.lastSentStateNum)
         localFrameAcked = Int64(snapshot.lastAckedStateNum)
         echoAck = Int64(snapshot.echoAck)
-        srttMillis = snapshot.srttMillis.map { Int64($0) } ?? 0
+        srttMillis = snapshot.srttMillis.map { Int64($0) } ?? Constants.initialSrttMillis
     }
 
     func newUserBytes(_ bytes: Data, displayGrid: DisplayGrid, nowMillis: Int64) {
@@ -119,15 +122,16 @@ final class PredictionEngine {
             return
         }
 
-        if srttMillis > Constants.srttTriggerHigh {
+        let sendInterval = currentSendIntervalMillis()
+        if sendInterval > Constants.srttTriggerHigh {
             srttTrigger = true
-        } else if srttTrigger && srttMillis <= Constants.srttTriggerLow && !hasActivePredictions() {
+        } else if srttTrigger && sendInterval <= Constants.srttTriggerLow && !hasActivePredictions() {
             srttTrigger = false
         }
 
-        if srttMillis > Constants.flagTriggerHigh {
+        if sendInterval > Constants.flagTriggerHigh {
             underlinePredictions = true
-        } else if srttMillis <= Constants.flagTriggerLow {
+        } else if sendInterval <= Constants.flagTriggerLow {
             underlinePredictions = false
         }
 
@@ -136,6 +140,7 @@ final class PredictionEngine {
         }
 
         var earlyConfirmedRows: Set<Int> = []
+        var earlyConfirmedEpoch = confirmedEpoch
         for rowIndex in activeRowIndices {
             guard rowIndex < overlayRows.count else { continue }
             for cellIndex in overlayRows[rowIndex].cells.indices {
@@ -149,6 +154,15 @@ final class PredictionEngine {
                     if current == replacement,
                        !cell.originalContents.contains(where: { $0 == replacement }) {
                         earlyConfirmedRows.insert(rowIndex)
+                        if cell.tentativeUntilEpoch > earlyConfirmedEpoch {
+                            earlyConfirmedEpoch = cell.tentativeUntilEpoch
+                        }
+                        if nowMillis - cell.predictionTime < Constants.glitchThreshold,
+                           glitchTrigger > 0,
+                           nowMillis - Constants.glitchRepairMinInterval >= lastQuickConfirmation {
+                            glitchTrigger -= 1
+                            lastQuickConfirmation = nowMillis
+                        }
                         resetCell(&cell, row: rowIndex)
                         overlayRows[rowIndex].cells[cellIndex] = cell
                         continue
@@ -204,6 +218,10 @@ final class PredictionEngine {
             }
         }
         
+        if earlyConfirmedEpoch > confirmedEpoch {
+            confirmedEpoch = earlyConfirmedEpoch
+        }
+
         if !earlyConfirmedRows.isEmpty {
             for rowIndex in earlyConfirmedRows {
                 guard rowIndex < overlayRows.count else { continue }
@@ -575,5 +593,10 @@ final class PredictionEngine {
 
     private func becomeTentative() {
         predictionEpoch += 1
+    }
+
+    private func currentSendIntervalMillis() -> Int64 {
+        let half = (srttMillis + 1) / 2
+        return min(max(half, Constants.sendIntervalMin), Constants.sendIntervalMax)
     }
 }
