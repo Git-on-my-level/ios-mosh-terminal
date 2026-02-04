@@ -256,7 +256,8 @@ private struct TerminalContainerView: UIViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
-        installPredictionOverlay(in: terminalView, controller: controller)
+        let overlayView = installPredictionOverlay(in: terminalView, controller: controller)
+        overlayView.predictionTextColor = terminalView.nativeForegroundColor
         context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
         terminalView.inputAccessoryView = nil
 
@@ -274,7 +275,8 @@ private struct TerminalContainerView: UIViewRepresentable {
             terminalView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
         applyPalette(palette, to: terminalView)
-        installPredictionOverlay(in: terminalView, controller: controller)
+        let overlayView = installPredictionOverlay(in: terminalView, controller: controller)
+        overlayView.predictionTextColor = terminalView.nativeForegroundColor
 
         let expectedAccessory: UIView? = isKeyboardVisible ? context.coordinator.accessoryView : nil
         if terminalView.inputAccessoryView !== expectedAccessory {

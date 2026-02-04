@@ -7,6 +7,27 @@ final class PredictionOverlayView: UIView {
         }
     }
 
+    var predictionTextColor: UIColor = .label {
+        didSet {
+            guard oldValue != predictionTextColor else { return }
+            scheduleRedraw()
+        }
+    }
+
+    var predictionUnderlineColor: UIColor = .systemOrange {
+        didSet {
+            guard oldValue != predictionUnderlineColor else { return }
+            scheduleRedraw()
+        }
+    }
+
+    var cursorUnderlineColor: UIColor = .systemGreen {
+        didSet {
+            guard oldValue != cursorUnderlineColor else { return }
+            scheduleRedraw()
+        }
+    }
+
     var font: UIFont = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
             guard oldValue != font else { return }
@@ -74,7 +95,10 @@ final class PredictionOverlayView: UIView {
         guard model.showPredictions else { return }
 
         let metrics = cellMetrics
-        let attrs: [NSAttributedString.Key: Any] = [.font: font]
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: predictionTextColor
+        ]
 
         for (rowIndex, rowState) in model.overlayRows.enumerated() {
             guard !rowState.unknownRow else { continue }
@@ -92,7 +116,7 @@ final class PredictionOverlayView: UIView {
                         let path = UIBezierPath()
                         path.move(to: CGPoint(x: x, y: underlineY))
                         path.addLine(to: CGPoint(x: x + metrics.cellWidth, y: underlineY))
-                        UIColor.systemOrange.setStroke()
+                        predictionUnderlineColor.setStroke()
                         path.lineWidth = 1
                         path.stroke()
                     }
@@ -101,14 +125,14 @@ final class PredictionOverlayView: UIView {
                     let path = UIBezierPath()
                     path.move(to: CGPoint(x: x, y: underlineY))
                     path.addLine(to: CGPoint(x: x + metrics.cellWidth, y: underlineY))
-                    UIColor.systemOrange.setStroke()
+                    predictionUnderlineColor.setStroke()
                     path.lineWidth = 1
                     path.stroke()
                 }
             }
         }
 
-        for cursorPrediction in model.cursorPredictions {
+        if let cursorPrediction = model.cursorPredictions.last {
             let cursorX = CGFloat(cursorPrediction.col) * metrics.cellWidth
             let cursorY = CGFloat(cursorPrediction.row) * metrics.cellHeight
 
@@ -116,7 +140,7 @@ final class PredictionOverlayView: UIView {
             let path = UIBezierPath()
             path.move(to: CGPoint(x: cursorX, y: underlineY))
             path.addLine(to: CGPoint(x: cursorX + metrics.cellWidth, y: underlineY))
-            UIColor.systemGreen.setStroke()
+            cursorUnderlineColor.setStroke()
             path.lineWidth = 2
             path.stroke()
         }
