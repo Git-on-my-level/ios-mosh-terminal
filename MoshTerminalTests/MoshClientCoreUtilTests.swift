@@ -610,7 +610,7 @@ final class MoshClientCoreUtilTests: XCTestCase {
                 onResize: { [weak self] cols, rows in
                     self?.appliedEvents.append(.resize(cols: cols, rows: rows))
                 },
-                onEchoAck: { [weak self] value in
+                onEchoAckUpdate: { [weak self] value in
                     self?.appliedEvents.append(.echoAck(value))
                 }
             )

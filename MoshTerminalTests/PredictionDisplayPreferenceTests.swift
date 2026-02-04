@@ -115,7 +115,7 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
 
         engine.newUserBytes(Data("h".utf8), displayGrid: grid, nowMillis: 1000)
         engine.updateNetworkSnapshot(
-            PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 40)
+            PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 70)
         )
 
         let confirmed = FakeDisplayGrid(
