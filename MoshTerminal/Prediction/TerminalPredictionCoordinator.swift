@@ -14,6 +14,11 @@ final class TerminalPredictionCoordinator {
         engine.displayPreference = preference
     }
 
+    func debugSnapshot() -> PredictionDebugMetrics {
+        updateNetworkSnapshot()
+        return engine.debugMetrics
+    }
+
     func reset() {
         engine.reset()
         updateOverlayWithEmpty()

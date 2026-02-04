@@ -286,6 +286,16 @@ final class PredictionEngine {
         )
     }
 
+    var debugMetrics: PredictionDebugMetrics {
+        PredictionDebugMetrics(
+            sendIntervalMillis: currentSendIntervalMillis(),
+            echoAck: echoAck,
+            glitchTrigger: glitchTrigger,
+            srttTrigger: srttTrigger,
+            activePredictionCount: activeCellPositions.count + cursorPredictions.count
+        )
+    }
+
     private func applyPrintable(char: Character, width: Int, displayGrid: DisplayGrid, nowMillis: Int64) {
         normalizeCursorForPrint()
 

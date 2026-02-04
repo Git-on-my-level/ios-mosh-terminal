@@ -59,3 +59,11 @@ struct PredictionDebugState: Equatable {
     var cols: Int
     var rows: Int
 }
+
+struct PredictionDebugMetrics: Equatable {
+    var sendIntervalMillis: Int64
+    var echoAck: Int64
+    var glitchTrigger: Int
+    var srttTrigger: Bool
+    var activePredictionCount: Int
+}

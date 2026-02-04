@@ -34,6 +34,14 @@ final class PredictionParserTests: XCTestCase {
         XCTAssertEqual(actions[0], .backspace)
     }
 
+    func testBackspaceControlH() {
+        let data = Data([0x08])
+        let actions = parser.feed(data)
+
+        XCTAssertEqual(actions.count, 1)
+        XCTAssertEqual(actions[0], .backspace)
+    }
+
     func testCarriageReturn() {
         let data = Data([0x0D])
         let actions = parser.feed(data)
@@ -105,7 +113,7 @@ final class PredictionParserTests: XCTestCase {
         let actions = parser.feed(data)
 
         XCTAssertEqual(actions.count, 1)
-        XCTAssertEqual(actions[0], .unknown)
+        XCTAssertEqual(actions[0], .print("é", width: 1))
     }
 
     func testUTF8ThreeByteCharacter() {
@@ -113,7 +121,7 @@ final class PredictionParserTests: XCTestCase {
         let actions = parser.feed(data)
 
         XCTAssertEqual(actions.count, 1)
-        XCTAssertEqual(actions[0], .unknown)
+        XCTAssertEqual(actions[0], .print("€", width: 1))
     }
 
     func testUTF8FourByteCharacter() {
@@ -131,7 +139,7 @@ final class PredictionParserTests: XCTestCase {
 
         XCTAssertEqual(actions.count, 5)
         XCTAssertEqual(actions[0], .print("a", width: 1))
-        XCTAssertEqual(actions[1], .unknown)
+        XCTAssertEqual(actions[1], .print("€", width: 1))
         XCTAssertEqual(actions[2], .print("b", width: 1))
         XCTAssertEqual(actions[3], .unknown)
         XCTAssertEqual(actions[4], .print("c", width: 1))

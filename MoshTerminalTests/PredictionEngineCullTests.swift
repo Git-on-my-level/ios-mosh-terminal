@@ -110,6 +110,41 @@ final class PredictionEngineCullTests: XCTestCase {
         XCTAssertFalse(visibleCells(in: render).isEmpty)
     }
 
+    func testDefaultSrttShowsPredictionsInAdaptiveMode() {
+        let engine = PredictionEngine()
+        let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)
+
+        engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
+        engine.cull(confirmedGrid: grid, nowMillis: 1000)
+
+        let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1000)
+        XCTAssertTrue(render.showPredictions)
+        XCTAssertFalse(visibleCells(in: render).isEmpty)
+    }
+
+    func testEarlyConfirmAdvancesConfirmedEpoch() {
+        let engine = PredictionEngine()
+        engine.displayPreference = .always
+        let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)
+
+        engine.newUserBytes(Data([0x0D]), displayGrid: grid, nowMillis: 1000)
+        engine.newUserBytes(Data("ab".utf8), displayGrid: grid, nowMillis: 1010)
+
+        let confirmed = FakeDisplayGrid(
+            cols: 5,
+            rows: 3,
+            cursorRow: 1,
+            cursorCol: 1,
+            overrides: [CellPosition(row: 1, col: 0): DisplayCell(char: "a", width: 1)]
+        )
+
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1020)
+
+        XCTAssertEqual(engine.debugState.confirmedEpoch, 1)
+        let render = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1020)
+        XCTAssertTrue(visibleCells(in: render).contains(where: { $0.replacement?.char == "b" }))
+    }
+
     func testGlitchTriggerShowsPredictionsAfterLongPending() {
         let engine = PredictionEngine()
         let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)

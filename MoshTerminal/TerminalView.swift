@@ -52,7 +52,7 @@ struct TerminalView: View {
                 VStack(spacing: 12) {
 #if DEBUG
                     if settings.debugOverlayEnabled {
-                        TerminalDebugOverlay(connectionManager: connectionManager)
+                        TerminalDebugOverlay(connectionManager: connectionManager, controller: controller)
                     }
 #endif
                     if !keyboardObserver.isKeyboardVisible {
@@ -174,7 +174,9 @@ struct TerminalView: View {
 #if DEBUG
 private struct TerminalDebugOverlay: View {
     @ObservedObject var connectionManager: ConnectionManager
+    let controller: TerminalSessionController
     @State private var snapshot: ConnectionManager.DebugSnapshot?
+    @State private var predictionSnapshot: PredictionDebugMetrics?
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -195,6 +197,14 @@ private struct TerminalDebugOverlay: View {
                 Text("EchoAck: \(net.echoAck)")
                 Text("SRTT: \(net.srttMillis.map { "\($0)ms" } ?? "n/a")")
             }
+            if let predictionSnapshot {
+                Divider()
+                Text("Pred send: \(predictionSnapshot.sendIntervalMillis)ms")
+                Text("Pred echoAck: \(predictionSnapshot.echoAck)")
+                Text("Pred srttTrigger: \(predictionSnapshot.srttTrigger ? "on" : "off")")
+                Text("Pred glitch: \(predictionSnapshot.glitchTrigger)")
+                Text("Pred active: \(predictionSnapshot.activePredictionCount)")
+            }
         }
         .font(.caption2)
         .padding(8)
@@ -212,6 +222,7 @@ private struct TerminalDebugOverlay: View {
     private func refresh() {
         Task { @MainActor in
             snapshot = await connectionManager.debugSnapshot()
+            predictionSnapshot = controller.predictionDebugSnapshot()
         }
     }
 

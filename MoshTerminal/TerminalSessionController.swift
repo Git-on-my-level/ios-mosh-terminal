@@ -42,6 +42,10 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         predictionCoordinator.setDisplayPreference(preference)
     }
 
+    func predictionDebugSnapshot() -> PredictionDebugMetrics {
+        predictionCoordinator.debugSnapshot()
+    }
+
     func focus() {
         terminalView?.becomeFirstResponder()
     }
