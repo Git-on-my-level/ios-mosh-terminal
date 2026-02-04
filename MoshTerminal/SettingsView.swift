@@ -28,6 +28,13 @@ struct SettingsView: View {
                 Toggle(isOn: $settings.keepAwake) {
                     Label("Keep Awake", systemImage: "sun.max")
                 }
+                Picker(selection: $settings.predictionDisplayPreference) {
+                    ForEach(PredictionDisplayPreference.allCases) { preference in
+                        Text(preference.displayName).tag(preference)
+                    }
+                } label: {
+                    Label("Predictions", systemImage: "bolt")
+                }
             }
 
             Section("Keys") {
@@ -61,6 +68,9 @@ struct SettingsView: View {
                 }
                 Toggle(isOn: $settings.debugLoggingEnabled) {
                     Label("Enable Debug Logging", systemImage: "doc.text.magnifyingglass")
+                }
+                Toggle(isOn: $settings.debugPredictionEnabled) {
+                    Label("Enable Predictions", systemImage: "bolt")
                 }
             }
 #endif
