@@ -14,6 +14,13 @@ final class PredictionOverlayView: UIView {
         }
     }
 
+    var predictionBackgroundColor: UIColor = .clear {
+        didSet {
+            guard oldValue != predictionBackgroundColor else { return }
+            scheduleRedraw()
+        }
+    }
+
     var predictionUnderlineColor: UIColor = .systemOrange {
         didSet {
             guard oldValue != predictionUnderlineColor else { return }
@@ -106,6 +113,12 @@ final class PredictionOverlayView: UIView {
             for cell in rowState.cells where cell.active {
                 let x = CGFloat(cell.col) * metrics.cellWidth
                 let y = CGFloat(rowIndex) * metrics.cellHeight
+                let cellRect = CGRect(x: x, y: y, width: metrics.cellWidth, height: metrics.cellHeight)
+
+                if !cell.unknown {
+                    predictionBackgroundColor.setFill()
+                    context.fill(cellRect)
+                }
 
                 if let replacement = cell.replacement {
                     let string = String(replacement.char)
