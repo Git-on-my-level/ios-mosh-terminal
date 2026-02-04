@@ -56,6 +56,14 @@ protocol MoshEngineDebugProviding: AnyObject, Sendable {
     func debugSnapshot() async -> MoshEngineDebugSnapshot
 }
 
+protocol PredictionNetworkSnapshotProviding: AnyObject, Sendable {
+    func predictionNetworkSnapshot() -> PredictionNetworkSnapshot
+}
+
+protocol PredictionEchoAckNotifying: AnyObject, Sendable {
+    var onEchoAck: (@Sendable (UInt64) -> Void)? { get set }
+}
+
 typealias MoshEngineFactory = @Sendable () -> MoshEngine
 
 struct DefaultMoshEngineFactory {

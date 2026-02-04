@@ -42,6 +42,18 @@ final class TransportSender {
     private var rttvarMillis: Double?
     private var rtoMillis: UInt64?
 
+    var lastSentStateNumPublic: UInt64 {
+        lastSentStateNum
+    }
+
+    var lastAckedStateNumPublic: UInt64 {
+        lastAckedStateNum
+    }
+
+    var srttMillisPublic: UInt64? {
+        srttMillis.map { UInt64(round($0)) }
+    }
+
     init(
         keepaliveIntervalMillis: UInt64 = Constants.keepaliveIntervalMillis,
         randomBytes: @escaping RandomBytesProvider = SecureRandom.nonThrowingBytes
