@@ -2,6 +2,53 @@ import XCTest
 @testable import MoshTerminal
 
 final class PredictionEngineCullTests: XCTestCase {
+    func testCarriageReturnAtBottomDoesNotPredictScrollOverlay() {
+        let engine = PredictionEngine()
+        let grid = FakeDisplayGrid(cols: 5, rows: 2, cursorRow: 1, cursorCol: 0)
+
+        engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
+        XCTAssertTrue(engine.debugState.overlayRows[1].cells.contains(where: { $0.col == 0 && $0.replacement?.char == "a" }))
+
+        engine.newUserBytes(Data([0x0D]), displayGrid: grid, nowMillis: 1010)
+
+        // If we "predict-scroll" on Enter, the overlay rows would shift and the cell would move
+        // up to row 0. The overlay is a separate layer and must not scroll independently.
+        let state = engine.debugState
+        XCTAssertTrue(state.overlayRows[0].cells.isEmpty)
+        XCTAssertTrue(state.overlayRows[1].cells.contains(where: { $0.col == 0 && $0.replacement?.char == "a" }))
+    }
+
+    func testEnterEpochIsPromotedOnNextConfirmedOutput() {
+        let engine = PredictionEngine()
+        engine.displayPreference = .always
+        let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)
+
+        // Predict a printable char, then Enter (which becomes a new tentative epoch).
+        engine.updateNetworkSnapshot(
+            PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 0, srttMillis: 10)
+        )
+        engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
+        engine.newUserBytes(Data([0x0D]), displayGrid: grid, nowMillis: 1010)
+        XCTAssertEqual(engine.debugState.predictionEpoch, 1)
+        XCTAssertEqual(engine.debugState.confirmedEpoch, 0)
+
+        // When the next confirmed output arrives, the echoed character will be validated and cleared,
+        // and we should immediately promote the Enter epoch (without waiting for later echo-only updates).
+        let confirmed = FakeDisplayGrid(
+            cols: 5,
+            rows: 3,
+            cursorRow: 1,
+            cursorCol: 0,
+            overrides: [CellPosition(row: 0, col: 0): DisplayCell(char: "a", width: 1)]
+        )
+        engine.updateNetworkSnapshot(
+            PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 10)
+        )
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: true)
+
+        XCTAssertEqual(engine.debugState.confirmedEpoch, 1)
+    }
+
     func testEpochGatingHidesPostCarriageReturnCharacterUntilConfirmed() {
         let engine = PredictionEngine()
         engine.displayPreference = .always

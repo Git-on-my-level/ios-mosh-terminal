@@ -108,6 +108,10 @@ final class TerminalPredictionCoordinator {
             if let terminalView = self.terminalView, overlayView.superview === terminalView {
                 // SwiftTerm's TerminalView is a UIScrollView and changes its bounds origin as it scrolls.
                 // Keep the overlay pinned to the visible region so predictions don't "fall off" after output scrolls.
+                //
+                // Symptoms when this is wrong:
+                // - predictions appear to stop after a command outputs/scrolls
+                // - typed characters can show up in the top-left or other incorrect positions
                 if overlayView.frame != terminalView.bounds {
                     overlayView.frame = terminalView.bounds
                 }

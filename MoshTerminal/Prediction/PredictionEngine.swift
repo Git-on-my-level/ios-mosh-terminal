@@ -1,6 +1,19 @@
 import Foundation
 
 final class PredictionEngine {
+    // PredictionEngine maintains an overlay "prediction layer" on top of SwiftTerm.
+    //
+    // Key design points:
+    // - We must never leak potentially sensitive input (e.g. passwords) via predictions.
+    //   We do this by *epoch gating*: UI rendering only shows cells/cursors whose
+    //   `tentativeUntilEpoch` matches `confirmedEpoch` (i.e. confirmed by echo).
+    // - Internally, we still need to predict subsequent keystrokes accurately even when
+    //   we are hiding tentative predictions. `currentPredictionStateModel()` returns the
+    //   unfiltered active prediction state for this purpose.
+    // - The prediction overlay is a separate view layered over the terminal; it cannot
+    //   scroll/mutate the confirmed terminal buffer. Avoid making predictions that would
+    //   visually "scroll" the overlay independently of SwiftTerm (see Enter handling).
+
     private enum Validity {
         case pending
         case correct
@@ -460,10 +473,15 @@ final class PredictionEngine {
         predictedCursorCol = 0
         predictedCursorRow += 1
         if predictedCursorRow >= rows {
+            // Do not "predict-scroll" the overlay on Enter. SwiftTerm will scroll the confirmed
+            // buffer when output arrives, but the overlay cannot scroll it immediately.
+            // Predict-scrolling here causes the submitted command line to clip into the row above
+            // until the next confirmed refresh.
             predictedCursorRow = max(rows - 1, 0)
         }
         // Pressing Enter is usually followed by confirmed server output (prompt + command output).
-        // Promote this epoch as soon as any output arrives so predictions stay responsive on the next line.
+        // Promote this epoch as soon as any output arrives so predictions stay responsive on the next line
+        // even if echo acks are delayed.
         becomeTentative(promoteOnNextOutput: true)
         appendCursorPrediction(nowMillis: nowMillis)
     }
@@ -471,6 +489,7 @@ final class PredictionEngine {
     private func applyLineFeed(nowMillis: Int64) {
         predictedCursorRow += 1
         if predictedCursorRow >= rows {
+            // Same rationale as carriage return: do not predict-scroll.
             predictedCursorRow = max(rows - 1, 0)
         }
         // Like carriage return, line feed usually precedes confirmed output.
