@@ -460,7 +460,6 @@ final class PredictionEngine {
         predictedCursorCol = 0
         predictedCursorRow += 1
         if predictedCursorRow >= rows {
-            scrollOverlayUp()
             predictedCursorRow = max(rows - 1, 0)
         }
         // Pressing Enter is usually followed by confirmed server output (prompt + command output).
@@ -472,7 +471,6 @@ final class PredictionEngine {
     private func applyLineFeed(nowMillis: Int64) {
         predictedCursorRow += 1
         if predictedCursorRow >= rows {
-            scrollOverlayUp()
             predictedCursorRow = max(rows - 1, 0)
         }
         // Like carriage return, line feed usually precedes confirmed output.
