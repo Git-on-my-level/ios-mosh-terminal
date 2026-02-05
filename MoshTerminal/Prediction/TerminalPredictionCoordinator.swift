@@ -105,6 +105,13 @@ final class TerminalPredictionCoordinator {
         guard let overlayView else { return }
         let apply: () -> Void = { [weak self] in
             guard let self else { return }
+            if let terminalView = self.terminalView, overlayView.superview === terminalView {
+                // SwiftTerm's TerminalView is a UIScrollView and changes its bounds origin as it scrolls.
+                // Keep the overlay pinned to the visible region so predictions don't "fall off" after output scrolls.
+                if overlayView.frame != terminalView.bounds {
+                    overlayView.frame = terminalView.bounds
+                }
+            }
             overlayView.model = model
             self.updateNativeCaretSuppression(suppress: suppressNativeCaret)
             if let terminalView = self.terminalView, overlayView.superview === terminalView {

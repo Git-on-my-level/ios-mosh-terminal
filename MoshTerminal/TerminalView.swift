@@ -369,6 +369,9 @@ func installPredictionOverlay(
     if let existing = terminalView.viewWithTag(overlayTag) as? PredictionOverlayView {
         existing.font = terminalView.font
         existing.layer.zPosition = 1000
+        // TerminalUIKitView is a UIScrollView; its bounds origin changes as it scrolls.
+        // Keep the overlay aligned to the visible region when SwiftUI reuses the view.
+        existing.frame = terminalView.bounds
         controller.predictionOverlayView = existing
         terminalView.bringSubviewToFront(existing)
         return existing
