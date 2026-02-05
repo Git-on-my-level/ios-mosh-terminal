@@ -28,11 +28,7 @@ struct SettingsView: View {
                 Toggle(isOn: $settings.keepAwake) {
                     Label("Keep Awake", systemImage: "sun.max")
                 }
-                Picker(selection: $settings.predictionDisplayPreference) {
-                    ForEach(PredictionDisplayPreference.allCases) { preference in
-                        Text(preference.displayName).tag(preference)
-                    }
-                } label: {
+                Toggle(isOn: predictionsEnabled) {
                     Label("Predictions", systemImage: "bolt")
                 }
             }
@@ -69,13 +65,19 @@ struct SettingsView: View {
                 Toggle(isOn: $settings.debugLoggingEnabled) {
                     Label("Enable Debug Logging", systemImage: "doc.text.magnifyingglass")
                 }
-                Toggle(isOn: $settings.debugPredictionEnabled) {
-                    Label("Enable Predictions", systemImage: "bolt")
-                }
             }
 #endif
         }
         .navigationTitle("Settings")
+    }
+
+    private var predictionsEnabled: Binding<Bool> {
+        Binding(
+            get: { settings.predictionDisplayPreference != .off },
+            set: { isOn in
+                settings.predictionDisplayPreference = isOn ? .always : .off
+            }
+        )
     }
 }
 

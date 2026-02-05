@@ -86,6 +86,7 @@ Global only:
 - Font size
 - Theme: follow system / light / dark
 - Keep screen awake (on/off)
+- Predictions (on/off; on shows predictions whenever available)
 - About / licenses
 
 ---

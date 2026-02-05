@@ -71,6 +71,18 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
         XCTAssertTrue(visibleCells(in: render).isEmpty, "Off preference should show no visible cells")
     }
 
+    func testOffPreferenceIgnoresUserInput() {
+        let engine = PredictionEngine()
+        engine.displayPreference = .off
+        let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)
+
+        engine.newUserBytes(Data("hello".utf8), displayGrid: grid, nowMillis: 1000)
+
+        XCTAssertEqual(engine.debugMetrics.activePredictionCount, 0)
+        XCTAssertTrue(engine.debugState.cursorPredictions.isEmpty)
+        XCTAssertTrue(engine.debugState.overlayRows.flatMap { $0.cells }.allSatisfy { !$0.active })
+    }
+
     func testAlwaysPreferenceShowsPredictionsWhenAvailable() {
         let engine = PredictionEngine()
         engine.displayPreference = .always

@@ -17,6 +17,10 @@ final class TerminalPredictionCoordinator {
 
     func setDisplayPreference(_ preference: PredictionDisplayPreference) {
         engine.displayPreference = preference
+        if preference == .off {
+            engine.reset()
+            updateOverlayWithEmpty()
+        }
     }
 
     func debugSnapshot() -> PredictionDebugMetrics {
@@ -30,6 +34,10 @@ final class TerminalPredictionCoordinator {
     }
 
     func handleUserInput(data: Data) {
+        if engine.displayPreference == .off {
+            updateOverlayWithEmpty()
+            return
+        }
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
             engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: false)
@@ -45,6 +53,10 @@ final class TerminalPredictionCoordinator {
     }
 
     func handleConfirmedOutputApplied() {
+        if engine.displayPreference == .off {
+            updateOverlayWithEmpty()
+            return
+        }
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
             engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: true)
@@ -58,6 +70,10 @@ final class TerminalPredictionCoordinator {
     }
 
     func handleEchoAckUpdated() {
+        if engine.displayPreference == .off {
+            updateOverlayWithEmpty()
+            return
+        }
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
             engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: false)

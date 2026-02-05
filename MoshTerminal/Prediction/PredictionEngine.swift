@@ -92,6 +92,9 @@ final class PredictionEngine {
     }
 
     func newUserBytes(_ bytes: Data, displayGrid: DisplayGrid, nowMillis: Int64) {
+        if displayPreference == .off {
+            return
+        }
         ensureGridSize(displayGrid)
         let actions = parser.feed(bytes)
         if let lastByte = bytes.last {

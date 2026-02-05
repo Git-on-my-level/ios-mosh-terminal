@@ -34,11 +34,6 @@ struct TerminalView: View {
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
-#if DEBUG
-            .onChange(of: settings.debugPredictionEnabled) { _ in
-                updatePredictionPreference()
-            }
-#endif
             .onTapGesture {
                 controller.focus()
             }
@@ -163,13 +158,7 @@ struct TerminalView: View {
     }
 
     private func updatePredictionPreference() {
-        var preference = settings.predictionDisplayPreference
-#if DEBUG
-        if settings.debugPredictionEnabled {
-            preference = .always
-        }
-#endif
-        controller.setPredictionDisplayPreference(preference)
+        controller.setPredictionDisplayPreference(settings.predictionDisplayPreference)
     }
 }
 

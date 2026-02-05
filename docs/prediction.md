@@ -59,14 +59,16 @@ This epoch-gating is the primary mechanism that prevents showing typed passwords
 
 ### Prediction Modes
 
-Users can select from four display modes via Settings:
+Shipping UI exposes a single Predictions toggle:
 
 - **Off**: Never show predictions
+- **On**: Show predictions whenever available (maps to **Always**)
+
+Internally, the engine still supports **Adaptive** and **Experimental** modes for testing/debugging:
 - **Adaptive**: Show predictions only when:
   - `srttTrigger` is true (latency > 30ms)
   - `glitchTrigger` is active (predictions pending too long)
-- **Always**: Show all predictions when available
-- **Experimental**: Show predictions even for uncertain states (use for debugging)
+- **Experimental**: Uses the same display gating as Always, but relaxes some reset/epoch-kill behavior for debugging.
 
 ### Adaptive Triggers
 
