@@ -18,8 +18,10 @@ struct MoshTerminalApp: App {
 
 private struct RootView: View {
     @EnvironmentObject private var environment: AppEnvironment
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         TabView {
             NavigationStack {
                 HostsListView(
@@ -28,6 +30,8 @@ private struct RootView: View {
                     connectionManager: environment.dependencies.connectionManager
                 )
             }
+            .toolbarBackground(colors.surface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .tabItem {
                 Label("Hosts", systemImage: "server.rack")
             }
@@ -35,9 +39,13 @@ private struct RootView: View {
             NavigationStack {
                 SettingsView()
             }
+            .toolbarBackground(colors.surface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
             }
         }
+        .toolbarBackground(colors.surface, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }

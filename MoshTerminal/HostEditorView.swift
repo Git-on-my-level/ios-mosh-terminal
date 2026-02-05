@@ -159,7 +159,9 @@ final class HostEditorViewModel: ObservableObject {
 
 struct HostEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HostEditorViewModel
+    @State private var showKeyManager = false
     private let hostRepository: HostRepository
     private let keyStore: KeychainPrivateKeyStore
     private let onSave: (HostProfile) -> Void
@@ -183,60 +185,95 @@ struct HostEditorView: View {
     }
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         Form {
-            Section("Identity") {
-                VStack(alignment: .leading, spacing: 4) {
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
                     TextField("Display name", text: $viewModel.displayName)
+                        .font(AppTheme.typography.body)
+                    Text("Optional")
+                        .font(AppTheme.typography.caption)
+                        .foregroundStyle(colors.secondaryText)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     TextField("Hostname", text: $viewModel.hostname)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                        .font(AppTheme.typography.body)
                     if let error = viewModel.hostnameError {
                         Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.statusError)
+                    } else if viewModel.hostname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Required")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     TextField("Username", text: $viewModel.username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .textContentType(.username)
+                        .font(AppTheme.typography.body)
                     if let error = viewModel.usernameError {
                         Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.statusError)
+                    } else if viewModel.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Required")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
                     }
                 }
+            } header: {
+                SectionHeader("Identity")
             }
 
-            Section("Connection") {
-                VStack(alignment: .leading, spacing: 4) {
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Port")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(colors.secondaryText)
                         TextField("22", text: $viewModel.sshPortText)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .font(AppTheme.typography.body)
                     }
                     if let error = viewModel.portError {
                         Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.statusError)
+                    } else {
+                        Text("1-65535")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
                     }
                 }
+            } header: {
+                SectionHeader("Connection")
             }
 
-            Section("SSH Key") {
+            Section {
                 if viewModel.keyOptions.isEmpty {
-                    ContentUnavailableView("No Keys", systemImage: "key.horizontal", description: Text("Import a private key in Settings before saving this host."))
-                        .listRowBackground(Color.clear)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("No Keys")
+                            .font(AppTheme.typography.headline)
+                            .foregroundStyle(colors.primaryText)
+                        Text("Import a private key before saving this host.")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
+                        Button("Import Key") {
+                            showKeyManager = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .listRowBackground(Color.clear)
                 } else {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Picker("Key", selection: $viewModel.selectedKeyId) {
                             Text("Select a key").tag(String?.none)
                             ForEach(viewModel.keyOptions, id: \.id) { key in
@@ -245,17 +282,25 @@ struct HostEditorView: View {
                         }
                         if let error = viewModel.keyError {
                             Text(error)
-                                .font(.caption)
-                                .foregroundStyle(.red)
+                                .font(AppTheme.typography.caption)
+                                .foregroundStyle(colors.statusError)
+                        } else if viewModel.selectedKeyId == nil {
+                            Text("Required")
+                                .font(AppTheme.typography.caption)
+                                .foregroundStyle(colors.secondaryText)
                         }
                     }
+                    NavigationLink {
+                        KeyManagementView(
+                            hostRepository: hostRepository,
+                            keyStore: keyStore
+                        )
+                    } label: {
+                        AppRowLabel("Manage Keys", systemImage: "key")
+                    }
                 }
-                NavigationLink("Manage Keys") {
-                    KeyManagementView(
-                        hostRepository: hostRepository,
-                        keyStore: keyStore
-                    )
-                }
+            } header: {
+                SectionHeader("SSH Key")
             }
         }
         .navigationTitle(viewModel.isEditing ? "Edit Host" : "New Host")
@@ -288,6 +333,13 @@ struct HostEditorView: View {
         } message: {
             Text(viewModel.alertMessage ?? "")
         }
+        .navigationDestination(isPresented: $showKeyManager) {
+            KeyManagementView(
+                hostRepository: hostRepository,
+                keyStore: keyStore
+            )
+        }
+        .appScreenBackground()
     }
 }
 

@@ -39,6 +39,7 @@ final class AppSettings: ObservableObject {
 #if DEBUG
     static let debugOverlayEnabled = "settings.debugOverlayEnabled"
     static let debugLoggingEnabled = "settings.debugLoggingEnabled"
+    static let debugPredictionEnabled = "settings.debugPredictionEnabled"
 #endif
     }
 
@@ -82,6 +83,12 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var debugPredictionEnabled: Bool {
+        didSet {
+            defaults.set(debugPredictionEnabled, forKey: Keys.debugPredictionEnabled)
+        }
+    }
+
 #endif
 
     init(defaults: UserDefaults = .standard) {
@@ -109,6 +116,7 @@ final class AppSettings: ObservableObject {
 #if DEBUG
         debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false
         debugLoggingEnabled = defaults.object(forKey: Keys.debugLoggingEnabled) as? Bool ?? false
+        debugPredictionEnabled = defaults.object(forKey: Keys.debugPredictionEnabled) as? Bool ?? false
         DebugLogger.shared.isEnabled = debugLoggingEnabled
 #endif
     }

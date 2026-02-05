@@ -2,58 +2,63 @@ import SwiftUI
 
 struct AboutView: View {
     @Environment(\.openURL) private var openURL
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         List {
             Section {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     Image(systemName: "terminal.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.primary)
-                    
+                        .font(.system(size: 56))
+                        .foregroundStyle(colors.primaryText)
+
                     Text("Mosh Terminal")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
+                        .font(AppTheme.typography.headline)
+                        .foregroundStyle(colors.primaryText)
+
                     Text("Version \(version) (\(build))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(AppTheme.typography.caption)
+                        .foregroundStyle(colors.secondaryText)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
-            
-            Section("Support") {
+
+            Section {
                 HStack {
-                    Label("Support", systemImage: "questionmark.circle")
+                    AppRowLabel("Support", systemImage: "questionmark.circle")
                     Spacer()
                     Text("Report an Issue")
-                        .foregroundStyle(.secondary)
+                        .font(AppTheme.typography.caption)
+                        .foregroundStyle(colors.secondaryText)
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
                     openGitHubIssues()
                 }
             }
-            
+
             Section {
                 NavigationLink {
                     LicensesView()
                 } label: {
-                    Label("Licenses", systemImage: "doc.text")
+                    AppRowLabel("Licenses", systemImage: "doc.text")
                 }
             }
         }
         .navigationTitle("About")
+        .appScreenBackground()
     }
-    
+
     private var version: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
-    
+
     private var build: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     }
-    
+
     private func openGitHubIssues() {
         guard let url = URL(string: "https://github.com/Git-on-my-level/ios-mosh-terminal/issues") else {
             return

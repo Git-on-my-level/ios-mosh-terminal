@@ -69,10 +69,18 @@ struct HostsListView: View {
     }
 
     var body: some View {
+        let metrics = AppTheme.metrics
         List {
             if viewModel.hosts.isEmpty {
-                ContentUnavailableView("No Hosts", systemImage: "server.rack", description: Text("Add a host to get started."))
-                    .listRowBackground(Color.clear)
+                EmptyStateActionView(
+                    title: "No Hosts",
+                    systemImage: "server.rack",
+                    description: "Add a host to get started.",
+                    actionTitle: "Add Host",
+                    action: { editorContext = HostEditorContext(mode: .create) }
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             } else {
                 ForEach(viewModel.hosts) { host in
                     NavigationLink {
@@ -83,11 +91,16 @@ struct HostsListView: View {
                             )
                         )
                     } label: {
-                        HostRowView(
-                            host: host,
-                            connectionState: connectionManager.activeHostId == host.id ? connectionManager.state : .idle
-                        )
+                        CardRow(isActive: connectionManager.activeHostId == host.id) {
+                            HostRowView(
+                                host: host,
+                                connectionState: connectionManager.activeHostId == host.id ? connectionManager.state : .idle
+                            )
+                        }
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
                             Task {
@@ -136,6 +149,8 @@ struct HostsListView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .listSectionSpacing(metrics.rowSpacing)
         .navigationTitle("Hosts")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -169,56 +184,45 @@ struct HostsListView: View {
         .task {
             await viewModel.loadHosts()
         }
+        .appScreenBackground()
     }
 }
 
 private struct HostRowView: View {
     let host: HostProfile
     let connectionState: ConnectionManager.State
+    @Environment(\.colorScheme) private var colorScheme
 
     private var lastConnectedText: String? {
         guard let date = host.lastConnectedAt else {
             return nil
         }
-        return "Last connected \(date.formatted(date: .abbreviated, time: .shortened))"
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        let relative = formatter.localizedString(for: date, relativeTo: Date())
+        return "Last connected \(relative)"
     }
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text(host.resolvedDisplayName)
-                    .font(.headline)
-                Text(connectionState.shortStatusText)
-                    .font(.caption2)
-                    .foregroundStyle(statusColor(for: connectionState))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(statusColor(for: connectionState).opacity(0.15))
-                    .clipShape(Capsule())
+                    .font(AppTheme.typography.headline)
+                    .foregroundStyle(colors.primaryText)
+                Spacer(minLength: 8)
+                StatusBadge(state: connectionState)
             }
             Text("\(host.username)@\(host.hostname)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppTheme.typography.captionMonospaced)
+                .foregroundStyle(colors.secondaryText)
             if let lastConnectedText {
                 Text(lastConnectedText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTheme.typography.caption)
+                    .foregroundStyle(colors.secondaryText)
             }
         }
-        .padding(.vertical, 4)
-    }
-
-    private func statusColor(for state: ConnectionManager.State) -> Color {
-        switch state {
-        case .connected:
-            return .green
-        case .bootstrappingSSH, .connectingUDP, .reconnecting:
-            return .orange
-        case .failed, .disconnected:
-            return .red
-        case .idle:
-            return .secondary
-        }
+        .animation(.easeInOut(duration: 0.2), value: connectionState)
     }
 }
 

@@ -15,6 +15,8 @@ struct TerminalView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isVisible = false
     @State private var passphraseInput = ""
+    @State private var lastConnectionState: ConnectionManager.State = .idle
+    @State private var wantsReconnectPrompt = false
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
@@ -27,6 +29,7 @@ struct TerminalView: View {
 
     var body: some View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
+        let colors = AppTheme.colors(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .background(NavigationPopDetector(onPop: {
                 viewModel.stop()
@@ -34,6 +37,11 @@ struct TerminalView: View {
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
+#if DEBUG
+            .onChange(of: settings.debugPredictionEnabled) { _ in
+                updatePredictionPreference()
+            }
+#endif
             .onTapGesture {
                 controller.focus()
             }
@@ -41,8 +49,24 @@ struct TerminalView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Disconnect", role: .destructive) {
-                        viewModel.stop()
+                    if shouldShowReconnectAction {
+                        Button {
+                            wantsReconnectPrompt = false
+                            viewModel.retry()
+                        } label: {
+                            Label("Reconnect", systemImage: "arrow.clockwise")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .accessibilityLabel("Reconnect")
+                    } else {
+                        Button(role: .destructive) {
+                            wantsReconnectPrompt = true
+                            viewModel.stop()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .accessibilityLabel("Disconnect")
                     }
                 }
             }
@@ -58,21 +82,25 @@ struct TerminalView: View {
                             controller.focus()
                         } label: {
                             Image(systemName: "keyboard")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundStyle(.white)
-                                .frame(width: 50, height: 50)
-                                .background(Color.accentColor)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(colors.accent)
+                                .frame(width: 52, height: 52)
+                                .background(colors.surfaceElevated)
                                 .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                                .overlay(Circle().stroke(colors.divider, lineWidth: 1))
+                                .shadow(color: colors.divider.opacity(0.6), radius: 6, x: 0, y: 3)
                         }
                         .accessibilityLabel("Show keyboard")
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
                 .padding(.trailing, 16)
                 .padding(.bottom, 16)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: keyboardObserver.isKeyboardVisible)
             }
             .onAppear {
                 isVisible = true
+                wantsReconnectPrompt = false
                 updatePredictionPreference()
                 updateIdleTimer()
                 if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
@@ -86,9 +114,24 @@ struct TerminalView: View {
             .onChange(of: settings.keepAwake) { _ in
                 updateIdleTimer()
             }
+            .onChange(of: connectionManager.state) { newState in
+                triggerConnectionHaptic(from: lastConnectionState, to: newState)
+                lastConnectionState = newState
+                switch newState {
+                case .connected, .bootstrappingSSH, .connectingUDP, .reconnecting:
+                    wantsReconnectPrompt = false
+                case .disconnected, .failed:
+                    wantsReconnectPrompt = true
+                case .idle:
+                    break
+                }
+            }
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
-                    TerminalStatusBar(state: connectionManager.state, palette: palette)
+                    TerminalStatusBar(
+                        state: connectionManager.state,
+                        palette: palette
+                    )
                     if let failure = viewModel.failure {
                         TerminalErrorBanner(
                             failure: failure,
@@ -143,6 +186,8 @@ struct TerminalView: View {
             .onChange(of: viewModel.passphrasePrompt?.id) { _ in
                 passphraseInput = ""
             }
+            .toolbarBackground(colors.surface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func updateIdleTimer() {
@@ -158,7 +203,36 @@ struct TerminalView: View {
     }
 
     private func updatePredictionPreference() {
-        controller.setPredictionDisplayPreference(settings.predictionDisplayPreference)
+        var preference = settings.predictionDisplayPreference
+#if DEBUG
+        if settings.debugPredictionEnabled {
+            preference = .always
+        }
+#endif
+        controller.setPredictionDisplayPreference(preference)
+    }
+
+    private var shouldShowReconnectAction: Bool {
+        switch connectionManager.state {
+        case .disconnected, .failed:
+            return true
+        case .idle:
+            return wantsReconnectPrompt
+        default:
+            return wantsReconnectPrompt
+        }
+    }
+
+    private func triggerConnectionHaptic(from oldState: ConnectionManager.State, to newState: ConnectionManager.State) {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        switch (oldState, newState) {
+        case (.connected, .disconnected), (.connected, .failed), (.connected, .idle):
+            generator.impactOccurred()
+        case (_, .connected):
+            generator.impactOccurred()
+        default:
+            break
+        }
     }
 }
 
@@ -611,33 +685,54 @@ private struct TerminalAccessoryRow: View {
 private struct TerminalStatusBar: View {
     let state: ConnectionManager.State
     let palette: AppTheme.TerminalPalette
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         HStack(spacing: 8) {
             Circle()
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
             Text(state.shortStatusText)
-                .font(.caption2)
-                .foregroundStyle(.primary)
+                .font(AppTheme.typography.caption)
+                .foregroundStyle(colors.primaryText)
+            if showsProgress {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .tint(statusColor)
+            }
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .background(palette.statusBarBackground)
+        .overlay(alignment: .bottom) {
+            Divider()
+                .background(colors.divider)
+        }
     }
 
     private var statusColor: SwiftUI.Color {
+        let colors = AppTheme.colors(for: colorScheme)
         switch state {
         case .connected:
-            return SwiftUI.Color.green
+            return colors.statusConnected
         case .bootstrappingSSH, .connectingUDP, .reconnecting:
-            return SwiftUI.Color.orange
+            return colors.statusConnecting
         case .failed, .disconnected:
-            return SwiftUI.Color.red
+            return colors.statusError
         case .idle:
-            return SwiftUI.Color.secondary
+            return colors.secondaryText
+        }
+    }
+
+    private var showsProgress: Bool {
+        switch state {
+        case .bootstrappingSSH, .connectingUDP, .reconnecting:
+            return true
+        default:
+            return false
         }
     }
 }

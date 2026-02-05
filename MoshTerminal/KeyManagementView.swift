@@ -148,45 +148,60 @@ struct KeyManagementView: View {
     }
 
     var body: some View {
+        let metrics = AppTheme.metrics
         List {
             if viewModel.keys.isEmpty {
-                ContentUnavailableView("No Keys", systemImage: "key.horizontal", description: Text("Import a private key to get started."))
-                    .listRowBackground(Color.clear)
+                EmptyStateActionView(
+                    title: "No Keys",
+                    systemImage: "key.horizontal",
+                    description: "Import a private key to get started.",
+                    actionTitle: "Import Key",
+                    action: { isShowingFileImporter = true }
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             } else {
                 ForEach(viewModel.keys) { key in
-                    KeyRow(metadata: key)
-                        .swipeActions(edge: .trailing) {
-                            Button("Delete", role: .destructive) {
-                                Task {
-                                    if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-                                        await viewModel.deleteKeys(at: IndexSet(integer: index))
-                                    }
+                    CardRow {
+                        KeyRow(metadata: key)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
+                                    await viewModel.deleteKeys(at: IndexSet(integer: index))
                                 }
                             }
                         }
-                        .contextMenu {
-                            Button {
-                                UIPasteboard.general.string = key.label
-                            } label: {
-                                Label("Copy Name", systemImage: "doc.on.doc")
-                            }
-                            Divider()
-                            Button(role: .destructive) {
-                                Task {
-                                    if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-                                        await viewModel.deleteKeys(at: IndexSet(integer: index))
-                                    }
-                                }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
+                    }
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = key.label
+                        } label: {
+                            Label("Copy Name", systemImage: "doc.on.doc")
                         }
+                        Divider()
+                        Button(role: .destructive) {
+                            Task {
+                                if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
+                                    await viewModel.deleteKeys(at: IndexSet(integer: index))
+                                }
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
                 .onDelete { offsets in
                     Task { await viewModel.deleteKeys(at: offsets) }
                 }
             }
         }
+        .listStyle(.plain)
+        .listSectionSpacing(metrics.rowSpacing)
         .navigationTitle("Keys")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -225,28 +240,31 @@ struct KeyManagementView: View {
         .onAppear {
             viewModel.loadKeys()
         }
+        .appScreenBackground()
     }
 }
 
 private struct KeyRow: View {
     let metadata: StoredPrivateKeyMetadata
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         VStack(alignment: .leading, spacing: 6) {
             Text(metadata.label)
-                .font(.headline)
+                .font(AppTheme.typography.headline)
+                .foregroundStyle(colors.primaryText)
             HStack(spacing: 8) {
                 Text(metadata.keyType.displayName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(AppTheme.typography.caption)
+                    .foregroundStyle(colors.secondaryText)
                 if metadata.requiresPassphrase {
                     Label("Passphrase required", systemImage: "lock.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(AppTheme.typography.caption)
+                        .foregroundStyle(colors.secondaryText)
                 }
             }
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -281,6 +299,7 @@ private struct PasteKeyView: View {
                 .disabled(keyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        .appScreenBackground()
     }
 }
 

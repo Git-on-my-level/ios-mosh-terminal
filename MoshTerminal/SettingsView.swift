@@ -3,81 +3,147 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var environment: AppEnvironment
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         Form {
-            Section("Appearance") {
-                Picker(selection: $settings.themeMode) {
-                    ForEach(AppSettings.ThemeMode.allCases) { mode in
-                        Text(mode.displayName).tag(mode)
-                    }
-                } label: {
-                    Label("Theme", systemImage: "paintbrush")
-                }
+            Section {
+                ThemePickerRow(selection: $settings.themeMode)
+
                 Stepper(value: $settings.fontSize, in: 10...24, step: 1) {
                     HStack {
-                        Label("Font Size", systemImage: "textformat.size")
+                        AppRowLabel("Font Size", systemImage: "textformat.size")
                         Spacer()
                         Text("\(Int(settings.fontSize))")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(colors.secondaryText)
+                        Text("Aa")
+                            .font(.system(size: settings.fontSize + 2, weight: .semibold, design: .rounded))
+                            .foregroundStyle(colors.primaryText)
                     }
                 }
+            } header: {
+                SectionHeader("Appearance")
             }
 
-            Section("Session") {
+            Section {
                 Toggle(isOn: $settings.keepAwake) {
-                    Label("Keep Awake", systemImage: "sun.max")
+                    AppRowLabel("Keep Awake", systemImage: "sun.max")
                 }
-                Toggle(isOn: predictionsEnabled) {
-                    Label("Predictions", systemImage: "bolt")
+                Toggle(isOn: predictionsEnabledBinding) {
+                    AppRowLabel("Predictions", systemImage: "bolt")
                 }
+            } header: {
+                SectionHeader("Session")
             }
 
-            Section("Keys") {
+            Section {
                 NavigationLink {
                     KeyManagementView(
                         hostRepository: environment.dependencies.hostRepository,
                         keyStore: environment.dependencies.keyStore
                     )
                 } label: {
-                    Label("Manage Keys", systemImage: "key")
+                    AppRowLabel("Manage Keys", systemImage: "key")
                 }
                 NavigationLink {
                     TrustedHostKeysView(repository: environment.dependencies.trustedHostKeyRepository)
                 } label: {
-                    Label("Trusted Host Keys", systemImage: "checkmark.shield")
+                    AppRowLabel("Trusted Host Keys", systemImage: "checkmark.shield")
                 }
+            } header: {
+                SectionHeader("Keys")
             }
 
-            Section("About") {
+            Section {
                 NavigationLink {
                     AboutView()
                 } label: {
-                    Label("About", systemImage: "info.circle")
+                    AppRowLabel("About", systemImage: "info.circle")
                 }
+            } header: {
+                SectionHeader("About")
             }
 
 #if DEBUG
-            Section("Debug") {
+            Section {
                 Toggle(isOn: $settings.debugOverlayEnabled) {
-                    Label("Show Debug Overlay", systemImage: "ladybug")
+                    AppRowLabel("Show Debug Overlay", systemImage: "ladybug")
                 }
                 Toggle(isOn: $settings.debugLoggingEnabled) {
-                    Label("Enable Debug Logging", systemImage: "doc.text.magnifyingglass")
+                    AppRowLabel("Enable Debug Logging", systemImage: "doc.text.magnifyingglass")
                 }
+                Toggle(isOn: $settings.debugPredictionEnabled) {
+                    AppRowLabel("Enable Predictions", systemImage: "bolt")
+                }
+            } header: {
+                SectionHeader("Debug")
             }
 #endif
         }
         .navigationTitle("Settings")
+        .appScreenBackground()
     }
 
-    private var predictionsEnabled: Binding<Bool> {
+    private var predictionsEnabledBinding: Binding<Bool> {
         Binding(
             get: { settings.predictionDisplayPreference != .off },
             set: { isOn in
                 settings.predictionDisplayPreference = isOn ? .always : .off
             }
         )
+    }
+}
+
+private struct ThemePickerRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Binding var selection: AppSettings.ThemeMode
+
+    var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
+        VStack(alignment: .leading, spacing: 8) {
+            AppRowLabel("Theme", systemImage: "paintbrush")
+            HStack(spacing: 8) {
+                themeChip(title: "Light", systemImage: "sun.max", isActive: selection == .light, colors: colors) {
+                    selection = .light
+                }
+                themeChip(title: "Dark", systemImage: "moon", isActive: selection == .dark, colors: colors) {
+                    selection = .dark
+                }
+                themeChip(title: "System", systemImage: "circle.lefthalf.filled", isActive: selection == .system, colors: colors) {
+                    selection = .system
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func themeChip(
+        title: String,
+        systemImage: String,
+        isActive: Bool,
+        colors: AppTheme.Colors,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+                    .font(AppTheme.typography.caption)
+            }
+            .foregroundStyle(isActive ? colors.primaryText : colors.secondaryText)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isActive ? colors.surfaceElevated : colors.surface)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isActive ? colors.accent : colors.divider, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

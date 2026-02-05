@@ -41,6 +41,7 @@ struct TrustedHostKeysView: View {
     }
 
     var body: some View {
+        let metrics = AppTheme.metrics
         List {
             if viewModel.keys.isEmpty {
                 ContentUnavailableView(
@@ -49,15 +50,23 @@ struct TrustedHostKeysView: View {
                     description: Text("Saved host fingerprints appear here.")
                 )
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             } else {
                 ForEach(viewModel.keys, id: \.self) { key in
-                    TrustedHostKeyRow(key: key)
+                    CardRow {
+                        TrustedHostKeyRow(key: key)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
                 }
                 .onDelete { offsets in
                     Task { await viewModel.deleteKeys(at: offsets) }
                 }
             }
         }
+        .listStyle(.plain)
+        .listSectionSpacing(metrics.rowSpacing)
         .navigationTitle("Trusted Host Keys")
         .alert(
             "Trusted Host Keys",
@@ -70,22 +79,24 @@ struct TrustedHostKeysView: View {
         .task {
             await viewModel.loadKeys()
         }
+        .appScreenBackground()
     }
 }
 
 private struct TrustedHostKeyRow: View {
     let key: TrustedHostKey
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
         VStack(alignment: .leading, spacing: 6) {
             Text("\(key.hostname):\(key.port)")
-                .font(.headline)
+                .font(AppTheme.typography.headline)
+                .foregroundStyle(colors.primaryText)
             Text(key.fingerprint)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fontDesign(.monospaced)
+                .font(AppTheme.typography.captionMonospaced)
+                .foregroundStyle(colors.secondaryText)
         }
-        .padding(.vertical, 4)
     }
 }
 
