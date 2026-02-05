@@ -29,6 +29,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* HostsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */; };
+		C0C0C0C0C0C0C0C0C0C0C0C2 /* StableTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C0C0C0C0C0C0C0C0C0C0C1 /* StableTerminalView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
 		F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */; };
@@ -139,6 +140,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* HostsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostsListView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
+		C0C0C0C0C0C0C0C0C0C0C0C1 /* StableTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableTerminalView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = file.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -302,6 +304,7 @@
 			A1A1A1A1A1A1A1A1A1A1A1E0 /* AboutView.swift */,
 				89E508C0249C443DB5EBB2E5 /* Licenses.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */,
+				C0C0C0C0C0C0C0C0C0C0C0C1 /* StableTerminalView.swift */,
 				F3F3F3F3F3F3F3F3F3F3F301 /* TerminalSessionController.swift */,
 				F3F3F3F3F3F3F3F3F3F3F302 /* TerminalSessionDependencies.swift */,
 				F3F3F3F3F3F3F3F3F3F3F303 /* TerminalSessionViewModel.swift */,
@@ -561,6 +564,7 @@
 				A1A1A1A1A1A1A1A1A1A1A1E1 /* AboutView.swift in Sources */,
 				74BCF1FED6F14F2BB1B9A388 /* Licenses.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
+				C0C0C0C0C0C0C0C0C0C0C0C2 /* StableTerminalView.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B1 /* TerminalSessionController.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B2 /* TerminalSessionDependencies.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B3 /* TerminalSessionViewModel.swift in Sources */,

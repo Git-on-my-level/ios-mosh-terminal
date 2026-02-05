@@ -17,11 +17,12 @@ struct TerminalView: View {
     @State private var passphraseInput = ""
     @State private var lastConnectionState: ConnectionManager.State = .idle
     @State private var wantsReconnectPrompt = false
+    @State private var terminalViewId = UUID()
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
         self.autoConnect = autoConnect
-        let controller = TerminalSessionController()
+        let controller = dependencies.connectionManager.controller(for: host)
         _controller = StateObject(wrappedValue: controller)
         _viewModel = StateObject(wrappedValue: TerminalSessionViewModel(host: host, dependencies: dependencies, controller: controller))
         _connectionManager = ObservedObject(wrappedValue: dependencies.connectionManager)
@@ -31,9 +32,7 @@ struct TerminalView: View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
         let colors = AppTheme.colors(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
-            .background(NavigationPopDetector(onPop: {
-                viewModel.stop()
-            }))
+            .id(terminalViewId)
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
@@ -61,6 +60,8 @@ struct TerminalView: View {
                     } else {
                         Button(role: .destructive) {
                             wantsReconnectPrompt = true
+                            controller.reset()
+                            terminalViewId = UUID()
                             viewModel.stop()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -102,6 +103,7 @@ struct TerminalView: View {
                 isVisible = true
                 wantsReconnectPrompt = false
                 updatePredictionPreference()
+                controller.resetPredictions()
                 updateIdleTimer()
                 if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
                     viewModel.start(autoConnect: autoConnect)
@@ -109,6 +111,7 @@ struct TerminalView: View {
             }
             .onDisappear {
                 isVisible = false
+                controller.resetPredictions()
                 updateIdleTimer()
             }
             .onChange(of: settings.keepAwake) { _ in
@@ -124,6 +127,11 @@ struct TerminalView: View {
                     wantsReconnectPrompt = true
                 case .idle:
                     break
+                }
+                if newState == .connected, isVisible {
+                    DispatchQueue.main.async {
+                        controller.focus()
+                    }
                 }
             }
             .safeAreaInset(edge: .top) {
@@ -362,16 +370,29 @@ private struct TerminalContainerView: UIViewRepresentable {
     let isKeyboardVisible: Bool
 
     func makeUIView(context: Context) -> TerminalUIKitView {
-        let terminalView = TerminalUIKitView(
-            frame: .zero,
-            font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        )
+        let terminalView: TerminalUIKitView
+        let reusedView = controller.terminalView != nil
+        if let cachedView = controller.terminalView {
+            cachedView.removeFromSuperview()
+            terminalView = cachedView
+        } else {
+            terminalView = StableTerminalView(
+                frame: .zero,
+                font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+            )
+        }
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
-        let overlayView = installPredictionOverlay(in: terminalView, controller: controller)
+        let overlayView = installPredictionOverlay(in: terminalView, controller: controller, replaceExisting: reusedView)
         overlayView.predictionTextColor = UIColor(palette.foreground)
         overlayView.predictionBackgroundColor = UIColor(palette.background)
+        if reusedView {
+            controller.resetPredictions()
+            terminalView.setNeedsLayout()
+            terminalView.layoutIfNeeded()
+            terminalView.setNeedsDisplay()
+        }
         context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
         terminalView.inputAccessoryView = nil
 
@@ -385,6 +406,9 @@ private struct TerminalContainerView: UIViewRepresentable {
         if controller.terminalView !== terminalView {
             controller.attach(view: terminalView)
         }
+        if terminalView.terminalDelegate !== context.coordinator {
+            terminalView.terminalDelegate = context.coordinator
+        }
         if terminalView.font.pointSize != CGFloat(fontSize) {
             terminalView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         }
@@ -393,6 +417,9 @@ private struct TerminalContainerView: UIViewRepresentable {
         overlayView.predictionTextColor = UIColor(palette.foreground)
         overlayView.predictionBackgroundColor = UIColor(palette.background)
 
+        if context.coordinator.accessoryView == nil {
+            context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
+        }
         let expectedAccessory: UIView? = isKeyboardVisible ? context.coordinator.accessoryView : nil
         if terminalView.inputAccessoryView !== expectedAccessory {
             terminalView.inputAccessoryView = expectedAccessory
@@ -426,9 +453,13 @@ private struct TerminalContainerView: UIViewRepresentable {
 @discardableResult
 func installPredictionOverlay(
     in terminalView: TerminalUIKitView,
-    controller: TerminalSessionController
+    controller: TerminalSessionController,
+    replaceExisting: Bool = false
 ) -> PredictionOverlayView {
     let overlayTag = 0x4D4F5348 // "MOSH"
+    if replaceExisting, let existing = terminalView.viewWithTag(overlayTag) as? PredictionOverlayView {
+        existing.removeFromSuperview()
+    }
     if let existing = terminalView.viewWithTag(overlayTag) as? PredictionOverlayView {
         existing.font = terminalView.font
         existing.layer.zPosition = 1000

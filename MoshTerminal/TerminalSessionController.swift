@@ -7,7 +7,7 @@ typealias TerminalUIKitView = SwiftTerm.TerminalView
 final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
     @Published var isCtrlActive = false
 
-    weak var terminalView: TerminalUIKitView?
+    var terminalView: TerminalUIKitView?
     var onInput: (@Sendable (Data) -> Void)?
     var onSizeChange: (@Sendable (TerminalSize) -> Void)?
 
@@ -29,6 +29,17 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     private var pendingRemoteResize: TerminalSize?
     private var outputBuffer = [UInt8]()
 
+    func reset() {
+        terminalView = nil
+        accessoryView = nil
+        if let overlayView = predictionOverlayView {
+            overlayView.removeFromSuperview()
+        }
+        predictionOverlayView = nil
+        predictionCoordinator.terminalView = nil
+        predictionCoordinator.reset()
+    }
+
     func attach(view: TerminalUIKitView) {
         terminalView = view
         predictionCoordinator.terminalView = view
@@ -44,6 +55,10 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     func predictionDebugSnapshot() -> PredictionDebugMetrics {
         predictionCoordinator.debugSnapshot()
+    }
+
+    func resetPredictions() {
+        predictionCoordinator.reset()
     }
 
     func focus() {

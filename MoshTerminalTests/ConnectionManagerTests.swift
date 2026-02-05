@@ -205,6 +205,52 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertNotNil(updatedHost?.lastConnectedAt)
     }
 
+    func testControllerForHostReusesActiveController() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+        let controller = manager.controller(for: host)
+
+        manager.connect(
+            host: host,
+            controller: controller,
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+
+        await awaitState(manager) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        let reused = manager.controller(for: host)
+        XCTAssertTrue(reused === controller)
+    }
+
+    func testControllerForHostResetsAfterClearSessionDisconnect() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+        let controller = manager.controller(for: host)
+
+        manager.connect(
+            host: host,
+            controller: controller,
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+
+        await awaitState(manager) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        await manager.disconnect(clearSession: true)
+
+        let refreshed = manager.controller(for: host)
+        XCTAssertFalse(refreshed === controller)
+    }
+
     private func makeManager(
         bootstrapper: TestBootstrapper,
         engineFactory: TestEngineFactory,

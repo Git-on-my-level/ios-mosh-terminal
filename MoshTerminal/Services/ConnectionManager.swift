@@ -84,6 +84,7 @@ final class ConnectionManager: ObservableObject {
     private var activeHost: HostProfile?
     private var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
     private var passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
+    private var activeController: TerminalSessionController?
     private weak var controller: TerminalSessionController?
 
     private var engine: MoshEngine?
@@ -172,6 +173,7 @@ final class ConnectionManager: ObservableObject {
         autoReconnectAllowed = true
         self.activeHost = host
         self.activeHostId = host.id
+        self.activeController = controller
         self.controller = controller
         self.hostKeyPrompter = hostKeyPrompter
         self.passphrasePrompter = passphrasePrompter
@@ -193,10 +195,23 @@ final class ConnectionManager: ObservableObject {
         reconnectBackoff.recordSuccess()
 
         if clearSession {
+            activeController = nil
             activeHost = nil
             activeHostId = nil
             lastConnectInfo = nil
         }
+    }
+
+    func controller(for host: HostProfile) -> TerminalSessionController {
+        if let activeController, activeHostId == host.id {
+            return activeController
+        }
+        let controller = TerminalSessionController()
+        if activeHostId != host.id {
+            activeController?.reset()
+        }
+        activeController = controller
+        return controller
     }
 
     func clearFailure() {
