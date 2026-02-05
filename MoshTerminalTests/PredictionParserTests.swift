@@ -173,7 +173,7 @@ final class PredictionParserTests: XCTestCase {
 
         let actions2 = parser.feed(Data(chunk2))
         XCTAssertEqual(actions2.count, 1)
-        XCTAssertEqual(actions2[0], .unknown)
+        XCTAssertEqual(actions2[0], .print("é", width: 1))
     }
 
     func testMultipleFeedCalls() {
