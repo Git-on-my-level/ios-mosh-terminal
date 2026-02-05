@@ -64,7 +64,7 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
             cursorCol: 1,
             overrides: [CellPosition(row: 0, col: 0): DisplayCell(char: "h", width: 1)]
         )
-        engine.cull(confirmedGrid: confirmed, nowMillis: 1100)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1100)
         XCTAssertFalse(render.showPredictions, "Off preference should hide predictions")
@@ -102,7 +102,7 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 10)
         )
-        engine.cull(confirmedGrid: grid, nowMillis: 1000)
+        engine.cull(confirmedGrid: grid, nowMillis: 1000, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1000)
         XCTAssertFalse(render.showPredictions, "Adaptive should hide predictions when latency is low")
@@ -125,7 +125,7 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
             cursorCol: 1,
             overrides: [CellPosition(row: 0, col: 0): DisplayCell(char: "h", width: 1)]
         )
-        engine.cull(confirmedGrid: confirmed, nowMillis: 1100)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1100)
         XCTAssertTrue(render.showPredictions, "Adaptive should show predictions when SRTT trigger is true")
@@ -148,12 +148,12 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
             cursorCol: 0
         )
 
-        engine.cull(confirmedGrid: confirmed, nowMillis: 1100)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1100)
         XCTAssertFalse(render.showPredictions, "Adaptive should hide predictions with no glitch trigger")
 
-        engine.cull(confirmedGrid: confirmed, nowMillis: 5000)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 5000, didReceiveOutput: false)
 
         let renderWithGlitch = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 5000)
         XCTAssertTrue(renderWithGlitch.showPredictions, "Adaptive should show predictions when glitch trigger is active")
@@ -168,7 +168,7 @@ final class PredictionDisplayPreferenceTests: XCTestCase {
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 10)
         )
-        engine.cull(confirmedGrid: grid, nowMillis: 1100)
+        engine.cull(confirmedGrid: grid, nowMillis: 1100, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1100)
         XCTAssertTrue(render.showPredictions, "Experimental preference should show predictions")

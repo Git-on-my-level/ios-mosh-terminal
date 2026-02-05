@@ -31,6 +31,11 @@ final class PredictionEngine {
 
     private var predictionEpoch = 0
     private var confirmedEpoch = 0
+    /// When set, indicates an epoch that became tentative due to an unsupported/unknown
+    /// user input sequence that did not produce any character predictions. If we later
+    /// observe confirmed server output, we can safely promote this epoch so predictions
+    /// resume immediately (without waiting for an echo confirmation).
+    private var pendingOutputPromotionEpoch: Int?
     private var lastUserByte: UInt8?
     var displayPreference: PredictionDisplayPreference = .adaptive
 
@@ -62,6 +67,7 @@ final class PredictionEngine {
         overlayRows = makeEmptyRows()
         predictionEpoch = 0
         confirmedEpoch = 0
+        pendingOutputPromotionEpoch = nil
         lastConfirmedCursor = nil
     }
 
@@ -90,19 +96,23 @@ final class PredictionEngine {
         for action in actions {
             switch action {
             case .print(let char, let width):
+                pendingOutputPromotionEpoch = nil
                 guard width == 1 else {
-                    becomeTentative()
+                    becomeTentative(promoteOnNextOutput: true)
                     continue
                 }
                 applyPrintable(char: char, width: width, displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .backspace:
+                pendingOutputPromotionEpoch = nil
                 applyBackspace(displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .carriageReturn:
+                pendingOutputPromotionEpoch = nil
                 applyCarriageReturn(nowMillis: nowMillis)
 
             case .lineFeed:
+                pendingOutputPromotionEpoch = nil
                 applyLineFeed(nowMillis: nowMillis)
 
             case .arrowLeft:
@@ -112,12 +122,12 @@ final class PredictionEngine {
                 applyArrowRight(nowMillis: nowMillis)
 
             case .unknown:
-                becomeTentative()
+                becomeTentative(promoteOnNextOutput: true)
             }
         }
     }
 
-    func cull(confirmedGrid: DisplayGrid, nowMillis: Int64) {
+    func cull(confirmedGrid: DisplayGrid, nowMillis: Int64, didReceiveOutput: Bool) {
         if displayPreference == .off {
             return
         }
@@ -287,6 +297,16 @@ final class PredictionEngine {
         }
 
         lastConfirmedCursor = confirmedCursor
+
+        // If we became tentative due to an unknown input that produced no character predictions,
+        // allow the next confirmed server output to "resync" and re-enable predictions immediately.
+        if didReceiveOutput,
+           let pending = pendingOutputPromotionEpoch,
+           pending > confirmedEpoch,
+           activeCellPositions.isEmpty {
+            confirmedEpoch = pending
+            pendingOutputPromotionEpoch = nil
+        }
     }
 
     func currentRenderModel(confirmedGrid: DisplayGrid, nowMillis: Int64) -> PredictionRenderModel {
@@ -380,7 +400,7 @@ final class PredictionEngine {
         if predictedCursorCol >= cols {
             predictedCursorCol = 0
             predictedCursorRow += 1
-            becomeTentative()
+            becomeTentative(promoteOnNextOutput: false)
             if predictedCursorRow >= rows {
                 scrollOverlayUp()
                 predictedCursorRow = max(rows - 1, 0)
@@ -443,7 +463,7 @@ final class PredictionEngine {
             scrollOverlayUp()
             predictedCursorRow = max(rows - 1, 0)
         }
-        becomeTentative()
+        becomeTentative(promoteOnNextOutput: false)
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
@@ -453,7 +473,7 @@ final class PredictionEngine {
             scrollOverlayUp()
             predictedCursorRow = max(rows - 1, 0)
         }
-        becomeTentative()
+        becomeTentative(promoteOnNextOutput: false)
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
@@ -486,7 +506,7 @@ final class PredictionEngine {
         if predictedCursorCol >= cols {
             predictedCursorCol = 0
             predictedCursorRow += 1
-            becomeTentative()
+            becomeTentative(promoteOnNextOutput: false)
         }
         if predictedCursorRow >= rows {
             scrollOverlayUp()
@@ -724,7 +744,7 @@ final class PredictionEngine {
             }
         }
 
-        becomeTentative()
+        becomeTentative(promoteOnNextOutput: false)
     }
 
     private func hasActivePredictions() -> Bool {
@@ -745,8 +765,13 @@ final class PredictionEngine {
         }
     }
 
-    private func becomeTentative() {
+    private func becomeTentative(promoteOnNextOutput: Bool) {
         predictionEpoch += 1
+        if promoteOnNextOutput {
+            pendingOutputPromotionEpoch = predictionEpoch
+        } else {
+            pendingOutputPromotionEpoch = nil
+        }
     }
 
     private func currentSendIntervalMillis() -> Int64 {

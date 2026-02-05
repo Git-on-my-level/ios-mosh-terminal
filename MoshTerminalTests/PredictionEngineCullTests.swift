@@ -23,7 +23,7 @@ final class PredictionEngineCullTests: XCTestCase {
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 10)
         )
-        engine.cull(confirmedGrid: confirmed, nowMillis: 1100)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: false)
 
         let postConfirm = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1100)
         XCTAssertTrue(visibleCells(in: postConfirm).isEmpty)
@@ -40,7 +40,7 @@ final class PredictionEngineCullTests: XCTestCase {
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 10)
         )
-        engine.cull(confirmedGrid: grid, nowMillis: 1200)
+        engine.cull(confirmedGrid: grid, nowMillis: 1200, didReceiveOutput: false)
 
         var render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1200)
         XCTAssertTrue(visibleCells(in: render).isEmpty)
@@ -48,7 +48,7 @@ final class PredictionEngineCullTests: XCTestCase {
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 2, srttMillis: 10)
         )
-        engine.cull(confirmedGrid: grid, nowMillis: 1300)
+        engine.cull(confirmedGrid: grid, nowMillis: 1300, didReceiveOutput: false)
 
         render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1300)
         XCTAssertTrue(visibleCells(in: render).isEmpty)
@@ -73,7 +73,7 @@ final class PredictionEngineCullTests: XCTestCase {
         engine.updateNetworkSnapshot(
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 1, srttMillis: 10)
         )
-        engine.cull(confirmedGrid: confirmed, nowMillis: 1100)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: false)
 
         let state = engine.debugState
         XCTAssertTrue(state.cursorPredictions.isEmpty)
@@ -88,7 +88,7 @@ final class PredictionEngineCullTests: XCTestCase {
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 0, srttMillis: 10)
         )
         engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
-        engine.cull(confirmedGrid: grid, nowMillis: 1000)
+        engine.cull(confirmedGrid: grid, nowMillis: 1000, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1000)
         XCTAssertFalse(render.showPredictions)
@@ -103,7 +103,7 @@ final class PredictionEngineCullTests: XCTestCase {
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 0, srttMillis: 40)
         )
         engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
-        engine.cull(confirmedGrid: grid, nowMillis: 1000)
+        engine.cull(confirmedGrid: grid, nowMillis: 1000, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1000)
         XCTAssertTrue(render.showPredictions)
@@ -115,7 +115,7 @@ final class PredictionEngineCullTests: XCTestCase {
         let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)
 
         engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
-        engine.cull(confirmedGrid: grid, nowMillis: 1000)
+        engine.cull(confirmedGrid: grid, nowMillis: 1000, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1000)
         XCTAssertTrue(render.showPredictions)
@@ -138,7 +138,7 @@ final class PredictionEngineCullTests: XCTestCase {
             overrides: [CellPosition(row: 1, col: 0): DisplayCell(char: "a", width: 1)]
         )
 
-        engine.cull(confirmedGrid: confirmed, nowMillis: 1020)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1020, didReceiveOutput: false)
 
         XCTAssertEqual(engine.debugState.confirmedEpoch, 1)
         let render = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1020)
@@ -153,7 +153,7 @@ final class PredictionEngineCullTests: XCTestCase {
             PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 0, srttMillis: 10)
         )
         engine.newUserBytes(Data("a".utf8), displayGrid: grid, nowMillis: 1000)
-        engine.cull(confirmedGrid: grid, nowMillis: 1300)
+        engine.cull(confirmedGrid: grid, nowMillis: 1300, didReceiveOutput: false)
 
         let render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1300)
         XCTAssertTrue(render.showPredictions)

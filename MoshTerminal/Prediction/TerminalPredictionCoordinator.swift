@@ -32,7 +32,7 @@ final class TerminalPredictionCoordinator {
     func handleUserInput(data: Data) {
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
-            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: false)
 
             // Use the full prediction state for subsequent keystroke prediction, even if we're
             // intentionally hiding tentative predictions from the UI via epoch gating.
@@ -47,7 +47,7 @@ final class TerminalPredictionCoordinator {
     func handleConfirmedOutputApplied() {
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
-            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: true)
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         }
     }
@@ -60,7 +60,7 @@ final class TerminalPredictionCoordinator {
     func handleEchoAckUpdated() {
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
-            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: false)
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         }
     }

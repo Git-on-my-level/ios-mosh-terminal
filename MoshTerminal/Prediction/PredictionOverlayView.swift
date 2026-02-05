@@ -1,3 +1,4 @@
+import CoreText
 import UIKit
 
 final class PredictionOverlayView: UIView {
@@ -63,10 +64,18 @@ final class PredictionOverlayView: UIView {
         let cellHeight: CGFloat
 
         init(font: UIFont) {
+            // Match SwiftTerm's grid metrics so our overlay lines up exactly with the terminal.
+            // SwiftTerm derives width from the monospaced "W" advance and height from CTFont ascent/descent/leading.
             let attributes: [NSAttributedString.Key: Any] = [.font: font]
-            let charSize = "M".size(withAttributes: attributes)
-            self.cellWidth = ceil(charSize.width)
-            self.cellHeight = ceil(charSize.height)
+            let cellWidth = "W".size(withAttributes: attributes).width
+
+            let ascent = CTFontGetAscent(font)
+            let descent = CTFontGetDescent(font)
+            let leading = CTFontGetLeading(font)
+            let cellHeight = ceil(ascent + descent + leading)
+
+            self.cellWidth = max(1, cellWidth)
+            self.cellHeight = max(1, min(cellHeight, 8192))
         }
     }
 
