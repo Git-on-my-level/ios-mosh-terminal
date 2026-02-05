@@ -47,6 +47,12 @@ final class PredictionEngine {
     private var glitchTrigger = 0
     private var underlinePredictions = false
     private var lastQuickConfirmation: Int64 = 0
+    private var lastConfirmedCursor: CursorPosition?
+
+    private struct CursorPosition: Equatable {
+        let row: Int
+        let col: Int
+    }
 
     func reset() {
         parser.reset()
@@ -56,6 +62,7 @@ final class PredictionEngine {
         overlayRows = makeEmptyRows()
         predictionEpoch = 0
         confirmedEpoch = 0
+        lastConfirmedCursor = nil
     }
 
     func updateNetworkSnapshot(_ snapshot: PredictionNetworkSnapshot) {
@@ -95,6 +102,9 @@ final class PredictionEngine {
             case .carriageReturn:
                 applyCarriageReturn(nowMillis: nowMillis)
 
+            case .lineFeed:
+                applyLineFeed(nowMillis: nowMillis)
+
             case .arrowLeft:
                 applyArrowLeft(nowMillis: nowMillis)
 
@@ -111,6 +121,9 @@ final class PredictionEngine {
         if displayPreference == .off {
             return
         }
+
+        let confirmedCursor = CursorPosition(row: confirmedGrid.cursorRow, col: confirmedGrid.cursorCol)
+        let previousConfirmedCursor = lastConfirmedCursor
 
         if cols != confirmedGrid.cols || rows != confirmedGrid.rows {
             cols = confirmedGrid.cols
@@ -151,6 +164,20 @@ final class PredictionEngine {
                    let replacement = cell.replacement,
                    replacement != .blank {
                     let current = confirmedGrid.cell(atRow: rowIndex, col: cell.col)
+                    if current != replacement,
+                       !cell.originalContents.contains(where: { $0 == current }) {
+                        // The confirmed terminal wrote something unexpected into a pending prediction cell
+                        // (common when the next prompt arrives after the user has started typing).
+                        // Kill the epoch early to avoid getting stuck waiting for an echo that can never match.
+                        if cell.tentativeUntilEpoch > confirmedEpoch, displayPreference != .experimental {
+                            killEpoch(epoch: cell.tentativeUntilEpoch, confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+                            return
+                        }
+                        if displayPreference != .experimental {
+                            reset()
+                            return
+                        }
+                    }
                     if current == replacement,
                        !cell.originalContents.contains(where: { $0 == replacement }) {
                         earlyConfirmedRows.insert(rowIndex)
@@ -246,6 +273,20 @@ final class PredictionEngine {
         cursorPredictions = cursorPredictions.filter {
             cursorValidity($0, confirmedGrid: confirmedGrid) == .pending
         }
+
+        if let previousConfirmedCursor,
+           previousConfirmedCursor != confirmedCursor,
+           activeCellPositions.isEmpty,
+           let lastCursorPrediction = cursorPredictions.last,
+           (lastCursorPrediction.row != confirmedCursor.row || lastCursorPrediction.col != confirmedCursor.col) {
+            // Confirmed output moved the cursor, but our pending cursor predictions no longer match.
+            // Keeping them can misplace subsequent predictions (e.g. rendering at top-left).
+            cursorPredictions.removeAll()
+            predictedCursorRow = confirmedCursor.row
+            predictedCursorCol = confirmedCursor.col
+        }
+
+        lastConfirmedCursor = confirmedCursor
     }
 
     func currentRenderModel(confirmedGrid: DisplayGrid, nowMillis: Int64) -> PredictionRenderModel {
@@ -269,6 +310,23 @@ final class PredictionEngine {
             overlayRows: filteredRows,
             cursorPredictions: visibleCursors,
             showPredictions: show,
+            underlinePredictions: underlinePredictions
+        )
+    }
+
+    /// Returns an unfiltered model of the current prediction state (all active cells/cursors),
+    /// regardless of epoch gating. This is used to predict subsequent keystrokes correctly,
+    /// even when we intentionally hide tentative predictions from the UI (e.g. password prompts).
+    func currentPredictionStateModel() -> PredictionRenderModel {
+        let filteredRows = overlayRows.map { row in
+            let activeCells = row.cells.filter { $0.active }
+            let visibleUnknown = row.unknownRow && !activeCells.isEmpty
+            return OverlayRowState(unknownRow: visibleUnknown, cells: activeCells)
+        }
+        return PredictionRenderModel(
+            overlayRows: filteredRows,
+            cursorPredictions: cursorPredictions,
+            showPredictions: true,
             underlinePredictions: underlinePredictions
         )
     }
@@ -340,20 +398,56 @@ final class PredictionEngine {
             return
         }
 
+        let deleteRow = predictedCursorRow
+        let deleteCol = predictedCursorCol
+        let deleteCell = displayGrid.cell(atRow: deleteRow, col: deleteCol)
+        let rightCell: DisplayCell = {
+            let rightCol = deleteCol + 1
+            guard rightCol >= 0, rightCol < cols else { return .blank }
+            return displayGrid.cell(atRow: deleteRow, col: rightCol)
+        }()
+        let isEndOfLineDelete = deleteCell != .blank && rightCell == .blank
+
         let hadPredictions = !overlayRows[predictedCursorRow].cells.isEmpty
-        shiftRowLeft(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
-        let currentCell = displayGrid.cell(atRow: predictedCursorRow, col: predictedCursorCol)
-        // Mark last column unknown if we had existing predictions or the confirmed cell is blank.
-        if hadPredictions || currentCell == .blank {
-            markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
+        shiftRowLeft(rowIndex: deleteRow, startCol: deleteCol)
+
+        if isEndOfLineDelete {
+            // Make backspace feel responsive by erasing the deleted character immediately.
+            // We only do this at end-of-line to avoid "shifting" semantics mid-line.
+            let cell = OverlayCellState(
+                active: true,
+                col: deleteCol,
+                replacement: .blank,
+                unknown: false,
+                originalContents: [deleteCell],
+                expirationFrame: localFrameSent + 1,
+                predictionTime: nowMillis,
+                tentativeUntilEpoch: predictionEpoch
+            )
+            upsertCell(row: deleteRow, cell: cell)
         } else {
-            markCellUnknown(rowIndex: predictedCursorRow, col: predictedCursorCol, nowMillis: nowMillis)
+            // Mark last column unknown if we had existing predictions or the confirmed cell is blank.
+            if hadPredictions || deleteCell == .blank {
+                markLastColumnUnknown(rowIndex: deleteRow, nowMillis: nowMillis)
+            } else {
+                markCellUnknown(rowIndex: deleteRow, col: deleteCol, nowMillis: nowMillis)
+            }
         }
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
     private func applyCarriageReturn(nowMillis: Int64) {
         predictedCursorCol = 0
+        predictedCursorRow += 1
+        if predictedCursorRow >= rows {
+            scrollOverlayUp()
+            predictedCursorRow = max(rows - 1, 0)
+        }
+        becomeTentative()
+        appendCursorPrediction(nowMillis: nowMillis)
+    }
+
+    private func applyLineFeed(nowMillis: Int64) {
         predictedCursorRow += 1
         if predictedCursorRow >= rows {
             scrollOverlayUp()
@@ -659,4 +753,5 @@ final class PredictionEngine {
         let half = (srttMillis + 1) / 2
         return min(max(half, Constants.sendIntervalMin), Constants.sendIntervalMax)
     }
+
 }

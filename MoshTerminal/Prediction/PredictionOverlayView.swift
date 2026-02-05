@@ -126,21 +126,25 @@ final class PredictionOverlayView: UIView {
 
                     if model.underlinePredictions {
                         let underlineY = y + metrics.cellHeight - 1
-                        let path = UIBezierPath()
-                        path.move(to: CGPoint(x: x, y: underlineY))
-                        path.addLine(to: CGPoint(x: x + metrics.cellWidth, y: underlineY))
-                        predictionUnderlineColor.setStroke()
-                        path.lineWidth = 1
-                        path.stroke()
+                        context.saveGState()
+                        context.setStrokeColor(predictionUnderlineColor.cgColor)
+                        context.setLineWidth(1)
+                        context.setLineDash(phase: 0, lengths: [2, 2])
+                        context.move(to: CGPoint(x: x, y: underlineY))
+                        context.addLine(to: CGPoint(x: x + metrics.cellWidth, y: underlineY))
+                        context.strokePath()
+                        context.restoreGState()
                     }
                 } else if cell.unknown && model.underlinePredictions {
                     let underlineY = y + metrics.cellHeight - 1
-                    let path = UIBezierPath()
-                    path.move(to: CGPoint(x: x, y: underlineY))
-                    path.addLine(to: CGPoint(x: x + metrics.cellWidth, y: underlineY))
-                    predictionUnderlineColor.setStroke()
-                    path.lineWidth = 1
-                    path.stroke()
+                    context.saveGState()
+                    context.setStrokeColor(predictionUnderlineColor.cgColor)
+                    context.setLineWidth(1)
+                    context.setLineDash(phase: 0, lengths: [2, 2])
+                    context.move(to: CGPoint(x: x, y: underlineY))
+                    context.addLine(to: CGPoint(x: x + metrics.cellWidth, y: underlineY))
+                    context.strokePath()
+                    context.restoreGState()
                 }
             }
         }

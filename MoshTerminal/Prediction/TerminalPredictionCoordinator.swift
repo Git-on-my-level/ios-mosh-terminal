@@ -29,8 +29,10 @@ final class TerminalPredictionCoordinator {
             updateNetworkSnapshot()
             engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
 
-            let visibleModel = engine.currentRenderModel(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
-            let displayGrid = PredictedDisplayGrid(confirmedGrid: confirmedGrid, renderModel: visibleModel)
+            // Use the full prediction state for subsequent keystroke prediction, even if we're
+            // intentionally hiding tentative predictions from the UI via epoch gating.
+            let predictionStateModel = engine.currentPredictionStateModel()
+            let displayGrid = PredictedDisplayGrid(confirmedGrid: confirmedGrid, renderModel: predictionStateModel)
 
             engine.newUserBytes(data, displayGrid: displayGrid, nowMillis: nowMillis)
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)

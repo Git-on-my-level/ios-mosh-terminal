@@ -28,6 +28,9 @@ struct TerminalView: View {
     var body: some View {
         let palette = AppTheme.terminalPalette(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
+            .background(NavigationPopDetector(onPop: {
+                viewModel.stop()
+            }))
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
@@ -84,7 +87,6 @@ struct TerminalView: View {
             .onDisappear {
                 isVisible = false
                 updateIdleTimer()
-                viewModel.stop()
             }
             .onChange(of: settings.keepAwake) { _ in
                 updateIdleTimer()
@@ -238,6 +240,43 @@ private struct TerminalDebugOverlay: View {
     }
 }
 #endif
+
+/// Detects when this view is removed from a navigation stack (popped).
+/// This is more reliable than `onDisappear`, since switching tabs also triggers `onDisappear`.
+private struct NavigationPopDetector: UIViewControllerRepresentable {
+    let onPop: () -> Void
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        PopObserverController(onPop: onPop)
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
+
+private final class PopObserverController: UIViewController {
+    private let onPop: () -> Void
+
+    init(onPop: @escaping () -> Void) {
+        self.onPop = onPop
+        super.init(nibName: nil, bundle: nil)
+        view.isHidden = true
+        view.isUserInteractionEnabled = false
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if isMovingFromParent ||
+            parent?.isMovingFromParent == true ||
+            isBeingDismissed ||
+            parent?.isBeingDismissed == true {
+            onPop()
+        }
+    }
+}
 
 /// Bridges SwiftTerm's UIKit-based TerminalView into SwiftUI.
 ///

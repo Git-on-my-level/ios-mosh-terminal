@@ -132,7 +132,8 @@ final class PredictionSwiftTermIntegrationTests: XCTestCase {
         render = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1100)
         let cells = visibleCells(in: render)
         XCTAssertEqual(cells.count, 1)
-        XCTAssertTrue(cells.first?.unknown == true)
+        XCTAssertFalse(cells.first?.unknown == true)
+        XCTAssertEqual(cells.first?.replacement, DisplayCell.blank)
         XCTAssertEqual(cells.first?.col, 4)
     }
 }

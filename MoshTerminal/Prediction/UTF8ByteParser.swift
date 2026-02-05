@@ -5,6 +5,7 @@ enum ParsedAction: Equatable {
     case print(Character, width: Int)
     case backspace
     case carriageReturn
+    case lineFeed
     case arrowLeft
     case arrowRight
     case unknown
@@ -21,11 +22,19 @@ final class UTF8ByteParser {
     }
 
     private var state: State = .normal
+    private var lastWasCR = false
 
     func feed(_ data: Data) -> [ParsedAction] {
         var actions: [ParsedAction] = []
 
         for byte in data {
+            if lastWasCR {
+                if byte == 0x0A {
+                    lastWasCR = false
+                    continue
+                }
+                lastWasCR = false
+            }
             switch state {
             case .normal:
                 handleNormal(byte: byte, actions: &actions)
@@ -65,6 +74,10 @@ final class UTF8ByteParser {
 
         case 0x0D:
             actions.append(.carriageReturn)
+            lastWasCR = true
+
+        case 0x0A:
+            actions.append(.lineFeed)
 
         case 0x00...0x1F, 0x80...0xBF:
             actions.append(.unknown)

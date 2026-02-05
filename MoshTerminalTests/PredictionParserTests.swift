@@ -50,6 +50,30 @@ final class PredictionParserTests: XCTestCase {
         XCTAssertEqual(actions[0], .carriageReturn)
     }
 
+    func testLineFeed() {
+        let data = Data([0x0A])
+        let actions = parser.feed(data)
+
+        XCTAssertEqual(actions.count, 1)
+        XCTAssertEqual(actions[0], .lineFeed)
+    }
+
+    func testCRLFIsCoalescedToSingleCarriageReturn() {
+        let data = Data([0x0D, 0x0A])
+        let actions = parser.feed(data)
+
+        XCTAssertEqual(actions.count, 1)
+        XCTAssertEqual(actions[0], .carriageReturn)
+    }
+
+    func testCRLFCoalesceWorksAcrossFeedBoundaries() {
+        let actions1 = parser.feed(Data([0x0D]))
+        XCTAssertEqual(actions1, [.carriageReturn])
+
+        let actions2 = parser.feed(Data([0x0A]))
+        XCTAssertEqual(actions2.count, 0)
+    }
+
     func testControlCharactersAreUnknown() {
         let controlChars: [UInt8] = [0x00, 0x01, 0x02, 0x1A]
         for char in controlChars {
