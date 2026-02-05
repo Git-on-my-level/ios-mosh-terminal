@@ -1,5 +1,6 @@
 import Foundation
 import SwiftTerm
+import UIKit
 
 final class TerminalPredictionCoordinator {
     private let engine = PredictionEngine()
@@ -7,6 +8,10 @@ final class TerminalPredictionCoordinator {
     weak var terminalView: TerminalUIKitView?
     weak var overlayView: PredictionOverlayView?
     weak var predictionNetworkProvider: PredictionNetworkSnapshotProviding?
+
+    private var isNativeCaretSuppressed = false
+    private var savedCaretColor: UIColor?
+    private var savedCaretTextColor: UIColor?
 
     init() {}
 
@@ -82,21 +87,59 @@ final class TerminalPredictionCoordinator {
 
     private func updateOverlay(confirmedGrid: DisplayGrid, nowMillis: Int64) {
         let renderModel = engine.currentRenderModel(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
-        updateOverlayView(renderModel)
+        let suppressNativeCaret = shouldSuppressNativeCaret(renderModel: renderModel, confirmedGrid: confirmedGrid)
+        updateOverlayView(renderModel, suppressNativeCaret: suppressNativeCaret)
     }
 
     private func updateOverlayWithEmpty() {
-        updateOverlayView(PredictionRenderModel())
+        updateOverlayView(PredictionRenderModel(), suppressNativeCaret: false)
     }
 
-    private func updateOverlayView(_ model: PredictionRenderModel) {
+    private func shouldSuppressNativeCaret(renderModel: PredictionRenderModel, confirmedGrid: DisplayGrid) -> Bool {
+        guard renderModel.showPredictions else { return false }
+        guard let predictedCursor = renderModel.cursorPredictions.last else { return false }
+        return predictedCursor.row != confirmedGrid.cursorRow || predictedCursor.col != confirmedGrid.cursorCol
+    }
+
+    private func updateOverlayView(_ model: PredictionRenderModel, suppressNativeCaret: Bool) {
         guard let overlayView else { return }
-        if Thread.isMainThread {
+        let apply: () -> Void = { [weak self] in
+            guard let self else { return }
             overlayView.model = model
-        } else {
-            DispatchQueue.main.async {
-                overlayView.model = model
+            self.updateNativeCaretSuppression(suppress: suppressNativeCaret)
+            if let terminalView = self.terminalView, overlayView.superview === terminalView {
+                terminalView.bringSubviewToFront(overlayView)
             }
         }
+        if Thread.isMainThread {
+            apply()
+        } else {
+            DispatchQueue.main.async(execute: apply)
+        }
+    }
+
+    private func updateNativeCaretSuppression(suppress: Bool) {
+        guard let terminalView else { return }
+
+        if suppress {
+            if isNativeCaretSuppressed {
+                return
+            }
+            savedCaretColor = terminalView.caretColor
+            savedCaretTextColor = terminalView.caretTextColor
+            terminalView.caretColor = .clear
+            terminalView.caretTextColor = .clear
+            isNativeCaretSuppressed = true
+            return
+        }
+
+        guard isNativeCaretSuppressed else { return }
+        if let savedCaretColor {
+            terminalView.caretColor = savedCaretColor
+        }
+        terminalView.caretTextColor = savedCaretTextColor
+        savedCaretColor = nil
+        savedCaretTextColor = nil
+        isNativeCaretSuppressed = false
     }
 }

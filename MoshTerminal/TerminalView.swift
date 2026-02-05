@@ -307,8 +307,8 @@ private struct TerminalContainerView: UIViewRepresentable {
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller)
-        overlayView.predictionTextColor = terminalView.nativeForegroundColor
-        overlayView.predictionBackgroundColor = terminalView.nativeBackgroundColor
+        overlayView.predictionTextColor = UIColor(palette.foreground)
+        overlayView.predictionBackgroundColor = UIColor(palette.background)
         context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
         terminalView.inputAccessoryView = nil
 
@@ -327,8 +327,8 @@ private struct TerminalContainerView: UIViewRepresentable {
         }
         applyPalette(palette, to: terminalView)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller)
-        overlayView.predictionTextColor = terminalView.nativeForegroundColor
-        overlayView.predictionBackgroundColor = terminalView.nativeBackgroundColor
+        overlayView.predictionTextColor = UIColor(palette.foreground)
+        overlayView.predictionBackgroundColor = UIColor(palette.background)
 
         let expectedAccessory: UIView? = isKeyboardVisible ? context.coordinator.accessoryView : nil
         if terminalView.inputAccessoryView !== expectedAccessory {
@@ -368,6 +368,7 @@ func installPredictionOverlay(
     let overlayTag = 0x4D4F5348 // "MOSH"
     if let existing = terminalView.viewWithTag(overlayTag) as? PredictionOverlayView {
         existing.font = terminalView.font
+        existing.layer.zPosition = 1000
         controller.predictionOverlayView = existing
         terminalView.bringSubviewToFront(existing)
         return existing
@@ -375,6 +376,7 @@ func installPredictionOverlay(
 
     let overlayView = PredictionOverlayView()
     overlayView.tag = overlayTag
+    overlayView.layer.zPosition = 1000
     overlayView.translatesAutoresizingMaskIntoConstraints = true
     overlayView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     overlayView.frame = terminalView.bounds
