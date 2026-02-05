@@ -463,7 +463,9 @@ final class PredictionEngine {
             scrollOverlayUp()
             predictedCursorRow = max(rows - 1, 0)
         }
-        becomeTentative(promoteOnNextOutput: false)
+        // Pressing Enter is usually followed by confirmed server output (prompt + command output).
+        // Promote this epoch as soon as any output arrives so predictions stay responsive on the next line.
+        becomeTentative(promoteOnNextOutput: true)
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
@@ -473,7 +475,8 @@ final class PredictionEngine {
             scrollOverlayUp()
             predictedCursorRow = max(rows - 1, 0)
         }
-        becomeTentative(promoteOnNextOutput: false)
+        // Like carriage return, line feed usually precedes confirmed output.
+        becomeTentative(promoteOnNextOutput: true)
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
