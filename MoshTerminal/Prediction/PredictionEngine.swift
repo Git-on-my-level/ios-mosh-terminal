@@ -10,10 +10,13 @@ final class PredictionEngine {
     }
 
     private enum Constants {
+        static let initialSrttMillis: Int64 = 1000
         static let srttTriggerLow: Int64 = 20
         static let srttTriggerHigh: Int64 = 30
         static let flagTriggerLow: Int64 = 50
         static let flagTriggerHigh: Int64 = 80
+        static let sendIntervalMin: Int64 = 20
+        static let sendIntervalMax: Int64 = 250
         static let glitchThreshold: Int64 = 250
         static let glitchRepairCount: Int = 10
         static let glitchRepairMinInterval: Int64 = 150
@@ -39,7 +42,7 @@ final class PredictionEngine {
     private var localFrameSent: Int64 = 0
     private var localFrameAcked: Int64 = 0
     private var echoAck: Int64 = 0
-    private var srttMillis: Int64 = 0
+    private var srttMillis: Int64 = Constants.initialSrttMillis
     private var srttTrigger = false
     private var glitchTrigger = 0
     private var underlinePredictions = false
@@ -59,7 +62,7 @@ final class PredictionEngine {
         localFrameSent = Int64(snapshot.lastSentStateNum)
         localFrameAcked = Int64(snapshot.lastAckedStateNum)
         echoAck = Int64(snapshot.echoAck)
-        srttMillis = snapshot.srttMillis.map { Int64($0) } ?? 0
+        srttMillis = snapshot.srttMillis.map { Int64($0) } ?? Constants.initialSrttMillis
     }
 
     func newUserBytes(_ bytes: Data, displayGrid: DisplayGrid, nowMillis: Int64) {
@@ -87,7 +90,7 @@ final class PredictionEngine {
                 applyPrintable(char: char, width: width, displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .backspace:
-                applyBackspace(nowMillis: nowMillis)
+                applyBackspace(displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .carriageReturn:
                 applyCarriageReturn(nowMillis: nowMillis)
@@ -119,15 +122,16 @@ final class PredictionEngine {
             return
         }
 
-        if srttMillis > Constants.srttTriggerHigh {
+        let sendInterval = currentSendIntervalMillis()
+        if sendInterval > Constants.srttTriggerHigh {
             srttTrigger = true
-        } else if srttTrigger && srttMillis <= Constants.srttTriggerLow && !hasActivePredictions() {
+        } else if srttTrigger && sendInterval <= Constants.srttTriggerLow && !hasActivePredictions() {
             srttTrigger = false
         }
 
-        if srttMillis > Constants.flagTriggerHigh {
+        if sendInterval > Constants.flagTriggerHigh {
             underlinePredictions = true
-        } else if srttMillis <= Constants.flagTriggerLow {
+        } else if sendInterval <= Constants.flagTriggerLow {
             underlinePredictions = false
         }
 
@@ -136,6 +140,7 @@ final class PredictionEngine {
         }
 
         var earlyConfirmedRows: Set<Int> = []
+        var earlyConfirmedEpoch = confirmedEpoch
         for rowIndex in activeRowIndices {
             guard rowIndex < overlayRows.count else { continue }
             for cellIndex in overlayRows[rowIndex].cells.indices {
@@ -149,6 +154,15 @@ final class PredictionEngine {
                     if current == replacement,
                        !cell.originalContents.contains(where: { $0 == replacement }) {
                         earlyConfirmedRows.insert(rowIndex)
+                        if cell.tentativeUntilEpoch > earlyConfirmedEpoch {
+                            earlyConfirmedEpoch = cell.tentativeUntilEpoch
+                        }
+                        if nowMillis - cell.predictionTime < Constants.glitchThreshold,
+                           glitchTrigger > 0,
+                           nowMillis - Constants.glitchRepairMinInterval >= lastQuickConfirmation {
+                            glitchTrigger -= 1
+                            lastQuickConfirmation = nowMillis
+                        }
                         resetCell(&cell, row: rowIndex)
                         overlayRows[rowIndex].cells[cellIndex] = cell
                         continue
@@ -204,6 +218,10 @@ final class PredictionEngine {
             }
         }
         
+        if earlyConfirmedEpoch > confirmedEpoch {
+            confirmedEpoch = earlyConfirmedEpoch
+        }
+
         if !earlyConfirmedRows.isEmpty {
             for rowIndex in earlyConfirmedRows {
                 guard rowIndex < overlayRows.count else { continue }
@@ -238,14 +256,14 @@ final class PredictionEngine {
 
         let filteredRows = overlayRows.enumerated().map { index, row in
             let visibleCells = row.cells.filter { cell in
-                cell.active && cell.tentativeUntilEpoch <= confirmedEpoch
+                cell.active && cell.tentativeUntilEpoch == confirmedEpoch
             }
             let hasVisibleCells = !visibleCells.isEmpty
             let visibleUnknown = row.unknownRow && hasVisibleCells
             return OverlayRowState(unknownRow: visibleUnknown, cells: visibleCells)
         }
 
-        let visibleCursors = cursorPredictions.filter { $0.tentativeUntilEpoch <= confirmedEpoch }
+        let visibleCursors = cursorPredictions.filter { $0.tentativeUntilEpoch == confirmedEpoch }
 
         return PredictionRenderModel(
             overlayRows: filteredRows,
@@ -268,11 +286,22 @@ final class PredictionEngine {
         )
     }
 
+    var debugMetrics: PredictionDebugMetrics {
+        PredictionDebugMetrics(
+            sendIntervalMillis: currentSendIntervalMillis(),
+            echoAck: echoAck,
+            glitchTrigger: glitchTrigger,
+            srttTrigger: srttTrigger,
+            activePredictionCount: activeCellPositions.count + cursorPredictions.count
+        )
+    }
+
     private func applyPrintable(char: Character, width: Int, displayGrid: DisplayGrid, nowMillis: Int64) {
         normalizeCursorForPrint()
 
         if displayGrid.isInsertMode {
             shiftRowRight(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
+            markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
         }
 
         let replacement = DisplayCell(char: char, width: width)
@@ -303,26 +332,23 @@ final class PredictionEngine {
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
-    private func applyBackspace(nowMillis: Int64) {
+    private func applyBackspace(displayGrid: DisplayGrid, nowMillis: Int64) {
         if predictedCursorCol > 0 {
             predictedCursorCol -= 1
+        } else {
+            appendCursorPrediction(nowMillis: nowMillis)
+            return
         }
 
-        if predictedCursorRow >= 0 && predictedCursorRow < overlayRows.count {
-            overlayRows[predictedCursorRow].unknownRow = true
+        let hadPredictions = !overlayRows[predictedCursorRow].cells.isEmpty
+        shiftRowLeft(rowIndex: predictedCursorRow, startCol: predictedCursorCol)
+        let currentCell = displayGrid.cell(atRow: predictedCursorRow, col: predictedCursorCol)
+        // Mark last column unknown if we had existing predictions or the confirmed cell is blank.
+        if hadPredictions || currentCell == .blank {
+            markLastColumnUnknown(rowIndex: predictedCursorRow, nowMillis: nowMillis)
+        } else {
+            markCellUnknown(rowIndex: predictedCursorRow, col: predictedCursorCol, nowMillis: nowMillis)
         }
-
-        let cell = OverlayCellState(
-            active: true,
-            col: predictedCursorCol,
-            replacement: nil,
-            unknown: true,
-            originalContents: [],
-            expirationFrame: localFrameSent + 1,
-            predictionTime: nowMillis,
-            tentativeUntilEpoch: predictionEpoch
-        )
-        upsertCell(row: predictedCursorRow, cell: cell)
         appendCursorPrediction(nowMillis: nowMillis)
     }
 
@@ -377,22 +403,77 @@ final class PredictionEngine {
     private func shiftRowRight(rowIndex: Int, startCol: Int) {
         guard rowIndex >= 0, rowIndex < overlayRows.count else { return }
         var shifted: [OverlayCellState] = []
-        let positionsToRemove = activeCellPositions.filter { pos in pos.row == rowIndex && pos.col >= startCol }
-        for pos in positionsToRemove {
-            activeCellPositions.remove(pos)
-        }
         for var cell in overlayRows[rowIndex].cells {
             if cell.col >= startCol {
                 cell.col += 1
             }
             if cell.col < cols {
                 shifted.append(cell)
-                if cell.active {
-                    activeCellPositions.insert(CellPosition(row: rowIndex, col: cell.col))
-                }
             }
         }
         overlayRows[rowIndex].cells = shifted
+        rebuildActivePositionsForRow(rowIndex)
+    }
+
+    private func shiftRowLeft(rowIndex: Int, startCol: Int) {
+        guard rowIndex >= 0, rowIndex < overlayRows.count else { return }
+        var shifted: [OverlayCellState] = []
+        for var cell in overlayRows[rowIndex].cells {
+            if cell.col > startCol {
+                cell.col -= 1
+            } else if cell.col == startCol {
+                continue
+            }
+            if cell.col >= 0 && cell.col < cols {
+                shifted.append(cell)
+            }
+        }
+        overlayRows[rowIndex].cells = shifted
+        rebuildActivePositionsForRow(rowIndex)
+    }
+
+    private func markLastColumnUnknown(rowIndex: Int, nowMillis: Int64) {
+        guard cols > 0 else { return }
+        let lastCol = cols - 1
+        let cell = OverlayCellState(
+            active: true,
+            col: lastCol,
+            replacement: nil,
+            unknown: true,
+            originalContents: [],
+            expirationFrame: localFrameSent + 1,
+            predictionTime: nowMillis,
+            tentativeUntilEpoch: predictionEpoch
+        )
+        upsertCell(row: rowIndex, cell: cell)
+    }
+
+    private func markCellUnknown(rowIndex: Int, col: Int, nowMillis: Int64) {
+        let cell = OverlayCellState(
+            active: true,
+            col: col,
+            replacement: nil,
+            unknown: true,
+            originalContents: [],
+            expirationFrame: localFrameSent + 1,
+            predictionTime: nowMillis,
+            tentativeUntilEpoch: predictionEpoch
+        )
+        upsertCell(row: rowIndex, cell: cell)
+    }
+
+    private func rebuildActivePositionsForRow(_ rowIndex: Int) {
+        activeCellPositions = activeCellPositions.filter { $0.row != rowIndex }
+        var hasActiveCells = false
+        for cell in overlayRows[rowIndex].cells where cell.active {
+            activeCellPositions.insert(CellPosition(row: rowIndex, col: cell.col))
+            hasActiveCells = true
+        }
+        if hasActiveCells {
+            activeRowIndices.insert(rowIndex)
+        } else {
+            activeRowIndices.remove(rowIndex)
+        }
     }
 
     private func upsertCell(row: Int, cell: OverlayCellState) {
@@ -475,9 +556,6 @@ final class PredictionEngine {
             return .incorrectOrExpired
         }
         if echoAck < cell.expirationFrame {
-            guard !cell.unknown, let replacement = cell.replacement, replacement != .blank else {
-                return .pending
-            }
             return .pending
         }
         let current = confirmedGrid.cell(atRow: row, col: cell.col)
@@ -575,5 +653,10 @@ final class PredictionEngine {
 
     private func becomeTentative() {
         predictionEpoch += 1
+    }
+
+    private func currentSendIntervalMillis() -> Int64 {
+        let half = (srttMillis + 1) / 2
+        return min(max(half, Constants.sendIntervalMin), Constants.sendIntervalMax)
     }
 }

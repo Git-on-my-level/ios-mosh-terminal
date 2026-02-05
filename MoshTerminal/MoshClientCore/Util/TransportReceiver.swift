@@ -19,18 +19,43 @@ struct RemoteStateTracker: Equatable {
 struct HostDiffApplier {
     var onTerminalOutput: (Data) -> Void
     var onResize: (Int, Int) -> Void
-    var onEchoAck: ((UInt64) -> Void)?
+    var onEchoAckUpdate: ((UInt64) -> Void)?
+    var onEchoAckStandalone: ((UInt64) -> Void)?
 
     func apply(hostEvents: [HostEvent]) {
+        guard !hostEvents.isEmpty else { return }
+
+        var lastEchoAck: UInt64?
+        var hasOutputOrResize = false
+
+        for event in hostEvents {
+            switch event {
+            case .hostBytes:
+                hasOutputOrResize = true
+            case .resize:
+                hasOutputOrResize = true
+            case .echoAck(let value):
+                lastEchoAck = value
+            }
+        }
+
+        if let lastEchoAck {
+            onEchoAckUpdate?(lastEchoAck)
+        }
+
         for event in hostEvents {
             switch event {
             case .hostBytes(let data):
                 onTerminalOutput(data)
             case .resize(let cols, let rows):
                 onResize(cols, rows)
-            case .echoAck(let value):
-                onEchoAck?(value)
+            case .echoAck:
+                break
             }
+        }
+
+        if !hasOutputOrResize, let lastEchoAck {
+            onEchoAckStandalone?(lastEchoAck)
         }
     }
 }

@@ -14,6 +14,11 @@ final class TerminalPredictionCoordinator {
         engine.displayPreference = preference
     }
 
+    func debugSnapshot() -> PredictionDebugMetrics {
+        updateNetworkSnapshot()
+        return engine.debugMetrics
+    }
+
     func reset() {
         engine.reset()
         updateOverlayWithEmpty()
@@ -22,6 +27,7 @@ final class TerminalPredictionCoordinator {
     func handleUserInput(data: Data) {
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
 
             let visibleModel = engine.currentRenderModel(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
             let displayGrid = PredictedDisplayGrid(confirmedGrid: confirmedGrid, renderModel: visibleModel)
@@ -34,6 +40,7 @@ final class TerminalPredictionCoordinator {
     func handleConfirmedOutputApplied() {
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         }
     }
@@ -46,6 +53,7 @@ final class TerminalPredictionCoordinator {
     func handleEchoAckUpdated() {
         withConfirmedGrid { [self] confirmedGrid, nowMillis in
             updateNetworkSnapshot()
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
             updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         }
     }
@@ -71,7 +79,6 @@ final class TerminalPredictionCoordinator {
     }
 
     private func updateOverlay(confirmedGrid: DisplayGrid, nowMillis: Int64) {
-        engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         let renderModel = engine.currentRenderModel(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
         updateOverlayView(renderModel)
     }

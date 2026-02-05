@@ -28,12 +28,23 @@ final class PredictionEngineInputTests: XCTestCase {
         let state = engine.debugState
         XCTAssertEqual(state.cursorPredictions.last?.row, 0)
         XCTAssertEqual(state.cursorPredictions.last?.col, 2)
-        XCTAssertTrue(state.overlayRows[0].unknownRow)
+        XCTAssertFalse(state.overlayRows[0].unknownRow)
 
         let rowCells = state.overlayRows[0].cells
         XCTAssertEqual(rowCells.count, 1)
-        XCTAssertEqual(rowCells.first?.col, 2)
+        XCTAssertEqual(rowCells.first?.col, 9)
         XCTAssertEqual(rowCells.first?.unknown, true)
+    }
+
+    func testInsertModeShiftsRightAndMarksLastColumnUnknown() {
+        let grid = FakeDisplayGrid(cols: 5, rows: 2, cursorRow: 0, cursorCol: 2, isInsertMode: true)
+        let engine = PredictionEngine()
+
+        engine.newUserBytes(Data("x".utf8), displayGrid: grid, nowMillis: 2500)
+
+        let rowCells = engine.debugState.overlayRows[0].cells
+        XCTAssertTrue(rowCells.contains(where: { $0.col == 2 && $0.replacement?.char == "x" }))
+        XCTAssertTrue(rowCells.contains(where: { $0.col == 4 && $0.unknown }))
     }
 
     func testArrowLeftRightUpdatesCursorPrediction() {
@@ -57,6 +68,42 @@ final class PredictionEngineInputTests: XCTestCase {
         XCTAssertEqual(state.cursorPredictions.last?.row, 1)
         XCTAssertEqual(state.cursorPredictions.last?.col, 0)
         XCTAssertEqual(state.predictionEpoch, 1)
+    }
+
+    func testInsertModeShiftsExistingPredictionsRight() {
+        let grid = FakeDisplayGrid(cols: 5, rows: 1, cursorRow: 0, cursorCol: 0)
+        let engine = PredictionEngine()
+
+        engine.newUserBytes(Data("abc".utf8), displayGrid: grid, nowMillis: 1000)
+        engine.newUserBytes(Data([0x1B, 0x5B, 0x44]), displayGrid: grid, nowMillis: 1010)
+        engine.newUserBytes(Data([0x1B, 0x5B, 0x44]), displayGrid: grid, nowMillis: 1020)
+
+        let insertGrid = FakeDisplayGrid(cols: 5, rows: 1, cursorRow: 0, cursorCol: 1, isInsertMode: true)
+        engine.newUserBytes(Data("x".utf8), displayGrid: insertGrid, nowMillis: 1030)
+
+        let rowCells = engine.debugState.overlayRows[0].cells
+        XCTAssertEqual(replacementChar(in: rowCells, col: 0), "a")
+        XCTAssertEqual(replacementChar(in: rowCells, col: 1), "x")
+        XCTAssertEqual(replacementChar(in: rowCells, col: 2), "b")
+        XCTAssertEqual(replacementChar(in: rowCells, col: 3), "c")
+        XCTAssertTrue(rowCells.contains(where: { $0.col == 4 && $0.unknown }))
+    }
+
+    func testBackspaceShiftsExistingPredictionsLeft() {
+        let grid = FakeDisplayGrid(cols: 5, rows: 1, cursorRow: 0, cursorCol: 0)
+        let engine = PredictionEngine()
+
+        engine.newUserBytes(Data("abcd".utf8), displayGrid: grid, nowMillis: 2000)
+        engine.newUserBytes(Data([0x1B, 0x5B, 0x44]), displayGrid: grid, nowMillis: 2010)
+        engine.newUserBytes(Data([0x1B, 0x5B, 0x44]), displayGrid: grid, nowMillis: 2020)
+        engine.newUserBytes(Data([0x7F]), displayGrid: grid, nowMillis: 2030)
+
+        let rowCells = engine.debugState.overlayRows[0].cells
+        XCTAssertEqual(replacementChar(in: rowCells, col: 0), "a")
+        XCTAssertEqual(replacementChar(in: rowCells, col: 1), "c")
+        XCTAssertEqual(replacementChar(in: rowCells, col: 2), "d")
+        XCTAssertNil(replacementChar(in: rowCells, col: 3))
+        XCTAssertTrue(rowCells.contains(where: { $0.col == 4 && $0.unknown }))
     }
 }
 
@@ -83,4 +130,8 @@ private struct FakeDisplayGrid: DisplayGrid {
         }
         return cells[row][col]
     }
+}
+
+private func replacementChar(in cells: [OverlayCellState], col: Int) -> Character? {
+    cells.first(where: { $0.col == col })?.replacement?.char
 }
