@@ -65,6 +65,18 @@ struct SettingsView: View {
                 SectionHeader("About")
             }
 
+            Section {
+                NavigationLink {
+                    TipJarView()
+                } label: {
+                    AppRowLabel("Tip Jar", systemImage: "heart")
+                }
+            } header: {
+                SectionHeader("Support Development")
+            } footer: {
+                Text("Optional tip. No additional features are unlocked.")
+            }
+
 #if DEBUG
             Section {
                 Toggle(isOn: $settings.debugOverlayEnabled) {
@@ -153,4 +165,5 @@ private struct ThemePickerRow: View {
     }
     .environmentObject(AppSettings())
     .environmentObject(AppEnvironment())
+    .environmentObject(TipJarStore())
 }

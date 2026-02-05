@@ -4,14 +4,19 @@ import SwiftUI
 struct MoshTerminalApp: App {
     @StateObject private var environment = AppEnvironment()
     @StateObject private var settings = AppSettings()
+    @StateObject private var tipJarStore = TipJarStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(environment)
                 .environmentObject(settings)
+                .environmentObject(tipJarStore)
                 .tint(AppTheme.tintColor)
                 .preferredColorScheme(settings.themeMode.preferredColorScheme)
+                .task {
+                    tipJarStore.start()
+                }
         }
     }
 }

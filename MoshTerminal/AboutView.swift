@@ -29,13 +29,19 @@ struct AboutView: View {
                 HStack {
                     AppRowLabel("Support", systemImage: "questionmark.circle")
                     Spacer()
-                    Text("Report an Issue")
+                    Text("Contact Support")
                         .font(AppTheme.typography.caption)
                         .foregroundStyle(colors.secondaryText)
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    openGitHubIssues()
+                    openSupport()
+                }
+
+                NavigationLink {
+                    TipJarView()
+                } label: {
+                    AppRowLabel("Tip Jar", systemImage: "heart")
                 }
             }
 
@@ -59,11 +65,35 @@ struct AboutView: View {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     }
 
-    private func openGitHubIssues() {
-        guard let url = URL(string: "https://github.com/Git-on-my-level/ios-mosh-terminal/issues") else {
-            return
+    private var supportEmail: String? {
+        let rawValue = Bundle.main.infoDictionary?["MoshTerminalSupportEmail"] as? String
+        let trimmed = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (trimmed?.isEmpty == false) ? trimmed : nil
+    }
+
+    private var supportURL: URL? {
+        let rawValue = (Bundle.main.infoDictionary?["MoshTerminalSupportURL"] as? String)
+            ?? "https://github.com/Git-on-my-level/ios-mosh-terminal/issues"
+        return URL(string: rawValue)
+    }
+
+    private func openSupport() {
+        if let supportEmail {
+            var components = URLComponents()
+            components.scheme = "mailto"
+            components.path = supportEmail
+            components.queryItems = [
+                URLQueryItem(name: "subject", value: "Mosh Terminal Support (v\(version) build \(build))")
+            ]
+            if let url = components.url {
+                openURL(url)
+                return
+            }
         }
-        openURL(url)
+
+        if let supportURL {
+            openURL(supportURL)
+        }
     }
 }
 
@@ -71,4 +101,5 @@ struct AboutView: View {
     NavigationStack {
         AboutView()
     }
+    .environmentObject(TipJarStore())
 }

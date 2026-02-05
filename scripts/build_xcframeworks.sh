@@ -10,8 +10,8 @@ OPENSSL_SRC="$SRC_DIR/openssl"
 LIBSSH2_SRC="$SRC_DIR/libssh2"
 
 DEPLOYMENT_TARGET=${DEPLOYMENT_TARGET:-"17.0"}
-OPENSSL_REF="openssl-3.0.14"
-LIBSSH2_REF="libssh2-1.11.0"
+OPENSSL_REF="openssl-3.0.19"
+LIBSSH2_REF="libssh2-1.11.1"
 
 JOBS=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 

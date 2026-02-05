@@ -12,6 +12,12 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Used to connect to servers on your local network.</string>
+	<key>MoshTerminalSupportEmail</key>
+	<string></string>
+	<key>MoshTerminalSupportURL</key>
+	<string>https://github.com/Git-on-my-level/ios-mosh-terminal/issues</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

@@ -10,6 +10,7 @@ All data remains on-device:
 - SSH host configurations are stored locally in the app's container
 - SSH private keys are stored in the iOS Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (device-only, unlocked-only)
 - Terminal session data is not logged or transmitted to any third-party servers
+- Optional in-app tips are processed by Apple (StoreKit); the app does not log or transmit purchase events
 - No analytics or crash reporting is included
 
 ## Third-Party SDKs
@@ -60,10 +61,13 @@ When submitting the app, use the following responses for the privacy questionnai
 
 ### Additional Notes
 
-- The app does not use any "required reason" APIs (e.g., Contacts, Location, Photos, Camera, Microphone)
-- A `PrivacyInfo.xcprivacy` file is included in the app bundle declaring no privacy-sensitive API usage
+- The app does not use privacy-sensitive APIs like Contacts, Location, Photos, Camera, or Microphone
+- A `PrivacyInfo.xcprivacy` file is included in the app bundle declaring required-reason API usage:
+  - `NSPrivacyAccessedAPICategoryUserDefaults` (`CA92.1`) for on-device app settings
+  - `NSPrivacyAccessedAPICategorySystemBootTime` (`35F9.1`) for monotonic timers/elapsed-time calculations
 - All keys and sensitive data are stored using iOS secure storage mechanisms (Keychain)
 - The app requires full network access for SSH and Mosh connections but does not track or monetize user activity
+- The app includes `NSLocalNetworkUsageDescription` because users may connect to servers on the local network
 
 ## References
 

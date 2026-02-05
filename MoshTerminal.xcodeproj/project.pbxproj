@@ -33,6 +33,8 @@
 		F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1E1 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1E0 /* AboutView.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1F2 /* TipJarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1F1 /* TipJarStore.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1F3 /* TipJarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1F0 /* TipJarView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1D1 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */; };
 		A2B3C4D5E6F708192A3B4C5E /* TransportFraming.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B3C4D5E6F708192A3B4C5D /* TransportFraming.swift */; };
 		A7E6B7A2F6F14E3F9C1C2D3F /* MoshRuntimeKeepaliveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */; };
@@ -143,6 +145,8 @@
 		A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = MoshTerminal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1E0 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1F0 /* TipJarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipJarView.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1F1 /* TipJarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipJarStore.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		A2B3C4D5E6F708192A3B4C5D /* TransportFraming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportFraming.swift; sourceTree = "<group>"; };
 		A5D3691FA6324878BDB61B35 /* SecureRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureRandom.swift; sourceTree = "<group>"; };
@@ -292,6 +296,8 @@
 				E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */,
 				D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1F0 /* TipJarView.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1F1 /* TipJarStore.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */,
 			A1A1A1A1A1A1A1A1A1A1A1E0 /* AboutView.swift */,
 				89E508C0249C443DB5EBB2E5 /* Licenses.swift */,
@@ -549,6 +555,8 @@
 				E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1F3 /* TipJarView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1F2 /* TipJarStore.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1E1 /* AboutView.swift in Sources */,
 				74BCF1FED6F14F2BB1B9A388 /* Licenses.swift in Sources */,

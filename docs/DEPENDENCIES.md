@@ -14,8 +14,8 @@ This document freezes the dependency approach for v1 and captures licensing/comp
 
 ## Pinned Versions (XCFramework pipeline)
 
-- OpenSSL: **3.0.14** (git tag `openssl-3.0.14`)
-- libssh2: **1.11.0** (git tag `libssh2-1.11.0`)
+- OpenSSL: **3.0.19** (git tag `openssl-3.0.19`)
+- libssh2: **1.11.1** (git tag `libssh2-1.11.1`)
 
 ## Dependency Matrix
 

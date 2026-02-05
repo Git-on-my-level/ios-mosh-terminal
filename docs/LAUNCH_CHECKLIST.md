@@ -38,11 +38,17 @@ Prepare the following before submitting:
 
 - [ ] **Support URL** (required): A public-facing URL where users can get support
   - Examples: GitHub Issues page, personal website, or contact form
-  - Recommendation: Use the repository's issues page or a dedicated support page
+  - Recommendation: Use a dedicated support page (or a public issues tracker). Avoid linking to private repos.
 - [ ] **Privacy Policy URL** (required if app collects data): Not required for MVP (see `docs/PRIVACY_AND_EXPORT_COMPLIANCE.md`)
   - If you create one, ensure it states "no data collection"
 - [ ] **Contact Email** (required): Email address for Apple/Apple Review to contact you
   - Use a monitored email address associated with your Apple Developer account
+- [ ] **In-App Purchases** (optional): Tip Jar consumables created and submitted
+  - Product IDs must match the app code and StoreKit config:
+    - `com.scalingforever.MoshTerminal.tip.small`
+    - `com.scalingforever.MoshTerminal.tip.medium`
+    - `com.scalingforever.MoshTerminal.tip.large`
+  - Local testing config: `MoshTerminal.xcodeproj/xcshareddata/Tips.storekit`
 
 ### App Information
 
@@ -81,7 +87,8 @@ This app uses encryption for terminal emulation. The answers below are documente
 ### Privacy Manifest
 
 - [ ] `PrivacyInfo.xcprivacy` is included in the app bundle (see `docs/PRIVACY_AND_EXPORT_COMPLIANCE.md`)
-- [ ] No required reason APIs are used (Contacts, Location, Photos, etc.)
+- [ ] Required reason APIs are declared (UserDefaults `CA92.1`, System Boot Time `35F9.1`); no other privacy-sensitive APIs are used
+- [ ] `NSLocalNetworkUsageDescription` is present in `Info.plist`
 - [ ] Privacy questionnaire answers:
   - **Data Used to Track You**: None
   - **Data Linked to You**: None
