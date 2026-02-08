@@ -11,10 +11,10 @@ protocol DebugLogProviding: Sendable {
 
 final class DebugLogger: DebugLogProviding {
     static let shared = DebugLogger()
-    
+
     private let logger: Logger
     private let subsystem = "com.moshterminal"
-    
+
     var isEnabled: Bool {
         didSet {
             if isEnabled {
@@ -22,27 +22,27 @@ final class DebugLogger: DebugLogProviding {
             }
         }
     }
-    
+
     init() {
         self.logger = Logger(subsystem: subsystem, category: "Connection")
         self.isEnabled = false
     }
-    
+
     func logConnectionEvent(_ event: ConnectionDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
-    
+
     func logTransportEvent(_ event: TransportDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
-    
+
     func logLivenessEvent(_ event: LivenessDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
-    
+
     func logPredictionEvent(_ event: PredictionDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
@@ -63,10 +63,10 @@ struct ConnectionDebugEvent: Sendable {
         case idleSessionStart(isReconnect: Bool)
         case idleSessionEnd
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -104,13 +104,13 @@ struct ConnectionDebugEvent: Sendable {
             return "[\(timestampStr)] Idle session ended"
         }
     }
-    
+
     private func redactUUID(_ uuid: String) -> String {
         let str = uuid.replacingOccurrences(of: "-", with: "")
         guard str.count >= 8 else { return "[REDACTED]" }
         return String(str.prefix(8)) + "..."
     }
-    
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000
@@ -127,10 +127,10 @@ struct TransportDebugEvent: Sendable {
         case connectAttempt(host: String, port: UInt16)
         case roundtripSuccess
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -148,7 +148,7 @@ struct TransportDebugEvent: Sendable {
             return "[\(timestampStr)] Roundtrip success"
         }
     }
-    
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000
@@ -166,10 +166,10 @@ struct LivenessDebugEvent: Sendable {
         case corruptPacket(consecutiveCount: Int)
         case unreachableSend(consecutiveCount: Int)
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -189,7 +189,7 @@ struct LivenessDebugEvent: Sendable {
             return "[\(timestampStr)] Unreachable send (consecutive: \(count))"
         }
     }
-    
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000
@@ -207,10 +207,10 @@ struct PredictionDebugEvent: Sendable {
             srttMillis: UInt64?
         )
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -221,7 +221,7 @@ struct PredictionDebugEvent: Sendable {
             return "[\(timestampStr)] Network snapshot: sent=\(sent), acked=\(acked), echoAck=\(echo), srtt=\(srttStr)"
         }
     }
-    
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000

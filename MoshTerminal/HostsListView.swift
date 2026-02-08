@@ -126,8 +126,9 @@ struct HostsListView: View {
                 }
                 .onDelete { offsets in
                     Task {
-                        for offset in offsets {
-                            await deleteHost(viewModel.hosts[offset])
+                        let hostsToDelete = offsets.map { viewModel.hosts[$0] }
+                        for host in hostsToDelete {
+                            await deleteHost(host)
                         }
                     }
                 }
