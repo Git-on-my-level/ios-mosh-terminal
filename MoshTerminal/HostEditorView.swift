@@ -1,5 +1,50 @@
 import SwiftUI
 
+struct ValidationResult: Equatable {
+    let displayName: String
+    let hostname: String
+    let username: String
+    let sshPort: Int?
+    let keyRefId: String?
+
+    var hostnameError: String? {
+        hostname.isEmpty ? "Hostname is required" : nil
+    }
+
+    var usernameError: String? {
+        username.isEmpty ? "Username is required" : nil
+    }
+
+    var portError: String? {
+        sshPort == nil ? "Port must be 1-65535" : nil
+    }
+
+    var keyError: String? {
+        keyRefId == nil ? "SSH key is required" : nil
+    }
+
+    var validationErrors: [String] {
+        var errors: [String] = []
+        if hostname.isEmpty {
+            errors.append("Hostname is required.")
+        }
+        if username.isEmpty {
+            errors.append("Username is required.")
+        }
+        if sshPort == nil {
+            errors.append("SSH port must be between 1 and 65535.")
+        }
+        if keyRefId == nil {
+            errors.append("An SSH key is required.")
+        }
+        return errors
+    }
+
+    var isValid: Bool {
+        validationErrors.isEmpty
+    }
+}
+
 @MainActor
 final class HostEditorViewModel: ObservableObject {
     @Published var displayName: String
@@ -35,50 +80,53 @@ final class HostEditorViewModel: ObservableObject {
     }
 
     var isFormValid: Bool {
-        validationErrors.isEmpty
+        validate().isValid
     }
 
     // MARK: - Inline field validation errors
 
     var hostnameError: String? {
         guard hasAttemptedSave else { return nil }
-        let trimmed = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            return "Hostname is required"
-        }
-        return nil
+        return validate().hostnameError
     }
 
     var usernameError: String? {
         guard hasAttemptedSave else { return nil }
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            return "Username is required"
-        }
-        return nil
+        return validate().usernameError
     }
 
     var portError: String? {
         guard hasAttemptedSave else { return nil }
-        if portValue == nil {
-            return "Port must be 1-65535"
-        }
-        return nil
+        return validate().portError
     }
 
     var keyError: String? {
         guard hasAttemptedSave else { return nil }
-        if selectedKeyId == nil {
-            return "SSH key is required"
-        }
-        return nil
+        return validate().keyError
     }
 
     var validationSummary: String {
-        if validationErrors.isEmpty {
-            return ""
+        validate().validationErrors.joined(separator: "\n")
+    }
+
+    func validate() -> ValidationResult {
+        let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedHostname = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPortText = sshPortText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var portValue: Int?
+        if let value = Int(trimmedPortText), (1...65535).contains(value) {
+            portValue = value
         }
-        return validationErrors.joined(separator: "\n")
+
+        return ValidationResult(
+            displayName: trimmedDisplayName,
+            hostname: trimmedHostname,
+            username: trimmedUsername,
+            sshPort: portValue,
+            keyRefId: selectedKeyId
+        )
     }
 
     func loadKeys() {
@@ -98,25 +146,18 @@ final class HostEditorViewModel: ObservableObject {
 
     func save(onSuccess: (HostProfile) -> Void) async {
         hasAttemptedSave = true
-        guard validationErrors.isEmpty else {
+        let result = validate()
+        guard result.isValid else {
             return
         }
-        guard let portValue = portValue else {
-            alertMessage = "SSH port must be between 1 and 65535."
+        guard let portValue = result.sshPort, let keyRefId = result.keyRefId else {
             return
         }
-        guard let keyRefId = selectedKeyId else {
-            alertMessage = "An SSH key is required."
-            return
-        }
-        let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedHostname = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
         let host = HostProfile(
             id: existingHost?.id ?? UUID(),
-            displayName: trimmedDisplayName,
-            hostname: trimmedHostname,
-            username: trimmedUsername,
+            displayName: result.displayName,
+            hostname: result.hostname,
+            username: result.username,
             sshPort: portValue,
             keyRefId: keyRefId,
             lastConnectedAt: existingHost?.lastConnectedAt
@@ -127,33 +168,6 @@ final class HostEditorViewModel: ObservableObject {
         } catch {
             alertMessage = error.localizedDescription
         }
-    }
-
-    private var validationErrors: [String] {
-        var errors: [String] = []
-        if hostname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("Hostname is required.")
-        }
-        if username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append("Username is required.")
-        }
-        if portValue == nil {
-            errors.append("SSH port must be between 1 and 65535.")
-        }
-        if selectedKeyId == nil {
-            errors.append("An SSH key is required.")
-        }
-        return errors
-    }
-
-    private var portValue: Int? {
-        guard let value = Int(sshPortText.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            return nil
-        }
-        guard (1...65535).contains(value) else {
-            return nil
-        }
-        return value
     }
 }
 

@@ -174,4 +174,275 @@ final class ViewModelsTests: XCTestCase {
         XCTAssertEqual(mockKeyStore.keys.count, 1)
         XCTAssertEqual(mockKeyStore.keys[0].id, "key-2")
     }
+
+    func testHostEditorViewModelValidationEmptyHostnameFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = ""
+        viewModel.username = "testuser"
+        viewModel.sshPortText = "22"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.hostnameError, "Hostname is required")
+        XCTAssertTrue(result.validationErrors.contains("Hostname is required."))
+    }
+
+    func testHostEditorViewModelValidationWhitespaceHostnameFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "   "
+        viewModel.username = "testuser"
+        viewModel.sshPortText = "22"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.hostnameError, "Hostname is required")
+        XCTAssertTrue(result.validationErrors.contains("Hostname is required."))
+    }
+
+    func testHostEditorViewModelValidationEmptyUsernameFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "example.com"
+        viewModel.username = ""
+        viewModel.sshPortText = "22"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.usernameError, "Username is required")
+        XCTAssertTrue(result.validationErrors.contains("Username is required."))
+    }
+
+    func testHostEditorViewModelValidationWhitespaceUsernameFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "example.com"
+        viewModel.username = "\n\t"
+        viewModel.sshPortText = "22"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.usernameError, "Username is required")
+        XCTAssertTrue(result.validationErrors.contains("Username is required."))
+    }
+
+    func testHostEditorViewModelValidationPortOutOfRangeFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "example.com"
+        viewModel.username = "testuser"
+        viewModel.sshPortText = "0"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.portError, "Port must be 1-65535")
+        XCTAssertTrue(result.validationErrors.contains("SSH port must be between 1 and 65535."))
+    }
+
+    func testHostEditorViewModelValidationPortOverMaxFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "example.com"
+        viewModel.username = "testuser"
+        viewModel.sshPortText = "65536"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.portError, "Port must be 1-65535")
+        XCTAssertTrue(result.validationErrors.contains("SSH port must be between 1 and 65535."))
+    }
+
+    func testHostEditorViewModelValidationPortNonNumericFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "example.com"
+        viewModel.username = "testuser"
+        viewModel.sshPortText = "abc"
+        viewModel.selectedKeyId = "key-1"
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.portError, "Port must be 1-65535")
+        XCTAssertTrue(result.validationErrors.contains("SSH port must be between 1 and 65535."))
+    }
+
+    func testHostEditorViewModelValidationMissingKeyFails() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = []
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = "example.com"
+        viewModel.username = "testuser"
+        viewModel.sshPortText = "22"
+        viewModel.selectedKeyId = nil
+        viewModel.hasAttemptedSave = true
+
+        let result = viewModel.validate()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.keyError, "SSH key is required")
+        XCTAssertTrue(result.validationErrors.contains("An SSH key is required."))
+    }
+
+    func testHostEditorViewModelValidationValidFormSucceeds() async {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.displayName = " Test Host "
+        viewModel.hostname = " example.com "
+        viewModel.username = " testuser "
+        viewModel.sshPortText = " 22 "
+        viewModel.selectedKeyId = "key-1"
+
+        let result = viewModel.validate()
+        XCTAssertTrue(result.isValid)
+        XCTAssertEqual(result.displayName, "Test Host")
+        XCTAssertEqual(result.hostname, "example.com")
+        XCTAssertEqual(result.username, "testuser")
+        XCTAssertEqual(result.sshPort, 22)
+        XCTAssertEqual(result.keyRefId, "key-1")
+        XCTAssertEqual(viewModel.isFormValid, true)
+
+        var savedHost: HostProfile?
+        await viewModel.save { host in
+            savedHost = host
+        }
+
+        XCTAssertNotNil(savedHost)
+        XCTAssertEqual(savedHost?.displayName, "Test Host")
+        XCTAssertEqual(savedHost?.hostname, "example.com")
+        XCTAssertEqual(savedHost?.username, "testuser")
+        XCTAssertEqual(savedHost?.sshPort, 22)
+        XCTAssertEqual(savedHost?.keyRefId, "key-1")
+    }
+
+    func testHostEditorViewModelInlineErrorsNotShownBeforeSaveAttempt() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = ""
+        viewModel.username = ""
+        viewModel.sshPortText = ""
+        viewModel.selectedKeyId = nil
+        viewModel.hasAttemptedSave = false
+
+        XCTAssertNil(viewModel.hostnameError)
+        XCTAssertNil(viewModel.usernameError)
+        XCTAssertNil(viewModel.portError)
+        XCTAssertNil(viewModel.keyError)
+    }
+
+    func testHostEditorViewModelInlineErrorsShownAfterSaveAttempt() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+        viewModel.hostname = ""
+        viewModel.username = ""
+        viewModel.sshPortText = ""
+        viewModel.selectedKeyId = nil
+        viewModel.hasAttemptedSave = true
+
+        XCTAssertNotNil(viewModel.hostnameError)
+        XCTAssertNotNil(viewModel.usernameError)
+        XCTAssertNotNil(viewModel.portError)
+        XCTAssertNotNil(viewModel.keyError)
+        XCTAssertEqual(viewModel.hostnameError, "Hostname is required")
+        XCTAssertEqual(viewModel.usernameError, "Username is required")
+        XCTAssertEqual(viewModel.portError, "Port must be 1-65535")
+        XCTAssertEqual(viewModel.keyError, "SSH key is required")
+    }
 }
