@@ -1,6 +1,6 @@
 import Foundation
 
-final class UnavailableSSHClient: SSHClient, @unchecked Sendable {
+final class UnavailableSSHClient: SSHClient {
     private let hostKeyVerifier: SSHHostKeyVerifying?
 
     init(hostKeyVerifier: SSHHostKeyVerifying? = nil) {

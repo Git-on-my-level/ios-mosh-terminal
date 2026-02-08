@@ -51,6 +51,8 @@ struct DatagramSocketLogEvent: Equatable {
     let kind: Kind
 }
 
+/// `@unchecked Sendable` because socket lifecycle is serialized by `queue`,
+/// with `stateLock` guarding `isClosed` for cross-thread send/receive/close.
 final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unchecked Sendable {
     struct Configuration {
         enum LocalPortStrategy: Equatable {

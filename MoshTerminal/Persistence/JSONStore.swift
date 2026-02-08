@@ -22,11 +22,10 @@ struct StoreMigration {
     let migrate: (StoreState) throws -> StoreState
 }
 
-final class JSONStore: @unchecked Sendable {
+actor JSONStore {
     private let fileURL: URL
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
-    private let queue: DispatchQueue
     private let fileProtectionType: FileProtectionType
     private let excludeFromBackup: Bool
 
@@ -46,7 +45,6 @@ final class JSONStore: @unchecked Sendable {
         self.fileURL = fileURL
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
-        self.queue = DispatchQueue(label: "JSONStore.queue")
         self.fileProtectionType = fileProtectionType
         self.excludeFromBackup = excludeFromBackup
         self.encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -55,24 +53,18 @@ final class JSONStore: @unchecked Sendable {
     }
 
     func load() async throws -> StoreState {
-        try await runOnQueue {
-            try self.loadUnlocked()
-        }
+        try loadUnlocked()
     }
 
     func save(_ state: StoreState) async throws {
-        try await runOnQueue {
-            try self.saveUnlocked(state)
-        }
+        try saveUnlocked(state)
     }
 
     func update<T>(_ transform: @escaping (inout StoreState) throws -> T) async throws -> T {
-        try await runOnQueue {
-            var state = try self.loadUnlocked()
-            let result = try transform(&state)
-            try self.saveUnlocked(state)
-            return result
-        }
+        var state = try loadUnlocked()
+        let result = try transform(&state)
+        try saveUnlocked(state)
+        return result
     }
 
     private func loadUnlocked() throws -> StoreState {
@@ -149,18 +141,6 @@ final class JSONStore: @unchecked Sendable {
         return options
     }
 
-    private func runOnQueue<T>(_ work: @escaping () throws -> T) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                do {
-                    continuation.resume(returning: try work())
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
     static func defaultFileURL() -> URL {
         let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let bundleFolder = Bundle.main.bundleIdentifier ?? "MoshTerminal"
@@ -170,7 +150,7 @@ final class JSONStore: @unchecked Sendable {
     }
 }
 
-final class HostRepository: @unchecked Sendable {
+actor HostRepository {
     private let store: JSONStore
 
     init(store: JSONStore) {
@@ -178,7 +158,8 @@ final class HostRepository: @unchecked Sendable {
     }
 
     func all() async throws -> [HostProfile] {
-        try await store.load().hosts
+        let state = try await store.load()
+        return state.hosts
     }
 
     func upsert(_ host: HostProfile) async throws {
@@ -206,7 +187,7 @@ final class HostRepository: @unchecked Sendable {
 
 extension HostRepository: HostRepositoryProtocol {}
 
-final class TrustedHostKeyRepository: @unchecked Sendable {
+actor TrustedHostKeyRepository {
     private let store: JSONStore
 
     init(store: JSONStore) {

@@ -3,6 +3,8 @@ import Foundation
 import libssh2
 import Darwin
 
+/// `@unchecked Sendable` because SSH session state is confined to `queue`,
+/// with cancellation coordination guarded by `connectStateLock`.
 final class LibSSH2Client: SSHClient, @unchecked Sendable {
     private static let channelWindowDefault: UInt32 = 2 * 1024 * 1024
     private static let channelPacketDefault: UInt32 = 32768
