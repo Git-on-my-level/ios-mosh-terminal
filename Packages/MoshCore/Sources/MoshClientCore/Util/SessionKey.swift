@@ -1,13 +1,13 @@
 import Foundation
 
-enum SessionKeyError: Error, Equatable {
+public enum SessionKeyError: Error, Equatable {
     case invalidLength
     case invalidBase64
     case invalidDecodedLength
 }
 
-enum SessionKey {
-    static func decode(_ printable: String) throws -> [UInt8] {
+public enum SessionKey {
+    public static func decode(_ printable: String) throws -> [UInt8] {
         let normalized: String
         switch printable.count {
         case 22:

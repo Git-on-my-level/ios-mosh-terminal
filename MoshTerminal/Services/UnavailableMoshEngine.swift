@@ -1,5 +1,7 @@
 import Foundation
 
+/// `@unchecked Sendable` because it is only used on the main actor and holds
+/// mutable handler references without additional synchronization.
 final class UnavailableMoshEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?

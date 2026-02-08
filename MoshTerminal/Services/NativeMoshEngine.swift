@@ -1,4 +1,5 @@
 import Foundation
+import Prediction
 
 private actor NativeMoshEngineState {
     enum State {
@@ -33,6 +34,8 @@ private actor NativeMoshEngineState {
     }
 }
 
+/// `@unchecked Sendable` because runtime state is isolated to `MoshRuntime` and
+/// `NativeMoshEngineState` actors; handler references are set on the main actor.
 final class NativeMoshEngine: MoshEngine, MoshEngineDebugProviding, PredictionNetworkSnapshotProviding, PredictionEchoAckNotifying, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?

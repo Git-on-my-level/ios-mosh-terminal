@@ -1,6 +1,6 @@
 import Foundation
 
-enum ProtoCodecError: Error, Equatable {
+public enum ProtoCodecError: Error, Equatable {
     case truncated
     case malformedVarint
     case invalidWireType
@@ -122,22 +122,22 @@ struct ProtoWriter {
     }
 }
 
-struct TransportInstruction: Equatable {
-    var protocolVersion: UInt32
-    var oldNum: UInt64
-    var newNum: UInt64
-    var ackNum: UInt64
-    var throwawayNum: UInt64
-    var diff: Data
-    var chaff: Data
+public struct TransportInstruction: Equatable {
+    public var protocolVersion: UInt32
+    public var oldNum: UInt64
+    public var newNum: UInt64
+    public var ackNum: UInt64
+    public var throwawayNum: UInt64
+    public var diff: Data
+    public var chaff: Data
 
-    init(protocolVersion: UInt32 = 0,
-         oldNum: UInt64 = 0,
-         newNum: UInt64 = 0,
-         ackNum: UInt64 = 0,
-         throwawayNum: UInt64 = 0,
-         diff: Data = Data(),
-         chaff: Data = Data()) {
+    public init(protocolVersion: UInt32 = 0,
+                oldNum: UInt64 = 0,
+                newNum: UInt64 = 0,
+                ackNum: UInt64 = 0,
+                throwawayNum: UInt64 = 0,
+                diff: Data = Data(),
+                chaff: Data = Data()) {
         self.protocolVersion = protocolVersion
         self.oldNum = oldNum
         self.newNum = newNum
@@ -147,7 +147,7 @@ struct TransportInstruction: Equatable {
         self.chaff = chaff
     }
 
-    init(decode data: Data) throws {
+    public init(decode data: Data) throws {
         var reader = ProtoReader(data: data)
         self.init()
 
@@ -206,7 +206,7 @@ struct TransportInstruction: Equatable {
         }
     }
 
-    func encode() -> Data {
+    public func encode() -> Data {
         var writer = ProtoWriter()
         if protocolVersion != 0 {
             writer.writeKey(fieldNumber: 1, wireType: 0)

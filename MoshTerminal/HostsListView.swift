@@ -5,9 +5,9 @@ final class HostsListViewModel: ObservableObject {
     @Published var hosts: [HostProfile] = []
     @Published var alertMessage: String?
 
-    private let hostRepository: HostRepository
+    private let hostRepository: any HostRepositoryProtocol
 
-    init(hostRepository: HostRepository) {
+    init(hostRepository: any HostRepositoryProtocol) {
         self.hostRepository = hostRepository
     }
 
@@ -53,13 +53,13 @@ struct HostsListView: View {
     @StateObject private var viewModel: HostsListViewModel
     @State private var editorContext: HostEditorContext?
 
-    private let hostRepository: HostRepository
-    private let keyStore: KeychainPrivateKeyStore
+    private let hostRepository: any HostRepositoryProtocol
+    private let keyStore: any PrivateKeyManaging
     @ObservedObject private var connectionManager: ConnectionManager
 
     init(
-        hostRepository: HostRepository,
-        keyStore: KeychainPrivateKeyStore,
+        hostRepository: any HostRepositoryProtocol,
+        keyStore: any PrivateKeyManaging,
         connectionManager: ConnectionManager
     ) {
         self.hostRepository = hostRepository
@@ -103,13 +103,7 @@ struct HostsListView: View {
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
-                            Task {
-                                if connectionManager.activeHostId == host.id {
-                                    await connectionManager.disconnect(clearSession: true)
-                                }
-                                await viewModel.deleteHost(id: host.id)
-                                await viewModel.loadHosts()
-                            }
+                            Task { await deleteHost(host) }
                         }
                         Button("Edit") {
                             editorContext = HostEditorContext(mode: .edit(host))
@@ -124,13 +118,7 @@ struct HostsListView: View {
                         }
                         Divider()
                         Button(role: .destructive) {
-                            Task {
-                                if connectionManager.activeHostId == host.id {
-                                    await connectionManager.disconnect(clearSession: true)
-                                }
-                                await viewModel.deleteHost(id: host.id)
-                                await viewModel.loadHosts()
-                            }
+                            Task { await deleteHost(host) }
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -138,13 +126,10 @@ struct HostsListView: View {
                 }
                 .onDelete { offsets in
                     Task {
-                        for offset in offsets {
-                            let hostId = viewModel.hosts[offset].id
-                            if connectionManager.activeHostId == hostId {
-                                await connectionManager.disconnect(clearSession: true)
-                            }
+                        let hostsToDelete = offsets.map { viewModel.hosts[$0] }
+                        for host in hostsToDelete {
+                            await deleteHost(host)
                         }
-                        await viewModel.deleteHosts(at: offsets)
                     }
                 }
             }
@@ -185,6 +170,14 @@ struct HostsListView: View {
             await viewModel.loadHosts()
         }
         .appScreenBackground()
+    }
+
+    private func deleteHost(_ host: HostProfile) async {
+        if connectionManager.activeHostId == host.id {
+            await connectionManager.disconnect(clearSession: true)
+        }
+        await viewModel.deleteHost(id: host.id)
+        await viewModel.loadHosts()
     }
 }
 
@@ -247,26 +240,11 @@ private struct HostEditorContext: Identifiable {
 
 #Preview {
     NavigationStack {
-        let store = JSONStore()
-        let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
-        let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
-        let keyStore = KeychainPrivateKeyStore()
-        let moshBootstrapper = MoshBootstrapper(sshClientFactory: sshClientFactory)
-        let appLifecycleService = AppLifecycleService()
-        let networkPathService = NetworkPathService()
-        let hostRepository = HostRepository(store: store)
-        let connectionManager = ConnectionManager(
-            keyStore: keyStore,
-            hostRepository: hostRepository,
-            moshBootstrapper: moshBootstrapper,
-            moshEngineFactory: { LoopbackMoshEngine() },
-            appLifecycleService: appLifecycleService,
-            networkPathService: networkPathService
-        )
+        let previewDeps = AppEnvironment.makePreviewDependencies()
         HostsListView(
-            hostRepository: hostRepository,
-            keyStore: keyStore,
-            connectionManager: connectionManager
+            hostRepository: previewDeps.hostRepository,
+            keyStore: previewDeps.keyStore,
+            connectionManager: previewDeps.connectionManager
         )
     }
 }

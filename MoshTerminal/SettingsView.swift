@@ -1,3 +1,4 @@
+import Prediction
 import SwiftUI
 
 struct SettingsView: View {

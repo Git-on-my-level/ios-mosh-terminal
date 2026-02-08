@@ -1,12 +1,12 @@
 import Foundation
 import Security
 
-enum SecureRandom {
-    enum SecureRandomError: Error {
+public enum SecureRandom {
+    public enum SecureRandomError: Error {
         case secRandomFailed(OSStatus)
     }
 
-    static func bytes(count: Int) throws -> [UInt8] {
+    public static func bytes(count: Int) throws -> [UInt8] {
         precondition(count >= 0)
         if count == 0 {
             return []
@@ -19,7 +19,7 @@ enum SecureRandom {
         return bytes
     }
 
-    static func nonThrowingBytes(count: Int) -> [UInt8] {
+    public static func nonThrowingBytes(count: Int) -> [UInt8] {
         do {
             return try bytes(count: count)
         } catch {

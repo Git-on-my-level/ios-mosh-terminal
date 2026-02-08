@@ -1,5 +1,6 @@
 import XCTest
 @testable import MoshTerminal
+@testable import Prediction
 
 private struct CellPosition: Hashable {
     let row: Int

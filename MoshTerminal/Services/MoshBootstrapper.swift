@@ -123,3 +123,5 @@ final class MoshBootstrapper: Sendable {
         return String(output[..<index]) + "..."
     }
 }
+
+extension MoshBootstrapper: MoshBootstrapping {}

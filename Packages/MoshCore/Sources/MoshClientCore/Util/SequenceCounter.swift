@@ -1,10 +1,12 @@
 import Foundation
 
-final class SequenceCounter {
+public final class SequenceCounter {
     private let lock = NSLock()
     private var value: UInt64 = 0
 
-    func next() -> UInt64 {
+    public init() {}
+
+    public func next() -> UInt64 {
         lock.lock()
         defer { lock.unlock() }
         if value == UInt64.max {

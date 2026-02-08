@@ -1,9 +1,11 @@
 import Foundation
+import Prediction
 import SwiftTerm
 import UIKit
 
 typealias TerminalUIKitView = SwiftTerm.TerminalView
 
+@MainActor
 final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
     @Published var isCtrlActive = false
 

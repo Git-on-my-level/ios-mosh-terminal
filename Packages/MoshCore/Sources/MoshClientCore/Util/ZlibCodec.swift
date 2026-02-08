@@ -1,17 +1,17 @@
 import Foundation
 import zlib
 
-enum ZlibCodecError: Error, Equatable {
+public enum ZlibCodecError: Error, Equatable {
     case compressionFailed(code: Int32)
     case decompressionFailed(code: Int32)
     case outputTooLarge(max: Int)
     case invalidLimit
 }
 
-enum ZlibCodec {
-    static let defaultMaxOutputBytes = 4 * 1024 * 1024
+public enum ZlibCodec {
+    public static let defaultMaxOutputBytes = 4 * 1024 * 1024
 
-    static func compress(_ data: Data) throws -> Data {
+    public static func compress(_ data: Data) throws -> Data {
         let sourceCount = data.count
         let bound = zlib.compressBound(uLong(sourceCount))
         var destination = Data(count: Int(bound))
@@ -33,7 +33,7 @@ enum ZlibCodec {
         return destination
     }
 
-    static func decompress(_ data: Data, maxOutputBytes: Int = defaultMaxOutputBytes) throws -> Data {
+    public static func decompress(_ data: Data, maxOutputBytes: Int = defaultMaxOutputBytes) throws -> Data {
         guard maxOutputBytes >= 0 else {
             throw ZlibCodecError.invalidLimit
         }

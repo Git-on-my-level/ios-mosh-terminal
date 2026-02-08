@@ -1,8 +1,11 @@
 import Foundation
+import MoshClientCore
 #if DEBUG
 import os
 #endif
 
+/// `@unchecked Sendable` because shared state is protected by `stateLock`,
+/// and socket entry lifecycles are coordinated through that lock.
 final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
     struct Configuration {
         var enablePortHopping: Bool = true

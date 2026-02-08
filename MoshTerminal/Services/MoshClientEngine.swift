@@ -87,6 +87,8 @@ private final class MoshClientCallbackContext {
     var isActive = true
 }
 
+/// `@unchecked Sendable` because mutable engine state is confined to `queue`,
+/// and libmosh callbacks only read handler references set during attach/detach.
 final class MoshClientEngine: MoshEngine, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?

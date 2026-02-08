@@ -1,12 +1,12 @@
 import Foundation
 
-struct PredictionRenderModel: Equatable {
-    var overlayRows: [OverlayRowState]
-    var cursorPredictions: [CursorPrediction]
-    var showPredictions: Bool
-    var underlinePredictions: Bool
+public struct PredictionRenderModel: Equatable {
+    public var overlayRows: [OverlayRowState]
+    public var cursorPredictions: [CursorPrediction]
+    public var showPredictions: Bool
+    public var underlinePredictions: Bool
 
-    init(
+    public init(
         overlayRows: [OverlayRowState] = [],
         cursorPredictions: [CursorPrediction] = [],
         showPredictions: Bool = false,

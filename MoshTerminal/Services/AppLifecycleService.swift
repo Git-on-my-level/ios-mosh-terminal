@@ -56,3 +56,9 @@ final class AppLifecycleService: ObservableObject {
         events.send(event)
     }
 }
+
+extension AppLifecycleService: AppLifecycleProviding {
+    var eventsPublisher: AnyPublisher<Event, Never> {
+        events.eraseToAnyPublisher()
+    }
+}

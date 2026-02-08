@@ -51,6 +51,8 @@ struct DatagramSocketLogEvent: Equatable {
     let kind: Kind
 }
 
+/// `@unchecked Sendable` because socket lifecycle is serialized by `queue`,
+/// with `stateLock` guarding `isClosed` for cross-thread send/receive/close.
 final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unchecked Sendable {
     struct Configuration {
         enum LocalPortStrategy: Equatable {
@@ -269,6 +271,35 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
         return true
     }
 
+    private static func performBind(socketFD: Int32, family: Int32, port: UInt16) -> Bool {
+        var storage = sockaddr_storage()
+        var addrLen: socklen_t = 0
+
+        if family == AF_INET {
+            var addr = sockaddr_in()
+            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+            addr.sin_family = sa_family_t(AF_INET)
+            addr.sin_port = port.bigEndian
+            addr.sin_addr = in_addr(s_addr: INADDR_ANY.bigEndian)
+            memcpy(&storage, &addr, MemoryLayout<sockaddr_in>.size)
+            addrLen = socklen_t(MemoryLayout<sockaddr_in>.size)
+        } else {
+            var addr = sockaddr_in6()
+            addr.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
+            addr.sin6_family = sa_family_t(AF_INET6)
+            addr.sin6_port = port.bigEndian
+            addr.sin6_addr = in6addr_any
+            memcpy(&storage, &addr, MemoryLayout<sockaddr_in6>.size)
+            addrLen = socklen_t(MemoryLayout<sockaddr_in6>.size)
+        }
+
+        return withUnsafePointer(to: &storage) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(socketFD, $0, addrLen) == 0
+            }
+        }
+    }
+
     private static func bindSocket(
         _ socketFD: Int32,
         family: Int32,
@@ -282,30 +313,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
             port = UInt16.random(in: range)
         }
 
-        let didBind: Bool
-        if family == AF_INET {
-            var addr = sockaddr_in()
-            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-            addr.sin_family = sa_family_t(AF_INET)
-            addr.sin_port = port.bigEndian
-            addr.sin_addr = in_addr(s_addr: INADDR_ANY.bigEndian)
-            didBind = withUnsafePointer(to: &addr) { pointer in
-                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                    bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
-                }
-            }
-        } else {
-            var addr = sockaddr_in6()
-            addr.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
-            addr.sin6_family = sa_family_t(AF_INET6)
-            addr.sin6_port = port.bigEndian
-            addr.sin6_addr = in6addr_any
-            didBind = withUnsafePointer(to: &addr) { pointer in
-                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                    bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in6>.size)) == 0
-                }
-            }
-        }
+        let didBind = performBind(socketFD: socketFD, family: family, port: port)
 
         if !didBind {
             let bindErrno = errno
@@ -330,30 +338,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
         let attempts = 16
         for _ in 0..<attempts {
             let port = UInt16.random(in: range)
-            let didBind: Bool
-            if family == AF_INET {
-                var addr = sockaddr_in()
-                addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-                addr.sin_family = sa_family_t(AF_INET)
-                addr.sin_port = port.bigEndian
-                addr.sin_addr = in_addr(s_addr: INADDR_ANY.bigEndian)
-                didBind = withUnsafePointer(to: &addr) { pointer in
-                    pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                        bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
-                    }
-                }
-            } else {
-                var addr = sockaddr_in6()
-                addr.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
-                addr.sin6_family = sa_family_t(AF_INET6)
-                addr.sin6_port = port.bigEndian
-                addr.sin6_addr = in6addr_any
-                didBind = withUnsafePointer(to: &addr) { pointer in
-                    pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                        bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in6>.size)) == 0
-                    }
-                }
-            }
+            let didBind = performBind(socketFD: socketFD, family: family, port: port)
             if didBind {
                 return resolveBoundPort(socketFD)
             }
@@ -362,30 +347,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
     }
 
     private static func bindEphemeral(_ socketFD: Int32, family: Int32) throws -> UInt16 {
-        let didBind: Bool
-        if family == AF_INET {
-            var addr = sockaddr_in()
-            addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-            addr.sin_family = sa_family_t(AF_INET)
-            addr.sin_port = 0
-            addr.sin_addr = in_addr(s_addr: INADDR_ANY.bigEndian)
-            didBind = withUnsafePointer(to: &addr) { pointer in
-                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                    bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
-                }
-            }
-        } else {
-            var addr = sockaddr_in6()
-            addr.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.size)
-            addr.sin6_family = sa_family_t(AF_INET6)
-            addr.sin6_port = 0
-            addr.sin6_addr = in6addr_any
-            didBind = withUnsafePointer(to: &addr) { pointer in
-                pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                    bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in6>.size)) == 0
-                }
-            }
-        }
+        let didBind = performBind(socketFD: socketFD, family: family, port: 0)
         if !didBind {
             throw DatagramSocketError.bindFailed(port: nil, errno: errno)
         }

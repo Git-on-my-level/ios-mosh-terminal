@@ -5,9 +5,9 @@ final class TrustedHostKeysViewModel: ObservableObject {
     @Published var keys: [TrustedHostKey] = []
     @Published var alertMessage: String?
 
-    private let repository: TrustedHostKeyRepository
+    private let repository: any TrustedHostKeyManaging
 
-    init(repository: TrustedHostKeyRepository) {
+    init(repository: any TrustedHostKeyManaging) {
         self.repository = repository
     }
 
@@ -36,7 +36,7 @@ final class TrustedHostKeysViewModel: ObservableObject {
 struct TrustedHostKeysView: View {
     @StateObject private var viewModel: TrustedHostKeysViewModel
 
-    init(repository: TrustedHostKeyRepository) {
+    init(repository: any TrustedHostKeyManaging) {
         _viewModel = StateObject(wrappedValue: TrustedHostKeysViewModel(repository: repository))
     }
 
@@ -102,6 +102,7 @@ private struct TrustedHostKeyRow: View {
 
 #Preview {
     NavigationStack {
-        TrustedHostKeysView(repository: TrustedHostKeyRepository(store: JSONStore()))
+        let previewDeps = AppEnvironment.makePreviewDependencies()
+        TrustedHostKeysView(repository: previewDeps.trustedHostKeyRepository)
     }
 }

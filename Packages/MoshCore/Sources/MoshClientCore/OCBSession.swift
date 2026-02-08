@@ -1,6 +1,6 @@
 import Foundation
 
-enum OCBSessionError: Error, Equatable {
+public enum OCBSessionError: Error, Equatable {
     case invalidKeyLength
     case contextAllocationFailed
     case initializationFailed
@@ -49,10 +49,10 @@ private enum OCBConstants {
     static let finalize: Int32 = 1
 }
 
-final class OCBSession {
+public final class OCBSession {
     private let ctx: UnsafeMutableRawPointer
 
-    init(key16: [UInt8]) throws {
+    public init(key16: [UInt8]) throws {
         guard key16.count == 16 else {
             throw OCBSessionError.invalidKeyLength
         }
@@ -74,7 +74,7 @@ final class OCBSession {
         ocb_ae_free(ctx)
     }
 
-    func encrypt(nonceVal: UInt64, plaintext: Data) throws -> Data {
+    public func encrypt(nonceVal: UInt64, plaintext: Data) throws -> Data {
         let nonce12 = OCBSession.nonce12Bytes(for: nonceVal)
         let nonce8 = OCBSession.nonce8Bytes(for: nonceVal)
         var ciphertext = [UInt8](repeating: 0, count: plaintext.count)
@@ -112,7 +112,7 @@ final class OCBSession {
         return output
     }
 
-    func decrypt(ciphertext: Data) throws -> (nonceVal: UInt64, plaintext: Data) {
+    public func decrypt(ciphertext: Data) throws -> (nonceVal: UInt64, plaintext: Data) {
         guard ciphertext.count >= 24 else {
             throw OCBSessionError.invalidCiphertext
         }

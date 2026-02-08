@@ -1,15 +1,7 @@
 import Darwin
 import Foundation
-#if DEBUG
-import os
-#endif
-
-struct PredictionNetworkSnapshot: Sendable, Equatable {
-    let lastSentStateNum: UInt64
-    let lastAckedStateNum: UInt64
-    let echoAck: UInt64
-    let srttMillis: UInt64?
-}
+import MoshClientCore
+import Prediction
 
 final class PredictionNetworkSnapshotStore: Sendable {
     private let lock = NSLock()
@@ -175,7 +167,8 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         let echoAckUpdateHandler: (UInt64) -> Void = { [predictionNetworkStore] value in
             predictionNetworkStore.setEchoAck(value)
 #if DEBUG
-            os_log("echoAck: %llu", log: .default, type: .debug, value)
+            let event = PredictionDebugEvent(kind: .echoAckUpdate(value: value), timestamp: Clock.nowMillis())
+            debugLogger?.logPredictionEvent(event)
 #endif
         }
         let echoAckStandaloneHandler: (UInt64) -> Void = { [weak self] value in
@@ -293,9 +286,9 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
                 guard let instruction = try framing?.processInboundDatagram(datagram) else {
                     continue
                 }
-                let previousAck = sender?.lastAckedStateNum ?? 0
+                let previousAck = sender?.lastAckedStateNumPublic ?? 0
                 try receiver?.process(instruction, nowMillis: now)
-                let currentAck = sender?.lastAckedStateNum ?? previousAck
+                let currentAck = sender?.lastAckedStateNumPublic ?? previousAck
                 if currentAck > previousAck {
                     lastRoundtripSuccessMillis = now
                     predictionNetworkStore.setLastAcked(currentAck)
@@ -374,10 +367,16 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
             
 #if DEBUG
             let snap = predictionNetworkStore.snapshot()
-            os_log("Network snapshot: sent=%llu, acked=%llu, echoAck=%llu, srtt=%@",
-                   log: .default, type: .debug,
-                   snap.lastSentStateNum, snap.lastAckedStateNum, snap.echoAck,
-                   snap.srttMillis.map { String($0) } ?? "nil")
+            let event = PredictionDebugEvent(
+                kind: .networkSnapshot(
+                    lastSentStateNum: snap.lastSentStateNum,
+                    lastAckedStateNum: snap.lastAckedStateNum,
+                    echoAck: snap.echoAck,
+                    srttMillis: snap.srttMillis
+                ),
+                timestamp: Clock.nowMillis()
+            )
+            debugLogger?.logPredictionEvent(event)
 #endif
             
             if instructions.isEmpty {

@@ -16,6 +16,10 @@ final class AppEnvironment: ObservableObject {
 
     let dependencies: Dependencies
 
+    init(dependencies: Dependencies) {
+        self.dependencies = dependencies
+    }
+
     init() {
         let store = JSONStore()
         let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
@@ -35,6 +39,37 @@ final class AppEnvironment: ObservableObject {
             networkPathService: networkPathService
         )
         self.dependencies = Dependencies(
+            hostRepository: hostRepository,
+            keyStore: keyStore,
+            trustedHostKeyRepository: trustedHostKeyRepository,
+            sshClientFactory: sshClientFactory,
+            moshBootstrapper: moshBootstrapper,
+            moshEngineFactory: moshEngineFactory,
+            appLifecycleService: appLifecycleService,
+            networkPathService: networkPathService,
+            connectionManager: connectionManager
+        )
+    }
+
+    static func makePreviewDependencies() -> Dependencies {
+        let store = JSONStore()
+        let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
+        let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
+        let keyStore = KeychainPrivateKeyStore()
+        let moshBootstrapper = MoshBootstrapper(sshClientFactory: sshClientFactory)
+        let moshEngineFactory: MoshEngineFactory = { LoopbackMoshEngine() }
+        let appLifecycleService = AppLifecycleService()
+        let networkPathService = NetworkPathService()
+        let hostRepository = HostRepository(store: store)
+        let connectionManager = ConnectionManager(
+            keyStore: keyStore,
+            hostRepository: hostRepository,
+            moshBootstrapper: moshBootstrapper,
+            moshEngineFactory: moshEngineFactory,
+            appLifecycleService: appLifecycleService,
+            networkPathService: networkPathService
+        )
+        return Dependencies(
             hostRepository: hostRepository,
             keyStore: keyStore,
             trustedHostKeyRepository: trustedHostKeyRepository,

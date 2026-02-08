@@ -1,4 +1,5 @@
 import Combine
+import Prediction
 import SwiftUI
 import SwiftTerm
 import UIKit
@@ -311,43 +312,6 @@ private struct TerminalDebugOverlay: View {
     }
 }
 #endif
-
-/// Detects when this view is removed from a navigation stack (popped).
-/// This is more reliable than `onDisappear`, since switching tabs also triggers `onDisappear`.
-private struct NavigationPopDetector: UIViewControllerRepresentable {
-    let onPop: () -> Void
-
-    func makeUIViewController(context: Context) -> UIViewController {
-        PopObserverController(onPop: onPop)
-    }
-
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
-}
-
-private final class PopObserverController: UIViewController {
-    private let onPop: () -> Void
-
-    init(onPop: @escaping () -> Void) {
-        self.onPop = onPop
-        super.init(nibName: nil, bundle: nil)
-        view.isHidden = true
-        view.isUserInteractionEnabled = false
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        if isMovingFromParent ||
-            parent?.isMovingFromParent == true ||
-            isBeingDismissed ||
-            parent?.isBeingDismissed == true {
-            onPop()
-        }
-    }
-}
 
 /// Bridges SwiftTerm's UIKit-based TerminalView into SwiftUI.
 ///
@@ -848,23 +812,8 @@ private final class KeyboardObserver: ObservableObject {
 
 #Preview {
     let host = HostProfile(displayName: "Preview", hostname: "preview.local", username: "user", keyRefId: "preview-key")
-    let store = JSONStore()
-    let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
-    let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
-    let keyStore = KeychainPrivateKeyStore()
-    let moshBootstrapper = MoshBootstrapper(sshClientFactory: sshClientFactory)
-    let appLifecycleService = AppLifecycleService()
-    let networkPathService = NetworkPathService()
-    let hostRepository = HostRepository(store: store)
-    let connectionManager = ConnectionManager(
-        keyStore: keyStore,
-        hostRepository: hostRepository,
-        moshBootstrapper: moshBootstrapper,
-        moshEngineFactory: { LoopbackMoshEngine() },
-        appLifecycleService: appLifecycleService,
-        networkPathService: networkPathService
-    )
-    let dependencies = TerminalSessionDependencies(connectionManager: connectionManager)
+    let previewDeps = AppEnvironment.makePreviewDependencies()
+    let dependencies = TerminalSessionDependencies(connectionManager: previewDeps.connectionManager)
     NavigationStack {
         TerminalView(host: host, dependencies: dependencies, autoConnect: false)
     }

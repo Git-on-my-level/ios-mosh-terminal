@@ -6,12 +6,12 @@ final class KeyManagementViewModel: ObservableObject {
     @Published var keys: [StoredPrivateKeyMetadata] = []
     @Published var alertMessage: String?
 
-    private let store: KeychainPrivateKeyStore
-    private let hostRepository: HostRepository
+    private let store: any PrivateKeyManaging
+    private let hostRepository: any HostListing
 
     init(
-        store: KeychainPrivateKeyStore = KeychainPrivateKeyStore(),
-        hostRepository: HostRepository = HostRepository(store: JSONStore())
+        store: any PrivateKeyManaging = KeychainPrivateKeyStore(),
+        hostRepository: any HostListing = HostRepository(store: JSONStore())
     ) {
         self.store = store
         self.hostRepository = hostRepository
@@ -138,7 +138,7 @@ struct KeyManagementView: View {
     @State private var isShowingFileImporter = false
     @State private var isShowingPasteSheet = false
 
-    init(hostRepository: HostRepository, keyStore: KeychainPrivateKeyStore) {
+    init(hostRepository: any HostListing, keyStore: any PrivateKeyManaging) {
         _viewModel = StateObject(
             wrappedValue: KeyManagementViewModel(
                 store: keyStore,
@@ -170,11 +170,7 @@ struct KeyManagementView: View {
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
-                            Task {
-                                if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-                                    await viewModel.deleteKeys(at: IndexSet(integer: index))
-                                }
-                            }
+                            Task { await deleteKey(key) }
                         }
                     }
                     .contextMenu {
@@ -185,11 +181,7 @@ struct KeyManagementView: View {
                         }
                         Divider()
                         Button(role: .destructive) {
-                            Task {
-                                if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-                                    await viewModel.deleteKeys(at: IndexSet(integer: index))
-                                }
-                            }
+                            Task { await deleteKey(key) }
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -241,6 +233,12 @@ struct KeyManagementView: View {
             viewModel.loadKeys()
         }
         .appScreenBackground()
+    }
+
+    private func deleteKey(_ key: StoredPrivateKeyMetadata) async {
+        if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
+            await viewModel.deleteKeys(at: IndexSet(integer: index))
+        }
     }
 }
 
@@ -373,9 +371,10 @@ private struct KeyFileDocumentPicker: UIViewControllerRepresentable {
 
 #Preview {
     NavigationStack {
+        let previewDeps = AppEnvironment.makePreviewDependencies()
         KeyManagementView(
-            hostRepository: HostRepository(store: JSONStore()),
-            keyStore: KeychainPrivateKeyStore()
+            hostRepository: previewDeps.hostRepository,
+            keyStore: previewDeps.keyStore
         )
     }
 }
