@@ -1,5 +1,6 @@
 import XCTest
 @testable import MoshTerminal
+@testable import Prediction
 
 final class PredictionEngineCullTests: XCTestCase {
     func testCarriageReturnAtBottomDoesNotPredictScrollOverlay() {

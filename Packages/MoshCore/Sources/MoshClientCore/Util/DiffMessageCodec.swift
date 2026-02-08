@@ -1,6 +1,6 @@
 import Foundation
 
-enum UserEvent: Equatable {
+public enum UserEvent: Equatable {
     case keystroke(Data)
     case resize(cols: Int, rows: Int)
 }

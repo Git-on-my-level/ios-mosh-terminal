@@ -1,4 +1,5 @@
 import Foundation
+import MoshClientCore
 #if DEBUG
 import os
 #endif

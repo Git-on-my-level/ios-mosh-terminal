@@ -1,4 +1,5 @@
 import Combine
+import Prediction
 import SwiftUI
 import SwiftTerm
 import UIKit

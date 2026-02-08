@@ -1,22 +1,23 @@
 import Foundation
+import MoshClientCore
 import SwiftTerm
 import UIKit
 
 @MainActor
-final class TerminalPredictionCoordinator {
+public final class TerminalPredictionCoordinator {
     private let engine = PredictionEngine()
 
-    weak var terminalView: TerminalUIKitView?
-    weak var overlayView: PredictionOverlayView?
-    weak var predictionNetworkProvider: PredictionNetworkSnapshotProviding?
+    public weak var terminalView: SwiftTerm.TerminalView?
+    public weak var overlayView: PredictionOverlayView?
+    public weak var predictionNetworkProvider: PredictionNetworkSnapshotProviding?
 
     private var isNativeCaretSuppressed = false
     private var savedCaretColor: UIColor?
     private var savedCaretTextColor: UIColor?
 
-    init() {}
+    public init() {}
 
-    func setDisplayPreference(_ preference: PredictionDisplayPreference) {
+    public func setDisplayPreference(_ preference: PredictionDisplayPreference) {
         engine.displayPreference = preference
         if preference == .off {
             engine.reset()
@@ -24,17 +25,17 @@ final class TerminalPredictionCoordinator {
         }
     }
 
-    func debugSnapshot() -> PredictionDebugMetrics {
+    public func debugSnapshot() -> PredictionDebugMetrics {
         updateNetworkSnapshot()
         return engine.debugMetrics
     }
 
-    func reset() {
+    public func reset() {
         engine.reset()
         updateOverlayWithEmpty()
     }
 
-    func handleUserInput(data: Data) {
+    public func handleUserInput(data: Data) {
         if engine.displayPreference == .off {
             updateOverlayWithEmpty()
             return
@@ -53,7 +54,7 @@ final class TerminalPredictionCoordinator {
         }
     }
 
-    func handleConfirmedOutputApplied() {
+    public func handleConfirmedOutputApplied() {
         if engine.displayPreference == .off {
             updateOverlayWithEmpty()
             return
@@ -65,12 +66,12 @@ final class TerminalPredictionCoordinator {
         }
     }
 
-    func handleResize(cols: Int, rows: Int) {
+    public func handleResize(cols: Int, rows: Int) {
         engine.reset()
         updateOverlayWithEmpty()
     }
 
-    func handleEchoAckUpdated() {
+    public func handleEchoAckUpdated() {
         if engine.displayPreference == .off {
             updateOverlayWithEmpty()
             return

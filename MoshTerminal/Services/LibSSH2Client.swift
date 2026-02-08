@@ -26,7 +26,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         ) -> Int32
         func fcntl(_ socket: Int32, _ command: Int32, _ value: Int32) -> Int32
         func close(_ socket: Int32) -> Int32
-        func strerror(_ errnum: Int32) -> UnsafePointer<Int8>?
+        func strerror(_ errnum: Int32) -> UnsafePointer<CChar>?
         var currentErrno: Int32 { get }
     }
 
@@ -63,8 +63,8 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             Darwin.close(socket)
         }
 
-        func strerror(_ errnum: Int32) -> UnsafePointer<Int8>? {
-            Darwin.strerror(errnum)
+        func strerror(_ errnum: Int32) -> UnsafePointer<CChar>? {
+            UnsafePointer(Darwin.strerror(errnum))
         }
 
         var currentErrno: Int32 {
@@ -110,7 +110,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             self.socketFD = socketFD
 
             guard let session = libssh2_session_init_ex(nil, nil, nil, nil) else {
-                Self.closeSocket(socketFD)
+                self.closeSocket(socketFD)
                 self.socketFD = -1
                 throw SSHClientError.connectionFailed(message: "Failed to initialize SSH session.")
             }

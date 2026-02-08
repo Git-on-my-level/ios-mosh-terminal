@@ -1,42 +1,42 @@
 import CoreText
 import UIKit
 
-final class PredictionOverlayView: UIView {
-    var model: PredictionRenderModel = PredictionRenderModel() {
+public final class PredictionOverlayView: UIView {
+    public var model: PredictionRenderModel = PredictionRenderModel() {
         didSet {
             scheduleRedraw()
         }
     }
 
-    var predictionTextColor: UIColor = .label {
+    public var predictionTextColor: UIColor = .label {
         didSet {
             guard oldValue != predictionTextColor else { return }
             scheduleRedraw()
         }
     }
 
-    var predictionBackgroundColor: UIColor = .clear {
+    public var predictionBackgroundColor: UIColor = .clear {
         didSet {
             guard oldValue != predictionBackgroundColor else { return }
             scheduleRedraw()
         }
     }
 
-    var predictionUnderlineColor: UIColor = .systemOrange {
+    public var predictionUnderlineColor: UIColor = .systemOrange {
         didSet {
             guard oldValue != predictionUnderlineColor else { return }
             scheduleRedraw()
         }
     }
 
-    var cursorUnderlineColor: UIColor = .systemGreen {
+    public var cursorUnderlineColor: UIColor = .systemGreen {
         didSet {
             guard oldValue != cursorUnderlineColor else { return }
             scheduleRedraw()
         }
     }
 
-    var font: UIFont = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
+    public var font: UIFont = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
             guard oldValue != font else { return }
             _cellMetrics = nil
@@ -79,13 +79,13 @@ final class PredictionOverlayView: UIView {
         }
     }
 
-    init() {
+    public init() {
         super.init(frame: .zero)
         isUserInteractionEnabled = false
         backgroundColor = .clear
     }
 
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -104,7 +104,7 @@ final class PredictionOverlayView: UIView {
         redrawQueue.asyncAfter(deadline: .now() + minFrameInterval, execute: redrawWorkItem!)
     }
 
-    override func draw(_ rect: CGRect) {
+    public override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
         // Always clear previous drawing; this view is transparent.
         context.clear(rect)

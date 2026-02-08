@@ -1,4 +1,5 @@
 import Foundation
+import Prediction
 import SwiftTerm
 import UIKit
 

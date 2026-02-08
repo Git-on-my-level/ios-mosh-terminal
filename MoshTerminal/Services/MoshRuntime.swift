@@ -1,12 +1,7 @@
 import Darwin
 import Foundation
-
-struct PredictionNetworkSnapshot: Sendable, Equatable {
-    let lastSentStateNum: UInt64
-    let lastAckedStateNum: UInt64
-    let echoAck: UInt64
-    let srttMillis: UInt64?
-}
+import MoshClientCore
+import Prediction
 
 final class PredictionNetworkSnapshotStore: Sendable {
     private let lock = NSLock()
@@ -291,9 +286,9 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
                 guard let instruction = try framing?.processInboundDatagram(datagram) else {
                     continue
                 }
-                let previousAck = sender?.lastAckedStateNum ?? 0
+                let previousAck = sender?.lastAckedStateNumPublic ?? 0
                 try receiver?.process(instruction, nowMillis: now)
-                let currentAck = sender?.lastAckedStateNum ?? previousAck
+                let currentAck = sender?.lastAckedStateNumPublic ?? previousAck
                 if currentAck > previousAck {
                     lastRoundtripSuccessMillis = now
                     predictionNetworkStore.setLastAcked(currentAck)

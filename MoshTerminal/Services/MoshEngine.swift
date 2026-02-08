@@ -1,4 +1,5 @@
 import Foundation
+import Prediction
 
 struct TerminalSize: Equatable, Sendable {
     let cols: Int
@@ -54,10 +55,6 @@ struct MoshEngineDebugSnapshot: Sendable, Equatable {
 
 protocol MoshEngineDebugProviding: AnyObject, Sendable {
     func debugSnapshot() async -> MoshEngineDebugSnapshot
-}
-
-protocol PredictionNetworkSnapshotProviding: AnyObject, Sendable {
-    func predictionNetworkSnapshot() -> PredictionNetworkSnapshot
 }
 
 protocol PredictionEchoAckNotifying: AnyObject, Sendable {

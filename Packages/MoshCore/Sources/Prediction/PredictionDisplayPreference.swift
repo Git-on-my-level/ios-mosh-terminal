@@ -1,14 +1,14 @@
 import Foundation
 
-enum PredictionDisplayPreference: String, Codable, CaseIterable, Identifiable {
+public enum PredictionDisplayPreference: String, Codable, CaseIterable, Identifiable {
     case off
     case adaptive
     case always
     case experimental
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .off:
             return "Off"

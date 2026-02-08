@@ -1,19 +1,19 @@
 import Foundation
 
-enum FragmentError: Error, Equatable {
+public enum FragmentError: Error, Equatable {
     case truncated
     case invalidNumber
 }
 
-struct Fragment: Equatable {
-    static let headerBytes = 10
+public struct Fragment: Equatable {
+    public static let headerBytes = 10
 
-    let id: UInt64
-    let number: UInt16
-    let isFinal: Bool
-    let body: Data
+    public let id: UInt64
+    public let number: UInt16
+    public let isFinal: Bool
+    public let body: Data
 
-    init(id: UInt64, number: UInt16, isFinal: Bool, body: Data) {
+    public init(id: UInt64, number: UInt16, isFinal: Bool, body: Data) {
         precondition(number < 0x8000, "Fragment number must fit in 15 bits")
         self.id = id
         self.number = number
@@ -21,7 +21,7 @@ struct Fragment: Equatable {
         self.body = body
     }
 
-    init(decode data: Data) throws {
+    public init(decode data: Data) throws {
         guard data.count >= 10 else {
             throw FragmentError.truncated
         }
@@ -42,7 +42,7 @@ struct Fragment: Equatable {
         self.init(id: id, number: number, isFinal: isFinal, body: body)
     }
 
-    func encode() -> Data {
+    public func encode() -> Data {
         var data = Data()
         data.reserveCapacity(10 + body.count)
 
@@ -91,18 +91,20 @@ struct Fragmenter {
     }
 }
 
-enum FragmentAssemblyError: Error, Equatable {
+public enum FragmentAssemblyError: Error, Equatable {
     case duplicateMismatch(number: UInt16)
     case incomplete
 }
 
-final class FragmentAssembly {
+public final class FragmentAssembly {
     private var currentId: UInt64?
     private var fragments: [UInt16: Data] = [:]
     private var finalNumber: UInt16?
     private var pendingError: FragmentAssemblyError?
 
-    func add(_ fragment: Fragment) -> Bool {
+    public init() {}
+
+    public func add(_ fragment: Fragment) -> Bool {
         if currentId != fragment.id {
             reset()
             currentId = fragment.id
@@ -123,7 +125,7 @@ final class FragmentAssembly {
         return isComplete
     }
 
-    func assembledBytes() throws -> Data {
+    public func assembledBytes() throws -> Data {
         if let error = pendingError {
             reset()
             throw error

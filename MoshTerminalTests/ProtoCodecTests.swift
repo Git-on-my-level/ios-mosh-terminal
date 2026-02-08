@@ -1,4 +1,5 @@
 import XCTest
+@testable import MoshClientCore
 @testable import MoshTerminal
 
 final class ProtoCodecTests: XCTestCase {

@@ -1,4 +1,5 @@
 import Foundation
+import Prediction
 
 private actor NativeMoshEngineState {
     enum State {

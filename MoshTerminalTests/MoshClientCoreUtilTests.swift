@@ -1,5 +1,36 @@
 import XCTest
+@testable import MoshClientCore
 @testable import MoshTerminal
+
+private let AE_SUCCESS: Int32 = 0
+private let AE_FINALIZE: Int32 = 1
+
+@_silgen_name("ae_allocate")
+private func ae_allocate(_ misc: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ae_free")
+private func ae_free(_ ctx: UnsafeMutableRawPointer?)
+@_silgen_name("ae_clear")
+private func ae_clear(_ ctx: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("ae_init")
+private func ae_init(
+    _ ctx: UnsafeMutableRawPointer?,
+    _ key: UnsafeRawPointer?,
+    _ keyLen: Int32,
+    _ nonceLen: Int32,
+    _ tagLen: Int32
+) -> Int32
+@_silgen_name("ae_encrypt")
+private func ae_encrypt(
+    _ ctx: UnsafeMutableRawPointer?,
+    _ nonce: UnsafeRawPointer?,
+    _ pt: UnsafeRawPointer?,
+    _ ptLen: Int32,
+    _ ad: UnsafeRawPointer?,
+    _ adLen: Int32,
+    _ ct: UnsafeMutableRawPointer?,
+    _ tag: UnsafeMutableRawPointer?,
+    _ final: Int32
+) -> Int32
 
 final class MoshClientCoreUtilTests: XCTestCase {
     func testSessionKeyDecode22Chars() throws {

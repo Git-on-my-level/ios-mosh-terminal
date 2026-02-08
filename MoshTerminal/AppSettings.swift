@@ -1,3 +1,4 @@
+import Prediction
 import SwiftUI
 
 final class AppSettings: ObservableObject {

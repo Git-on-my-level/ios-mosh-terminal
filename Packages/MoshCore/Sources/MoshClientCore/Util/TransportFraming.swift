@@ -1,16 +1,16 @@
 import Foundation
 
-enum PacketDirection: Equatable {
+public enum PacketDirection: Equatable {
     case toServer
     case toClient
 }
 
-protocol PacketCodec {
+public protocol PacketCodec {
     func encode(payload: Data, direction: PacketDirection) throws -> Data
     func decode(datagram: Data, expectedDirection: PacketDirection) throws -> Data
 }
 
-enum TransportFramingError: Error, Equatable {
+public enum TransportFramingError: Error, Equatable {
     case invalidProtocolVersion(expected: UInt32, actual: UInt32)
     case mtuTooSmall(minimum: Int, actual: Int)
 }
@@ -18,9 +18,9 @@ enum TransportFramingError: Error, Equatable {
 /// MoshClientCore entry point for protocol framing.
 /// Do not copy upstream GPL Mosh code here.
 /// Protocol behavior only.
-final class TransportFraming {
-    static let expectedProtocolVersion: UInt32 = 2
-    static let defaultPacketOverheadBytes = 24
+public final class TransportFraming {
+    public static let expectedProtocolVersion: UInt32 = 2
+    public static let defaultPacketOverheadBytes = 24
 
     private let packetCodec: PacketCodec
     private let fragmentAssembly: FragmentAssembly
@@ -28,11 +28,11 @@ final class TransportFraming {
     private let maxDecompressedBytes: Int
     private let packetOverheadBytes: Int
 
-    init(packetCodec: PacketCodec,
-         fragmentAssembly: FragmentAssembly = FragmentAssembly(),
-         sequenceCounter: SequenceCounter = SequenceCounter(),
-         maxDecompressedBytes: Int = ZlibCodec.defaultMaxOutputBytes,
-         packetOverheadBytes: Int = TransportFraming.defaultPacketOverheadBytes) {
+    public init(packetCodec: PacketCodec,
+                fragmentAssembly: FragmentAssembly = FragmentAssembly(),
+                sequenceCounter: SequenceCounter = SequenceCounter(),
+                maxDecompressedBytes: Int = ZlibCodec.defaultMaxOutputBytes,
+                packetOverheadBytes: Int = TransportFraming.defaultPacketOverheadBytes) {
         self.packetCodec = packetCodec
         self.fragmentAssembly = fragmentAssembly
         self.sequenceCounter = sequenceCounter
@@ -40,7 +40,7 @@ final class TransportFraming {
         self.packetOverheadBytes = packetOverheadBytes
     }
 
-    func makeOutboundDatagrams(instruction: TransportInstruction, mtu: Int) throws -> [Data] {
+    public func makeOutboundDatagrams(instruction: TransportInstruction, mtu: Int) throws -> [Data] {
         try validateProtocolVersion(instruction.protocolVersion)
 
         let minimumDatagramMtu = packetOverheadBytes + Fragment.headerBytes + 1
@@ -60,7 +60,7 @@ final class TransportFraming {
         }
     }
 
-    func processInboundDatagram(_ datagram: Data) throws -> TransportInstruction? {
+    public func processInboundDatagram(_ datagram: Data) throws -> TransportInstruction? {
         let payload = try packetCodec.decode(datagram: datagram, expectedDirection: .toClient)
         let fragment = try Fragment(decode: payload)
         let isComplete = fragmentAssembly.add(fragment)

@@ -1,23 +1,23 @@
 import Foundation
 
-enum PacketCodecError: Error, Equatable {
+public enum PacketCodecError: Error, Equatable {
     case invalidDirection(expected: PacketDirection, actual: PacketDirection)
     case payloadTooShort
     case sequenceOverflow
 }
 
-final class OCBPacketCodec: PacketCodec {
+public final class OCBPacketCodec: PacketCodec {
     private let session: OCBSession
     private let sendCounter: SequenceCounter
     private let lock = NSLock()
     private var lastReceivedTimestamp: UInt16 = 0
 
-    init(session: OCBSession, sendCounter: SequenceCounter = SequenceCounter()) {
+    public init(session: OCBSession, sendCounter: SequenceCounter = SequenceCounter()) {
         self.session = session
         self.sendCounter = sendCounter
     }
 
-    func encode(payload: Data, direction: PacketDirection) throws -> Data {
+    public func encode(payload: Data, direction: PacketDirection) throws -> Data {
         let timestamp = Clock.timestamp16()
         let timestampReply = lastReceivedTimestampValue()
         var plaintext = Data()
@@ -34,7 +34,7 @@ final class OCBPacketCodec: PacketCodec {
         return try session.encrypt(nonceVal: nonceVal, plaintext: plaintext)
     }
 
-    func decode(datagram: Data, expectedDirection: PacketDirection) throws -> Data {
+    public func decode(datagram: Data, expectedDirection: PacketDirection) throws -> Data {
         let (nonceVal, plaintext) = try session.decrypt(ciphertext: datagram)
         let actualDirection = direction(for: nonceVal)
         guard actualDirection == expectedDirection else {

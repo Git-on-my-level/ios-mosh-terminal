@@ -6,24 +6,24 @@ struct TimestampedState<State> {
     let timestampMillis: UInt64
 }
 
-final class TransportSender {
-    enum Constants {
+public final class TransportSender {
+    public enum Constants {
         static let minSendIntervalMillis: UInt64 = 20
         static let maxSendIntervalMillis: UInt64 = 250
         static let ackIntervalMillis: UInt64 = 3_000
         static let ackDelayMillis: UInt64 = 100
         static let activeRetryTimeoutMillis: UInt64 = 10_000
-        static let keepaliveIntervalMillis: UInt64 = 5_000
+        public static let keepaliveIntervalMillis: UInt64 = 5_000
         static let sendMinDelayMillis: UInt64 = 8
         static let maxSentStates = 32
     }
 
-    typealias RandomBytesProvider = (Int) -> [UInt8]
+    public typealias RandomBytesProvider = (Int) -> [UInt8]
 
-    var currentState = UserState()
+    public var currentState = UserState()
     private(set) var sentStates: [TimestampedState<UserState>] = []
     private(set) var ackNum: UInt64 = 0
-    var isConnected: Bool = false
+    public var isConnected: Bool = false
 
     private let keepaliveIntervalMillis: UInt64
     private let randomBytes: RandomBytesProvider
@@ -42,19 +42,19 @@ final class TransportSender {
     private var rttvarMillis: Double?
     private var rtoMillis: UInt64?
 
-    var lastSentStateNumPublic: UInt64 {
+    public var lastSentStateNumPublic: UInt64 {
         lastSentStateNum
     }
 
-    var lastAckedStateNumPublic: UInt64 {
+    public var lastAckedStateNumPublic: UInt64 {
         lastAckedStateNum
     }
 
-    var srttMillisPublic: UInt64? {
+    public var srttMillisPublic: UInt64? {
         srttMillis.map { UInt64(round($0)) }
     }
 
-    init(
+    public init(
         keepaliveIntervalMillis: UInt64 = Constants.keepaliveIntervalMillis,
         randomBytes: @escaping RandomBytesProvider = SecureRandom.nonThrowingBytes
     ) {
@@ -62,7 +62,7 @@ final class TransportSender {
         self.randomBytes = randomBytes
     }
 
-    func setConnected(_ connected: Bool, nowMillis: UInt64) {
+    public func setConnected(_ connected: Bool, nowMillis: UInt64) {
         isConnected = connected
         if connected {
             if keepaliveIntervalMillis > 0 {
@@ -79,14 +79,14 @@ final class TransportSender {
         }
     }
 
-    func setAckNum(_ remoteStateNum: UInt64) {
+    public func setAckNum(_ remoteStateNum: UInt64) {
         if remoteStateNum != ackNum {
             ackNum = remoteStateNum
             ackDirty = true
         }
     }
 
-    func processAckThrough(_ ack: UInt64, nowMillis: UInt64) {
+    public func processAckThrough(_ ack: UInt64, nowMillis: UInt64) {
         guard ack >= lastAckedStateNum else {
             return
         }
@@ -111,7 +111,7 @@ final class TransportSender {
         sentStates.removeAll { $0.num <= ack }
     }
 
-    func tick(nowMillis: UInt64) -> [TransportInstruction] {
+    public func tick(nowMillis: UInt64) -> [TransportInstruction] {
         guard isConnected else {
             return []
         }
@@ -190,7 +190,7 @@ final class TransportSender {
         return [instruction]
     }
 
-    func waitTime(nowMillis: UInt64) -> Int {
+    public func waitTime(nowMillis: UInt64) -> Int {
         guard isConnected else {
             return Int.max
         }
@@ -230,7 +230,7 @@ final class TransportSender {
         return delta > UInt64(Int.max) ? Int.max : Int(delta)
     }
 
-    func debugSendIntervalMillis(nowMillis: UInt64) -> UInt64? {
+    public func debugSendIntervalMillis(nowMillis: UInt64) -> UInt64? {
         guard isConnected else { return nil }
         if let nextSend = nextSendTimeMillis {
             return nextSend > nowMillis ? nextSend - nowMillis : 0
@@ -241,7 +241,7 @@ final class TransportSender {
         return nil
     }
 
-    var debugRtoMillis: UInt64? {
+    public var debugRtoMillis: UInt64? {
         rtoMillis
     }
 

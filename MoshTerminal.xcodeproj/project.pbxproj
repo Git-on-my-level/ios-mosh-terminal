@@ -10,16 +10,10 @@
 		0FE22A9F977F4DE5866962DB /* MoshClientCoreUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */; };
 		1452E163F5D344E295B6A360 /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */; };
 		1AB459535CE46863FA6D7E24 /* TransportSenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */; };
-		1B2C3D4E5F60718293A4B5C6 /* OCBPacketCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2A1B3C4D5E6F7081920A1B /* OCBPacketCodec.swift */; };
-		1FCDB2638DAB4482A4E0C51E /* SecureRandom.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D3691FA6324878BDB61B35 /* SecureRandom.swift */; };
 		33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5887890B1C9820791F281160 /* ProtoCodecTests.swift */; };
-		3661D96F71E9D2ACB955FE0E /* TransportSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = A783EFBE33B5FDD38C1D5DFF /* TransportSender.swift */; };
 		57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */; };
-		6236D715578A483DB1E53A393712121A /* ocb.c in Sources */ = {isa = PBXBuildFile; fileRef = 3E47DE56953F47C29E0893B8CDD69708 /* ocb.c */; };
 		67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */; };
-		71F7D6297183487F830FC4C8E9059E40 /* OCBSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C8E1976C64842A78AB3C87C76615FC4 /* OCBSession.swift */; };
 		74BCF1FED6F14F2BB1B9A388 /* Licenses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E508C0249C443DB5EBB2E5 /* Licenses.swift */; };
-		7B0AFDBF3A214D958A626557 /* SequenceCounter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9D5D20682C47D79CA035F1 /* SequenceCounter.swift */; };
 		810FCC2B47F82E36AE63CB27 /* PacketCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */; };
 		8B642FAAC36241C8A9292828 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 799D328B877F4E8683C00000 /* libz.tbd */; };
 		96B5DE7DFCC74C1CA7380C01 /* LibSSH2AvailabilityGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6EC9BE9B0064F3AA5527163 /* LibSSH2AvailabilityGuard.swift */; };
@@ -37,27 +31,24 @@
 		A1A1A1A1A1A1A1A1A1A1A1F2 /* TipJarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1F1 /* TipJarStore.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1F3 /* TipJarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1F0 /* TipJarView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1D1 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */; };
-		A2B3C4D5E6F708192A3B4C5E /* TransportFraming.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B3C4D5E6F708192A3B4C5D /* TransportFraming.swift */; };
 		A7E6B7A2F6F14E3F9C1C2D3F /* MoshRuntimeKeepaliveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */; };
 		A9F2CF4273AA43B8A220FD35 /* MoshBootstrapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */; };
-		B38F9196699ECA6BB670B17D /* UserState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2966B88DEC24B6A75F059FCB /* UserState.swift */; };
-		B3EDDFB29DFA4D4D967C87BB /* ZlibCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB85C401F557476CA36637B7 /* ZlibCodec.swift */; };
+		D2D2D2D2D2D2D2D2D2D2D2D1 /* MoshClientCore in Frameworks */ = {isa = PBXBuildFile; productRef = D3D3D3D3D3D3D3D3D3D3D3D1 /* MoshClientCore */; };
+		D2D2D2D2D2D2D2D2D2D2D2D2 /* Prediction in Frameworks */ = {isa = PBXBuildFile; productRef = D3D3D3D3D3D3D3D3D3D3D3D2 /* Prediction */; };
+		D2D2D2D2D2D2D2D2D2D2D2D3 /* MoshClientCore in Frameworks */ = {isa = PBXBuildFile; productRef = D3D3D3D3D3D3D3D3D3D3D3D1 /* MoshClientCore */; };
+		D2D2D2D2D2D2D2D2D2D2D2D4 /* Prediction in Frameworks */ = {isa = PBXBuildFile; productRef = D3D3D3D3D3D3D3D3D3D3D3D2 /* Prediction */; };
 		B656783C53F748E3B8A84134 /* ConnectionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111671E9D83E43D9A0C0C7D1 /* ConnectionManagerTests.swift */; };
 		BCF918674E6143BCB7E14C5C /* ReconnectBackoffPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EB1BDED3FF4596BF25B4BA /* ReconnectBackoffPolicyTests.swift */; };
-		C0D1E2F3A4B5C6D7E8F90123 /* TransportReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C0F2F5E11B4CF1A8C77E12 /* TransportReceiver.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */; };
-		C6C5AC7DCA2D4F87BD29A109 /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56DD095043A54897BD02CC57 /* Clock.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1F2 /* DatagramSocketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1F1 /* DatagramSocketTests.swift */; };
-		D8E1F2A3B4C5D6E7F8A9B0C2 /* Fragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1F2A3B4C5D6E7F8A9B0C3 /* Fragment.swift */; };
-		DE63ADE7C9F14E50B62404BD /* SessionKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */; };
 		E1E1E1E1E1E1E1E1E1E1E1A1 /* HostEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */; };
 		E2E2E2E2E2E2E2E2E2E2E2A1 /* SSHClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2B1 /* SSHClient.swift */; };
 		E2E2E2E2E2E2E2E2E2E2E2A2 /* SSHHostKeyVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E2B2 /* SSHHostKeyVerifier.swift */; };
@@ -70,8 +61,6 @@
 		E2E2E2E2E2E2E2E2E2E2E401 /* Frameworks/libssh2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E300 /* Frameworks/libssh2.xcframework */; };
 		E2E2E2E2E2E2E2E2E2E2E402 /* Frameworks/libssl.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E310 /* Frameworks/libssl.xcframework */; };
 		E2E2E2E2E2E2E2E2E2E2E403 /* Frameworks/libcrypto.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E320 /* Frameworks/libcrypto.xcframework */; };
-		E4C5D6F7A8B9C0D1E2F3A4B6 /* DiffMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C5D6F7A8B9C0D1E2F3A4B5 /* DiffMessageCodec.swift */; };
-		EB52B07CD023C7F74660A5E0 /* ProtoCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
 		15D11F6E97289100FA789857 /* ServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */; };
@@ -89,22 +78,12 @@
 		F3F3F3F3F3F3F3F3F3F3F3B8 /* UnavailableMoshEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F308 /* UnavailableMoshEngine.swift */; };
 		F3F3F3F3F3F3F3F3F3F3F3B9 /* MoshConnectInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F3F3F3F3F3F3F3F3F3F309 /* MoshConnectInfo.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F402 /* NativeMoshEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F401 /* NativeMoshEngine.swift */; };
-		F4F4F4F4F4F4F4F4F4F4F404 /* MoshCoreRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F408 /* TrustedHostKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F407 /* TrustedHostKeysView.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F40A /* MoshRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */; };
-		7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */; };
 		7F260B101DBF8462D9057D25 /* PredictionParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */; };
-		E1A2B3C4D5E6F708192A3B4C /* PredictionDisplayPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */; };
-		E2A3B4C5D6E7F8091A2B3C4D /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */; };
-		E3A4B5C6D7E8F90A1B2C3D4E /* PredictionNetworkSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */; };
-		E4A5B6C7D8E9F01B2C3D4E5F /* PredictionRenderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */; };
-		E5A6B7C8D9EA0B1C2D3E4F50 /* TerminalPredictionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */; };
-		E6A7B8C9DAEB1C2D3E4F5061 /* SwiftTermGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A7B8C9DAEB1C2D3E4F5060 /* SwiftTermGrid.swift */; };
-		C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */; };
 		D0E4F5061728394A5B6C7E8F /* PredictionEngineInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */; };
 		BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */; };
 		1776D11099F64422A24D0357 /* PredictionDisplayPreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8CB3502052429883BCD547 /* PredictionDisplayPreferenceTests.swift */; };
-		B0E3F4A5C6D7E8F90A1B2C3D /* PredictionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */; };
 		15D11F6E97289100FA789857 /* ServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */; };
 		7B310FCE8CF2EAC0734C19C5 /* PersistenceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */; };
 		E9F8D7C6A5B4E3D2C1B0A9F8 /* MockProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C7E6A9B4D3F5E2C8A1B3D4 /* MockProtocols.swift */; };
@@ -125,20 +104,13 @@
 		11EB1BDED3FF4596BF25B4BA /* ReconnectBackoffPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoffPolicyTests.swift; sourceTree = "<group>"; };
 		1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshBootstrapperTests.swift; sourceTree = "<group>"; };
 		1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSenderTests.swift; sourceTree = "<group>"; };
-		2966B88DEC24B6A75F059FCB /* UserState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserState.swift; sourceTree = "<group>"; };
-		2CF4BD2B2A5946CF9F9B9FD50BC3AF01 /* ae.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ae.h; sourceTree = "<group>"; };
 		2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoff.swift; sourceTree = "<group>"; };
-		2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtoCodec.swift; sourceTree = "<group>"; };
-		3E47DE56953F47C29E0893B8CDD69708 /* ocb.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ocb.c; sourceTree = "<group>"; };
 		3F63A1BE2F28F98800ACE2AA /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFailure.swift; sourceTree = "<group>"; };
-		56DD095043A54897BD02CC57 /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
 		5887890B1C9820791F281160 /* ProtoCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtoCodecTests.swift; sourceTree = "<group>"; };
-		6C8E1976C64842A78AB3C87C76615FC4 /* OCBSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCBSession.swift; sourceTree = "<group>"; };
 		799D328B877F4E8683C00000 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketCodecTests.swift; sourceTree = "<group>"; };
 		89E508C0249C443DB5EBB2E5 /* Licenses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Licenses.swift; sourceTree = "<group>"; };
-		9F2A1B3C4D5E6F7081920A1B /* OCBPacketCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCBPacketCodec.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A2 /* MoshTerminalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshTerminalApp.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A4 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A6 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
@@ -155,13 +127,8 @@
 		A1A1A1A1A1A1A1A1A1A1A1F0 /* TipJarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipJarView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1F1 /* TipJarStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipJarStore.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1D2 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		A2B3C4D5E6F708192A3B4C5D /* TransportFraming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportFraming.swift; sourceTree = "<group>"; };
-		A5D3691FA6324878BDB61B35 /* SecureRandom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureRandom.swift; sourceTree = "<group>"; };
-		A783EFBE33B5FDD38C1D5DFF /* TransportSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSender.swift; sourceTree = "<group>"; };
 		A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshRuntimeKeepaliveTests.swift; sourceTree = "<group>"; };
-		AE9D5D20682C47D79CA035F1 /* SequenceCounter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SequenceCounter.swift; sourceTree = "<group>"; };
 		B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
-		B8C0F2F5E11B4CF1A8C77E12 /* TransportReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportReceiver.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* HostProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostProfile.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKey.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStore.swift; sourceTree = "<group>"; };
@@ -173,8 +140,6 @@
 		D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidator.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidatorTests.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1F1 /* DatagramSocketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatagramSocketTests.swift; sourceTree = "<group>"; };
-		D8E1F2A3B4C5D6E7F8A9B0C3 /* Fragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fragment.swift; sourceTree = "<group>"; };
-		DB85C401F557476CA36637B7 /* ZlibCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZlibCodec.swift; sourceTree = "<group>"; };
 		E1E1E1E1E1E1E1E1E1E1E1A2 /* HostEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostEditorView.swift; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E2B1 /* SSHClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHClient.swift; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E2B2 /* SSHHostKeyVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHHostKeyVerifier.swift; sourceTree = "<group>"; };
@@ -184,7 +149,6 @@
 		E2E2E2E2E2E2E2E2E2E2E300 /* Frameworks/libssh2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/libssh2.xcframework; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E310 /* Frameworks/libssl.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/libssl.xcframework; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E320 /* Frameworks/libcrypto.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/libcrypto.xcframework; sourceTree = "<group>"; };
-		E4C5D6F7A8B9C0D1E2F3A4B5 /* DiffMessageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffMessageCodec.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
@@ -200,30 +164,14 @@
 		F3F3F3F3F3F3F3F3F3F3F308 /* UnavailableMoshEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnavailableMoshEngine.swift; sourceTree = "<group>"; };
 		F3F3F3F3F3F3F3F3F3F3F309 /* MoshConnectInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshConnectInfo.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F401 /* NativeMoshEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeMoshEngine.swift; sourceTree = "<group>"; };
-		F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshCoreRuntime.swift; sourceTree = "<group>"; };
-		F4F4F4F4F4F4F4F4F4F4F405 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F407 /* TrustedHostKeysView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKeysView.swift; sourceTree = "<group>"; };
 		F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshRuntime.swift; sourceTree = "<group>"; };
 		F789644648F649058124AEA475E31280 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
-		FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKey.swift; sourceTree = "<group>"; };
-		A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionOverlayView.swift; sourceTree = "<group>"; };
 		AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceProtocols.swift; sourceTree = "<group>"; };
 		69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceProtocols.swift; sourceTree = "<group>"; };
 		D8C7E6A9B4D3F5E2C8A1B3D4 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-		0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionDisplayPreference.swift; sourceTree = "<group>"; };
-		FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngine.swift; sourceTree = "<group>"; };
-		00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionNetworkSnapshot.swift; sourceTree = "<group>"; };
-		D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionRenderModel.swift; sourceTree = "<group>"; };
-		55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalPredictionCoordinator.swift; sourceTree = "<group>"; };
-		E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UTF8ByteParser.swift; sourceTree = "<group>"; };
-		B1A8B741D64E26414BB742D3 /* PredictionParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionParserTests.swift; sourceTree = "<group>"; };
-		A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionTypes.swift; sourceTree = "<group>"; };
-		B8C2D3E4F5061728394A5C6D /* PredictionEngineInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngineInputTests.swift; sourceTree = "<group>"; };
-		ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionSwiftTermIntegrationTests.swift; sourceTree = "<group>"; };
-		DC8CB3502052429883BCD547 /* PredictionDisplayPreferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionDisplayPreferenceTests.swift; sourceTree = "<group>"; };
-		E6A7B8C9DAEB1C2D3E4F5060 /* SwiftTermGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftTermGrid.swift; sourceTree = "<group>"; };
 
 /* Begin PBXFrameworksBuildPhase section */
 		A1A1A1A1A1A1A1A1A1A1A1B1 /* Frameworks */ = {
@@ -235,6 +183,8 @@
 				E2E2E2E2E2E2E2E2E2E2E303 /* Frameworks/libcrypto.xcframework in Frameworks */,
 				8B642FAAC36241C8A9292828 /* libz.tbd in Frameworks */,
 				B1B1B1B1B1B1B1B1B1B1B1B3 /* SwiftTerm in Frameworks */,
+				D2D2D2D2D2D2D2D2D2D2D2D1 /* MoshClientCore in Frameworks */,
+				D2D2D2D2D2D2D2D2D2D2D2D2 /* Prediction in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,41 +195,14 @@
 				E2E2E2E2E2E2E2E2E2E2E401 /* Frameworks/libssh2.xcframework in Frameworks */,
 				E2E2E2E2E2E2E2E2E2E2E402 /* Frameworks/libssl.xcframework in Frameworks */,
 				E2E2E2E2E2E2E2E2E2E2E403 /* Frameworks/libcrypto.xcframework in Frameworks */,
+				D2D2D2D2D2D2D2D2D2D2D2D3 /* MoshClientCore in Frameworks */,
+				D2D2D2D2D2D2D2D2D2D2D2D4 /* Prediction in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		396C6F53CE964378878FEEB3394366DF /* Crypto */ = {
-			isa = PBXGroup;
-			children = (
-				6C8E1976C64842A78AB3C87C76615FC4 /* OCBSession.swift */,
-				F1BB48837A1C4A6A8D7CE93AB5CCACA0 /* OCB */,
-			);
-			path = Crypto;
-			sourceTree = "<group>";
-		};
-		6D50D474ACBA42F58AB05B63 /* Util */ = {
-			isa = PBXGroup;
-			children = (
-				FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */,
-				A5D3691FA6324878BDB61B35 /* SecureRandom.swift */,
-				56DD095043A54897BD02CC57 /* Clock.swift */,
-				AE9D5D20682C47D79CA035F1 /* SequenceCounter.swift */,
-				DB85C401F557476CA36637B7 /* ZlibCodec.swift */,
-				9F2A1B3C4D5E6F7081920A1B /* OCBPacketCodec.swift */,
-				2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */,
-				E4C5D6F7A8B9C0D1E2F3A4B5 /* DiffMessageCodec.swift */,
-				D8E1F2A3B4C5D6E7F8A9B0C3 /* Fragment.swift */,
-				A2B3C4D5E6F708192A3B4C5D /* TransportFraming.swift */,
-				2966B88DEC24B6A75F059FCB /* UserState.swift */,
-				A783EFBE33B5FDD38C1D5DFF /* TransportSender.swift */,
-				B8C0F2F5E11B4CF1A8C77E12 /* TransportReceiver.swift */,
-			);
-			path = Util;
-			sourceTree = "<group>";
-		};
 		A1A1A1A1A1A1A1A1A1A1A1B2 = {
 			isa = PBXGroup;
 			children = (
@@ -317,7 +240,6 @@
 				F3F3F3F3F3F3F3F3F3F3F302 /* TerminalSessionDependencies.swift */,
 				F3F3F3F3F3F3F3F3F3F3F303 /* TerminalSessionViewModel.swift */,
 				C6EC9BE9B0064F3AA5527163 /* LibSSH2AvailabilityGuard.swift */,
-				F4F4F4F4F4F4F4F4F4F4F406 /* MoshClientCore */,
 				F2F2F2F2F2F2F2F2F2F2F2A3 /* Services */,
 				C1C1C1C1C1C1C1C1C1C1C1E1 /* Model */,
 				C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */,
@@ -326,7 +248,6 @@
 				A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */,
 				F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */,
 				F789644648F649058124AEA475E31280 /* Bridging-Header.h */,
-				D1D1D1D1D1D1D1D1D1E6 /* Prediction */,
 			);
 			path = MoshTerminal;
 			sourceTree = "<group>";
@@ -393,31 +314,6 @@
 			path = Security;
 			sourceTree = "<group>";
 		};
-		D1D1D1D1D1D1D1D1D1E6 /* Prediction */ = {
-			isa = PBXGroup;
-			children = (
-				0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */,
-				FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */,
-				00D46DFF6BDDCC5589FF6015 /* PredictionNetworkSnapshot.swift */,
-				D4609DFDF5DBC2A1B5B2A929 /* PredictionRenderModel.swift */,
-				A7C1B2D3E4F5061728394A5B /* PredictionTypes.swift */,
-				55D028B53B4ADD8F933C8186 /* TerminalPredictionCoordinator.swift */,
-				E6A7B8C9DAEB1C2D3E4F5060 /* SwiftTermGrid.swift */,
-				E9F602CD462F813F5C2A5B49 /* UTF8ByteParser.swift */,
-				A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */,
-			);
-			path = Prediction;
-			sourceTree = "<group>";
-		};
-		F1BB48837A1C4A6A8D7CE93AB5CCACA0 /* OCB */ = {
-			isa = PBXGroup;
-			children = (
-				3E47DE56953F47C29E0893B8CDD69708 /* ocb.c */,
-				2CF4BD2B2A5946CF9F9B9FD50BC3AF01 /* ae.h */,
-			);
-			path = OCB;
-			sourceTree = "<group>";
-		};
 		F2F2F2F2F2F2F2F2F2F2F2A3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -444,17 +340,6 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		F4F4F4F4F4F4F4F4F4F4F406 /* MoshClientCore */ = {
-			isa = PBXGroup;
-			children = (
-				F4F4F4F4F4F4F4F4F4F4F405 /* README.md */,
-				396C6F53CE964378878FEEB3394366DF /* Crypto */,
-				6D50D474ACBA42F58AB05B63 /* Util */,
-				F4F4F4F4F4F4F4F4F4F4F403 /* MoshCoreRuntime.swift */,
-			);
-			path = MoshClientCore;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -473,6 +358,8 @@
 			name = MoshTerminal;
 			packageProductDependencies = (
 				B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */,
+				D3D3D3D3D3D3D3D3D3D3D3D1 /* MoshClientCore */,
+				D3D3D3D3D3D3D3D3D3D3D3D2 /* Prediction */,
 			);
 			productName = MoshTerminal;
 			productReference = A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */;
@@ -492,6 +379,10 @@
 				C1C1C1C1C1C1C1C1C1C1C1F5 /* PBXTargetDependency */,
 			);
 			name = MoshTerminalTests;
+			packageProductDependencies = (
+				D3D3D3D3D3D3D3D3D3D3D3D1 /* MoshClientCore */,
+				D3D3D3D3D3D3D3D3D3D3D3D2 /* Prediction */,
+			);
 			productName = MoshTerminalTests;
 			productReference = C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -525,6 +416,7 @@
 			mainGroup = A1A1A1A1A1A1A1A1A1A1A1B2;
 			packageReferences = (
 				B1B1B1B1B1B1B1B1B1B1B1B1 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+				D4D4D4D4D4D4D4D4D4D4D4D1 /* XCLocalSwiftPackageReference "MoshCore" */,
 			);
 			productRefGroup = A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */;
 			projectDirPath = "";
@@ -601,36 +493,11 @@
 				E2E2E2E2E2E2E2E2E2E2E2A3 /* UnavailableSSHClient.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D1 /* HostProfile.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B9 /* MoshConnectInfo.swift in Sources */,
-				F4F4F4F4F4F4F4F4F4F4F404 /* MoshCoreRuntime.swift in Sources */,
-				71F7D6297183487F830FC4C8E9059E40 /* OCBSession.swift in Sources */,
-				6236D715578A483DB1E53A393712121A /* ocb.c in Sources */,
-				DE63ADE7C9F14E50B62404BD /* SessionKey.swift in Sources */,
-				1FCDB2638DAB4482A4E0C51E /* SecureRandom.swift in Sources */,
-				C6C5AC7DCA2D4F87BD29A109 /* Clock.swift in Sources */,
-				7B0AFDBF3A214D958A626557 /* SequenceCounter.swift in Sources */,
-				B3EDDFB29DFA4D4D967C87BB /* ZlibCodec.swift in Sources */,
-				1B2C3D4E5F60718293A4B5C6 /* OCBPacketCodec.swift in Sources */,
-				EB52B07CD023C7F74660A5E0 /* ProtoCodec.swift in Sources */,
-				E4C5D6F7A8B9C0D1E2F3A4B6 /* DiffMessageCodec.swift in Sources */,
-				D8E1F2A3B4C5D6E7F8A9B0C2 /* Fragment.swift in Sources */,
-				A2B3C4D5E6F708192A3B4C5E /* TransportFraming.swift in Sources */,
-				B38F9196699ECA6BB670B17D /* UserState.swift in Sources */,
-				3661D96F71E9D2ACB955FE0E /* TransportSender.swift in Sources */,
-				C0D1E2F3A4B5C6D7E8F90123 /* TransportReceiver.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */,
 				7B310FCE8CF2EAC0734C19C5 /* PersistenceProtocols.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
-				E1A2B3C4D5E6F708192A3B4C /* PredictionDisplayPreference.swift in Sources */,
-				E2A3B4C5D6E7F8091A2B3C4D /* PredictionEngine.swift in Sources */,
-				E3A4B5C6D7E8F90A1B2C3D4E /* PredictionNetworkSnapshot.swift in Sources */,
-				E4A5B6C7D8E9F01B2C3D4E5F /* PredictionRenderModel.swift in Sources */,
-				E5A6B7C8D9EA0B1C2D3E4F50 /* TerminalPredictionCoordinator.swift in Sources */,
-				E6A7B8C9DAEB1C2D3E4F5061 /* SwiftTermGrid.swift in Sources */,
-				C9D3E4F5061728394A5B6C7D /* PredictionTypes.swift in Sources */,
-				7CE682975440393D8B27D9A8 /* UTF8ByteParser.swift in Sources */,
-				B0E3F4A5C6D7E8F90A1B2C3D /* PredictionOverlayView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -985,11 +852,28 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		D4D4D4D4D4D4D4D4D4D4D4D1 /* XCLocalSwiftPackageReference "MoshCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MoshCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		B1B1B1B1B1B1B1B1B1B1B1B2 /* SwiftTerm */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B1B1B1B1B1B1B1B1B1B1B1B1 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
 			productName = SwiftTerm;
+		};
+		D3D3D3D3D3D3D3D3D3D3D3D1 /* MoshClientCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4D4D4D4D4D4D4D4D4D4D4D1 /* XCLocalSwiftPackageReference "MoshCore" */;
+			productName = MoshClientCore;
+		};
+		D3D3D3D3D3D3D3D3D3D3D3D2 /* Prediction */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4D4D4D4D4D4D4D4D4D4D4D1 /* XCLocalSwiftPackageReference "MoshCore" */;
+			productName = Prediction;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
