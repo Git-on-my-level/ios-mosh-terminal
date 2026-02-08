@@ -6,7 +6,7 @@ import UIKit
 typealias TerminalUIKitView = SwiftTerm.TerminalView
 
 @MainActor
-final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
+final class TerminalSessionController: NSObject, ObservableObject, @preconcurrency TerminalViewDelegate {
     @Published var isCtrlActive = false
 
     var terminalView: TerminalUIKitView?
@@ -64,7 +64,7 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     }
 
     func focus() {
-        terminalView?.becomeFirstResponder()
+        _ = terminalView?.becomeFirstResponder()
     }
 
     func toggleCtrl() {

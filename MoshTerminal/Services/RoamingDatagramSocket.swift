@@ -104,10 +104,7 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
     }
 
     func receive() async throws -> Data {
-        stateLock.lock()
-        let closed = isClosed
-        stateLock.unlock()
-        if closed {
+        if isSocketClosed() {
             throw DatagramSocketError.closed
         }
         guard let next = try await iterator.next() else {
@@ -316,6 +313,12 @@ final class RoamingDatagramSocket: DatagramSocket, @unchecked Sendable {
         let port = entry?.localPort
         stateLock.unlock()
         return port
+    }
+
+    private func isSocketClosed() -> Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return isClosed
     }
 
     private static func makeEntry(

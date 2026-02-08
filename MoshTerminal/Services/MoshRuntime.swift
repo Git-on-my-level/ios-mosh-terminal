@@ -3,7 +3,7 @@ import Foundation
 import MoshClientCore
 import Prediction
 
-final class PredictionNetworkSnapshotStore: Sendable {
+final class PredictionNetworkSnapshotStore: @unchecked Sendable {
     private let lock = NSLock()
     private var _snapshot = PredictionNetworkSnapshot(
         lastSentStateNum: 0,

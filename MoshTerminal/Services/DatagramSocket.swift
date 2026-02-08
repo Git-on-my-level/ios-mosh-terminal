@@ -171,10 +171,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
     }
 
     func send(_ data: Data) throws {
-        stateLock.lock()
-        let closed = isClosed
-        stateLock.unlock()
-        if closed {
+        if isSocketClosed() {
             throw DatagramSocketError.closed
         }
 
@@ -197,10 +194,7 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
     }
 
     func receive() async throws -> Data {
-        stateLock.lock()
-        let closed = isClosed
-        stateLock.unlock()
-        if closed {
+        if isSocketClosed() {
             throw DatagramSocketError.closed
         }
         guard let next = try await iterator.next() else {
@@ -210,17 +204,33 @@ final class BSDDatagramSocket: DatagramSocket, DatagramSocketPortProviding, @unc
     }
 
     func close() {
-        stateLock.lock()
-        if isClosed {
-            stateLock.unlock()
+        if !markClosedIfNeeded() {
             return
         }
-        isClosed = true
-        stateLock.unlock()
         readSource?.cancel()
         readSource = nil
         streamContinuation?.finish()
         streamContinuation = nil
+    }
+
+    private func isSocketClosed() -> Bool {
+        withStateLock { isClosed }
+    }
+
+    private func markClosedIfNeeded() -> Bool {
+        withStateLock {
+            if isClosed {
+                return false
+            }
+            isClosed = true
+            return true
+        }
+    }
+
+    private func withStateLock<T>(_ body: () -> T) -> T {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return body()
     }
 
     private func handleReadEvent() {

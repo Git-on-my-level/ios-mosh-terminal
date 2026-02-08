@@ -20,9 +20,10 @@ final class AppLifecycleService: ObservableObject {
 
     init(
         notificationCenter: NotificationCenter = .default,
-        application: UIApplication = .shared
+        application: UIApplication? = nil
     ) {
-        let initialState: State = application.applicationState == .background ? .background : .foreground
+        let app = application ?? UIApplication.shared
+        let initialState: State = app.applicationState == .background ? .background : .foreground
         self.state = initialState
 
         let backgroundObserver = notificationCenter.addObserver(
@@ -30,7 +31,9 @@ final class AppLifecycleService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.transition(to: .background, event: .background)
+            Task { @MainActor [weak self] in
+                self?.transition(to: .background, event: .background)
+            }
         }
 
         let foregroundObserver = notificationCenter.addObserver(
@@ -38,7 +41,9 @@ final class AppLifecycleService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.transition(to: .foreground, event: .foreground)
+            Task { @MainActor [weak self] in
+                self?.transition(to: .foreground, event: .foreground)
+            }
         }
 
         observers.append(backgroundObserver)
@@ -57,7 +62,7 @@ final class AppLifecycleService: ObservableObject {
     }
 }
 
-extension AppLifecycleService: AppLifecycleProviding {
+extension AppLifecycleService: @preconcurrency AppLifecycleProviding {
     var eventsPublisher: AnyPublisher<Event, Never> {
         events.eraseToAnyPublisher()
     }
