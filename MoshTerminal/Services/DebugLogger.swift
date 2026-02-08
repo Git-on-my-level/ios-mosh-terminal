@@ -6,6 +6,7 @@ protocol DebugLogProviding: Sendable {
     func logConnectionEvent(_ event: ConnectionDebugEvent)
     func logTransportEvent(_ event: TransportDebugEvent)
     func logLivenessEvent(_ event: LivenessDebugEvent)
+    func logPredictionEvent(_ event: PredictionDebugEvent)
 }
 
 final class DebugLogger: DebugLogProviding {
@@ -38,6 +39,11 @@ final class DebugLogger: DebugLogProviding {
     }
     
     func logLivenessEvent(_ event: LivenessDebugEvent) {
+        guard isEnabled else { return }
+        logger.info("\(event.description, privacy: .public)")
+    }
+    
+    func logPredictionEvent(_ event: PredictionDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
@@ -181,6 +187,38 @@ struct LivenessDebugEvent: Sendable {
             return "[\(timestampStr)] Corrupt packet (consecutive: \(count))"
         case .unreachableSend(let count):
             return "[\(timestampStr)] Unreachable send (consecutive: \(count))"
+        }
+    }
+    
+    private func formatTimestamp(_ millis: UInt64) -> String {
+        let seconds = millis / 1000
+        let remainder = millis % 1000
+        return String(format: "%06d.%03d", seconds, remainder)
+    }
+}
+
+struct PredictionDebugEvent: Sendable {
+    enum Kind: Sendable {
+        case echoAckUpdate(value: UInt64)
+        case networkSnapshot(
+            lastSentStateNum: UInt64,
+            lastAckedStateNum: UInt64,
+            echoAck: UInt64,
+            srttMillis: UInt64?
+        )
+    }
+    
+    let kind: Kind
+    let timestamp: UInt64
+    
+    var description: String {
+        let timestampStr = formatTimestamp(timestamp)
+        switch kind {
+        case .echoAckUpdate(let value):
+            return "[\(timestampStr)] Echo ack updated: \(value)"
+        case .networkSnapshot(let sent, let acked, let echo, let srtt):
+            let srttStr = srtt.map { "\($0)ms" } ?? "nil"
+            return "[\(timestampStr)] Network snapshot: sent=\(sent), acked=\(acked), echoAck=\(echo), srtt=\(srttStr)"
         }
     }
     
