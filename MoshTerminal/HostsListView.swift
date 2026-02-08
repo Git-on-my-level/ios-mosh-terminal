@@ -5,9 +5,9 @@ final class HostsListViewModel: ObservableObject {
     @Published var hosts: [HostProfile] = []
     @Published var alertMessage: String?
 
-    private let hostRepository: HostRepository
+    private let hostRepository: any HostRepositoryProtocol
 
-    init(hostRepository: HostRepository) {
+    init(hostRepository: any HostRepositoryProtocol) {
         self.hostRepository = hostRepository
     }
 
@@ -53,13 +53,13 @@ struct HostsListView: View {
     @StateObject private var viewModel: HostsListViewModel
     @State private var editorContext: HostEditorContext?
 
-    private let hostRepository: HostRepository
-    private let keyStore: KeychainPrivateKeyStore
+    private let hostRepository: any HostRepositoryProtocol
+    private let keyStore: any PrivateKeyManaging
     @ObservedObject private var connectionManager: ConnectionManager
 
     init(
-        hostRepository: HostRepository,
-        keyStore: KeychainPrivateKeyStore,
+        hostRepository: any HostRepositoryProtocol,
+        keyStore: any PrivateKeyManaging,
         connectionManager: ConnectionManager
     ) {
         self.hostRepository = hostRepository

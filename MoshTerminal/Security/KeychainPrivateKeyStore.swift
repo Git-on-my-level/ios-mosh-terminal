@@ -243,3 +243,5 @@ final class KeychainPrivateKeyStore {
         return "\(bundleId).sshPrivateKey"
     }
 }
+
+extension KeychainPrivateKeyStore: PrivateKeyManaging {}

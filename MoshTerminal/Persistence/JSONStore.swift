@@ -204,6 +204,8 @@ final class HostRepository: @unchecked Sendable {
     }
 }
 
+extension HostRepository: HostRepositoryProtocol {}
+
 final class TrustedHostKeyRepository: @unchecked Sendable {
     private let store: JSONStore
 
@@ -246,3 +248,5 @@ final class TrustedHostKeyRepository: @unchecked Sendable {
         return keys.filter { $0.hostname == hostname && $0.port == port }
     }
 }
+
+extension TrustedHostKeyRepository: TrustedHostKeyManaging {}

@@ -6,12 +6,12 @@ final class KeyManagementViewModel: ObservableObject {
     @Published var keys: [StoredPrivateKeyMetadata] = []
     @Published var alertMessage: String?
 
-    private let store: KeychainPrivateKeyStore
-    private let hostRepository: HostRepository
+    private let store: any PrivateKeyManaging
+    private let hostRepository: any HostListing
 
     init(
-        store: KeychainPrivateKeyStore = KeychainPrivateKeyStore(),
-        hostRepository: HostRepository = HostRepository(store: JSONStore())
+        store: any PrivateKeyManaging = KeychainPrivateKeyStore(),
+        hostRepository: any HostListing = HostRepository(store: JSONStore())
     ) {
         self.store = store
         self.hostRepository = hostRepository
@@ -138,7 +138,7 @@ struct KeyManagementView: View {
     @State private var isShowingFileImporter = false
     @State private var isShowingPasteSheet = false
 
-    init(hostRepository: HostRepository, keyStore: KeychainPrivateKeyStore) {
+    init(hostRepository: any HostListing, keyStore: any PrivateKeyManaging) {
         _viewModel = StateObject(
             wrappedValue: KeyManagementViewModel(
                 store: keyStore,

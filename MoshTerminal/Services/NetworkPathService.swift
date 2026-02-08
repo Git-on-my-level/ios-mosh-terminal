@@ -52,3 +52,9 @@ final class NetworkPathService: ObservableObject {
         return nil
     }
 }
+
+extension NetworkPathService: NetworkPathProviding {
+    var pathInfoPublisher: AnyPublisher<PathInfo, Never> {
+        $pathInfo.eraseToAnyPublisher()
+    }
+}

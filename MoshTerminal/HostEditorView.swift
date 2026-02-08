@@ -11,13 +11,13 @@ final class HostEditorViewModel: ObservableObject {
     @Published var alertMessage: String?
     @Published var hasAttemptedSave = false
 
-    private let hostRepository: HostRepository
-    private let keyStore: KeychainPrivateKeyStore
+    private let hostRepository: any HostPersisting
+    private let keyStore: any PrivateKeyListing
     private let existingHost: HostProfile?
 
     init(
-        hostRepository: HostRepository,
-        keyStore: KeychainPrivateKeyStore,
+        hostRepository: any HostPersisting,
+        keyStore: any PrivateKeyListing,
         host: HostProfile? = nil
     ) {
         self.hostRepository = hostRepository
@@ -162,14 +162,14 @@ struct HostEditorView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HostEditorViewModel
     @State private var showKeyManager = false
-    private let hostRepository: HostRepository
-    private let keyStore: KeychainPrivateKeyStore
+    private let hostRepository: any HostPersisting
+    private let keyStore: any PrivateKeyListing
     private let onSave: (HostProfile) -> Void
 
     init(
         host: HostProfile? = nil,
-        hostRepository: HostRepository,
-        keyStore: KeychainPrivateKeyStore,
+        hostRepository: any HostPersisting,
+        keyStore: any PrivateKeyListing,
         onSave: @escaping (HostProfile) -> Void
     ) {
         _viewModel = StateObject(

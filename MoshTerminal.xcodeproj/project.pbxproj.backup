@@ -74,8 +74,6 @@
 		EB52B07CD023C7F74660A5E0 /* ProtoCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FDAD9997C40615B3704A6D2 /* ProtoCodec.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
-		15D11F6E97289100FA789857 /* ServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */; };
-		7B310FCE8CF2EAC0734C19C5 /* PersistenceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2D1 /* DatagramSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2C1 /* DatagramSocket.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2D2 /* RoamingDatagramSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2C2 /* RoamingDatagramSocket.swift */; };

@@ -4,52 +4,6 @@ import Foundation
 import os
 #endif
 
-protocol AppLifecycleProviding: AnyObject {
-    var state: AppLifecycleService.State { get }
-    var eventsPublisher: AnyPublisher<AppLifecycleService.Event, Never> { get }
-}
-
-protocol NetworkPathProviding: AnyObject {
-    var pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never> { get }
-    var isSatisfied: Bool { get }
-}
-
-protocol MoshBootstrapping {
-    func bootstrap(
-        host: HostProfile,
-        privateKey: Data,
-        passphrase: String?,
-        hostKeyPrompter: SSHHostKeyPrompting
-    ) async throws -> MoshConnectInfo
-}
-
-protocol PrivateKeyStoring {
-    func loadPrivateKeyData(keyRefId: String) throws -> Data
-    func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata?
-}
-
-protocol HostPersisting {
-    func upsert(_ host: HostProfile) async throws
-}
-
-extension AppLifecycleService: AppLifecycleProviding {
-    var eventsPublisher: AnyPublisher<AppLifecycleService.Event, Never> {
-        events.eraseToAnyPublisher()
-    }
-}
-
-extension NetworkPathService: NetworkPathProviding {
-    var pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never> {
-        $pathInfo.eraseToAnyPublisher()
-    }
-}
-
-extension MoshBootstrapper: MoshBootstrapping {}
-
-extension KeychainPrivateKeyStore: PrivateKeyStoring {}
-
-extension HostRepository: HostPersisting {}
-
 @MainActor
 final class ConnectionManager: ObservableObject {
     enum State: Equatable {
