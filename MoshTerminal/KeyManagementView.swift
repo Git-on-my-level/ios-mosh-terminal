@@ -170,11 +170,7 @@ struct KeyManagementView: View {
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
-                            Task {
-                                if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-                                    await viewModel.deleteKeys(at: IndexSet(integer: index))
-                                }
-                            }
+                            Task { await deleteKey(key) }
                         }
                     }
                     .contextMenu {
@@ -185,11 +181,7 @@ struct KeyManagementView: View {
                         }
                         Divider()
                         Button(role: .destructive) {
-                            Task {
-                                if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-                                    await viewModel.deleteKeys(at: IndexSet(integer: index))
-                                }
-                            }
+                            Task { await deleteKey(key) }
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -241,6 +233,12 @@ struct KeyManagementView: View {
             viewModel.loadKeys()
         }
         .appScreenBackground()
+    }
+
+    private func deleteKey(_ key: StoredPrivateKeyMetadata) async {
+        if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
+            await viewModel.deleteKeys(at: IndexSet(integer: index))
+        }
     }
 }
 

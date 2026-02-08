@@ -103,13 +103,7 @@ struct HostsListView: View {
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) {
-                            Task {
-                                if connectionManager.activeHostId == host.id {
-                                    await connectionManager.disconnect(clearSession: true)
-                                }
-                                await viewModel.deleteHost(id: host.id)
-                                await viewModel.loadHosts()
-                            }
+                            Task { await deleteHost(host) }
                         }
                         Button("Edit") {
                             editorContext = HostEditorContext(mode: .edit(host))
@@ -124,13 +118,7 @@ struct HostsListView: View {
                         }
                         Divider()
                         Button(role: .destructive) {
-                            Task {
-                                if connectionManager.activeHostId == host.id {
-                                    await connectionManager.disconnect(clearSession: true)
-                                }
-                                await viewModel.deleteHost(id: host.id)
-                                await viewModel.loadHosts()
-                            }
+                            Task { await deleteHost(host) }
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -139,12 +127,8 @@ struct HostsListView: View {
                 .onDelete { offsets in
                     Task {
                         for offset in offsets {
-                            let hostId = viewModel.hosts[offset].id
-                            if connectionManager.activeHostId == hostId {
-                                await connectionManager.disconnect(clearSession: true)
-                            }
+                            await deleteHost(viewModel.hosts[offset])
                         }
-                        await viewModel.deleteHosts(at: offsets)
                     }
                 }
             }
@@ -185,6 +169,14 @@ struct HostsListView: View {
             await viewModel.loadHosts()
         }
         .appScreenBackground()
+    }
+
+    private func deleteHost(_ host: HostProfile) async {
+        if connectionManager.activeHostId == host.id {
+            await connectionManager.disconnect(clearSession: true)
+        }
+        await viewModel.deleteHost(id: host.id)
+        await viewModel.loadHosts()
     }
 }
 
