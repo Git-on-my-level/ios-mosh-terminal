@@ -373,9 +373,10 @@ private struct KeyFileDocumentPicker: UIViewControllerRepresentable {
 
 #Preview {
     NavigationStack {
+        let previewDeps = AppEnvironment.makePreviewDependencies()
         KeyManagementView(
-            hostRepository: HostRepository(store: JSONStore()),
-            keyStore: KeychainPrivateKeyStore()
+            hostRepository: previewDeps.hostRepository,
+            keyStore: previewDeps.keyStore
         )
     }
 }

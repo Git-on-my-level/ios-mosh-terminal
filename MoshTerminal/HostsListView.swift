@@ -247,26 +247,11 @@ private struct HostEditorContext: Identifiable {
 
 #Preview {
     NavigationStack {
-        let store = JSONStore()
-        let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
-        let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
-        let keyStore = KeychainPrivateKeyStore()
-        let moshBootstrapper = MoshBootstrapper(sshClientFactory: sshClientFactory)
-        let appLifecycleService = AppLifecycleService()
-        let networkPathService = NetworkPathService()
-        let hostRepository = HostRepository(store: store)
-        let connectionManager = ConnectionManager(
-            keyStore: keyStore,
-            hostRepository: hostRepository,
-            moshBootstrapper: moshBootstrapper,
-            moshEngineFactory: { LoopbackMoshEngine() },
-            appLifecycleService: appLifecycleService,
-            networkPathService: networkPathService
-        )
+        let previewDeps = AppEnvironment.makePreviewDependencies()
         HostsListView(
-            hostRepository: hostRepository,
-            keyStore: keyStore,
-            connectionManager: connectionManager
+            hostRepository: previewDeps.hostRepository,
+            keyStore: previewDeps.keyStore,
+            connectionManager: previewDeps.connectionManager
         )
     }
 }

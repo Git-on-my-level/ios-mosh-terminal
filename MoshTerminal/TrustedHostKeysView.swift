@@ -102,6 +102,7 @@ private struct TrustedHostKeyRow: View {
 
 #Preview {
     NavigationStack {
-        TrustedHostKeysView(repository: TrustedHostKeyRepository(store: JSONStore()))
+        let previewDeps = AppEnvironment.makePreviewDependencies()
+        TrustedHostKeysView(repository: previewDeps.trustedHostKeyRepository)
     }
 }

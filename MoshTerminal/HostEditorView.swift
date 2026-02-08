@@ -345,9 +345,10 @@ struct HostEditorView: View {
 
 #Preview {
     NavigationStack {
+        let previewDeps = AppEnvironment.makePreviewDependencies()
         HostEditorView(
-            hostRepository: HostRepository(store: JSONStore()),
-            keyStore: KeychainPrivateKeyStore(),
+            hostRepository: previewDeps.hostRepository,
+            keyStore: previewDeps.keyStore,
             onSave: { _ in }
         )
     }
