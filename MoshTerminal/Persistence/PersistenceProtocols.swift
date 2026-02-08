@@ -1,3 +1,5 @@
+import Foundation
+
 protocol PrivateKeyStoring {
     func loadPrivateKeyData(keyRefId: String) throws -> Data
     func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata?
@@ -11,9 +13,13 @@ protocol PrivateKeyDeleting {
     func deleteKey(keyRefId: String) throws
 }
 
+protocol PrivateKeyImporting {
+    func storePrivateKey(data: Data, label: String, keyType: SSHKeyType, requiresPassphrase: Bool) throws -> StoredPrivateKeyMetadata
+}
+
 protocol PrivateKeyStoringAndListing: PrivateKeyStoring, PrivateKeyListing {}
 
-protocol PrivateKeyManaging: PrivateKeyStoringAndListing, PrivateKeyDeleting {}
+protocol PrivateKeyManaging: PrivateKeyStoringAndListing, PrivateKeyDeleting, PrivateKeyImporting {}
 
 protocol HostPersisting {
     func upsert(_ host: HostProfile) async throws

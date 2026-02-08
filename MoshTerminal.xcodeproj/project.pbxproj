@@ -105,6 +105,9 @@
 		BC945E7D48B544DFB0A5050 /* PredictionSwiftTermIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA2BF1D8AFF49C4B2B62049 /* PredictionSwiftTermIntegrationTests.swift */; };
 		1776D11099F64422A24D0357 /* PredictionDisplayPreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8CB3502052429883BCD547 /* PredictionDisplayPreferenceTests.swift */; };
 		B0E3F4A5C6D7E8F90A1B2C3D /* PredictionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */; };
+		15D11F6E97289100FA789857 /* ServiceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */; };
+		7B310FCE8CF2EAC0734C19C5 /* PersistenceProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */; };
+		E9F8D7C6A5B4E3D2C1B0A9F8 /* MockProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C7E6A9B4D3F5E2C8A1B3D4 /* MockProtocols.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +208,9 @@
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
 		FF2FAF7BBBD045AEBECA0CE3 /* SessionKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionKey.swift; sourceTree = "<group>"; };
 		A8D2E3F4B5C6D7E8F90A1B2C /* PredictionOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionOverlayView.swift; sourceTree = "<group>"; };
+		AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceProtocols.swift; sourceTree = "<group>"; };
+		69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceProtocols.swift; sourceTree = "<group>"; };
+		D8C7E6A9B4D3F5E2C8A1B3D4 /* MockProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProtocols.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		0E5FFD33619139ECCC9FB385 /* PredictionDisplayPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionDisplayPreference.swift; sourceTree = "<group>"; };
 		FCE78E87B9E1FF341CAD0FF4 /* PredictionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionEngine.swift; sourceTree = "<group>"; };
@@ -347,6 +353,7 @@
 		C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
+					69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */,
 				C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */,
 			);
 			path = Persistence;
@@ -355,6 +362,7 @@
 		C1C1C1C1C1C1C1C1C1C1C1E3 /* MoshTerminalTests */ = {
 			isa = PBXGroup;
 			children = (
+					D8C7E6A9B4D3F5E2C8A1B3D4 /* MockProtocols.swift */,
 				E2E2E2E2E2E2E2E2E2E2E2F1 /* MoshE2EIntegrationTests.swift */,
 				C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */,
 				1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */,
@@ -413,6 +421,7 @@
 		F2F2F2F2F2F2F2F2F2F2F2A3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+					AE0E283BFD9806556F900C6A /* ServiceProtocols.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2C1 /* DatagramSocket.swift */,
@@ -571,6 +580,7 @@
 				F3F3F3F3F3F3F3F3F3F3F3B2 /* TerminalSessionDependencies.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B3 /* TerminalSessionViewModel.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */,
+				15D11F6E97289100FA789857 /* ServiceProtocols.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2D1 /* DatagramSocket.swift in Sources */,
 				F2F2F2F2F2F2F2F2F2F2F2D2 /* RoamingDatagramSocket.swift in Sources */,
@@ -608,6 +618,7 @@
 				3661D96F71E9D2ACB955FE0E /* TransportSender.swift in Sources */,
 				C0D1E2F3A4B5C6D7E8F90123 /* TransportReceiver.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D2 /* TrustedHostKey.swift in Sources */,
+				7B310FCE8CF2EAC0734C19C5 /* PersistenceProtocols.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
