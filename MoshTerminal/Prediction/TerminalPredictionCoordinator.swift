@@ -2,6 +2,7 @@ import Foundation
 import SwiftTerm
 import UIKit
 
+@MainActor
 final class TerminalPredictionCoordinator {
     private let engine = PredictionEngine()
 
@@ -83,12 +84,6 @@ final class TerminalPredictionCoordinator {
 
     private func withConfirmedGrid(_ block: @escaping (SwiftTermConfirmedGrid, Int64) -> Void) {
         guard let terminalView else { return }
-        if !Thread.isMainThread {
-            DispatchQueue.main.async { [weak self] in
-                self?.withConfirmedGrid(block)
-            }
-            return
-        }
         let terminal = terminalView.getTerminal()
         let grid = SwiftTermConfirmedGrid(terminal: terminal)
         let nowMillis = Int64(Clock.nowMillis())
@@ -119,29 +114,21 @@ final class TerminalPredictionCoordinator {
 
     private func updateOverlayView(_ model: PredictionRenderModel, suppressNativeCaret: Bool) {
         guard let overlayView else { return }
-        let apply: () -> Void = { [weak self] in
-            guard let self else { return }
-            if let terminalView = self.terminalView, overlayView.superview === terminalView {
-                // SwiftTerm's TerminalView is a UIScrollView and changes its bounds origin as it scrolls.
-                // Keep the overlay pinned to the visible region so predictions don't "fall off" after output scrolls.
-                //
-                // Symptoms when this is wrong:
-                // - predictions appear to stop after a command outputs/scrolls
-                // - typed characters can show up in the top-left or other incorrect positions
-                if overlayView.frame != terminalView.bounds {
-                    overlayView.frame = terminalView.bounds
-                }
-            }
-            overlayView.model = model
-            self.updateNativeCaretSuppression(suppress: suppressNativeCaret)
-            if let terminalView = self.terminalView, overlayView.superview === terminalView {
-                terminalView.bringSubviewToFront(overlayView)
+        if let terminalView = terminalView, overlayView.superview === terminalView {
+            // SwiftTerm's TerminalView is a UIScrollView and changes its bounds origin as it scrolls.
+            // Keep the overlay pinned to the visible region so predictions don't "fall off" after output scrolls.
+            //
+            // Symptoms when this is wrong:
+            // - predictions appear to stop after a command outputs/scrolls
+            // - typed characters can show up in the top-left or other incorrect positions
+            if overlayView.frame != terminalView.bounds {
+                overlayView.frame = terminalView.bounds
             }
         }
-        if Thread.isMainThread {
-            apply()
-        } else {
-            DispatchQueue.main.async(execute: apply)
+        overlayView.model = model
+        updateNativeCaretSuppression(suppress: suppressNativeCaret)
+        if let terminalView = terminalView, overlayView.superview === terminalView {
+            terminalView.bringSubviewToFront(overlayView)
         }
     }
 

@@ -4,6 +4,7 @@ import UIKit
 
 typealias TerminalUIKitView = SwiftTerm.TerminalView
 
+@MainActor
 final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
     @Published var isCtrlActive = false
 
