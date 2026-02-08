@@ -6,11 +6,78 @@ import Darwin
 /// `@unchecked Sendable` because SSH session state is confined to `queue`,
 /// with cancellation coordination guarded by `connectStateLock`.
 final class LibSSH2Client: SSHClient, @unchecked Sendable {
+    struct ResolvedAddress {
+        let family: Int32
+        let socktype: Int32
+        let proto: Int32
+        let addrData: Data
+    }
+
+    protocol SocketSystemCalls {
+        func socket(_ domain: Int32, _ type: Int32, _ proto: Int32) -> Int32
+        func connect(_ socket: Int32, _ address: UnsafePointer<sockaddr>?, _ addressLen: socklen_t) -> Int32
+        func poll(_ fds: UnsafeMutablePointer<pollfd>?, _ nfds: nfds_t, _ timeout: Int32) -> Int32
+        func getsockopt(
+            _ socket: Int32,
+            _ level: Int32,
+            _ optionName: Int32,
+            _ optionValue: UnsafeMutableRawPointer?,
+            _ optionLen: UnsafeMutablePointer<socklen_t>?
+        ) -> Int32
+        func fcntl(_ socket: Int32, _ command: Int32, _ value: Int32) -> Int32
+        func close(_ socket: Int32) -> Int32
+        func strerror(_ errnum: Int32) -> UnsafePointer<Int8>?
+        var currentErrno: Int32 { get }
+    }
+
+    struct LiveSocketSystemCalls: SocketSystemCalls {
+        static let live = LiveSocketSystemCalls()
+
+        func socket(_ domain: Int32, _ type: Int32, _ proto: Int32) -> Int32 {
+            Darwin.socket(domain, type, proto)
+        }
+
+        func connect(_ socket: Int32, _ address: UnsafePointer<sockaddr>?, _ addressLen: socklen_t) -> Int32 {
+            Darwin.connect(socket, address, addressLen)
+        }
+
+        func poll(_ fds: UnsafeMutablePointer<pollfd>?, _ nfds: nfds_t, _ timeout: Int32) -> Int32 {
+            Darwin.poll(fds, nfds, timeout)
+        }
+
+        func getsockopt(
+            _ socket: Int32,
+            _ level: Int32,
+            _ optionName: Int32,
+            _ optionValue: UnsafeMutableRawPointer?,
+            _ optionLen: UnsafeMutablePointer<socklen_t>?
+        ) -> Int32 {
+            Darwin.getsockopt(socket, level, optionName, optionValue, optionLen)
+        }
+
+        func fcntl(_ socket: Int32, _ command: Int32, _ value: Int32) -> Int32 {
+            Darwin.fcntl(socket, command, value)
+        }
+
+        func close(_ socket: Int32) -> Int32 {
+            Darwin.close(socket)
+        }
+
+        func strerror(_ errnum: Int32) -> UnsafePointer<Int8>? {
+            Darwin.strerror(errnum)
+        }
+
+        var currentErrno: Int32 {
+            Int32(Darwin.errno)
+        }
+    }
+
     private static let channelWindowDefault: UInt32 = 2 * 1024 * 1024
     private static let channelPacketDefault: UInt32 = 32768
     private static let connectTimeoutSeconds: TimeInterval = 15
     private let queue = DispatchQueue(label: "com.moshterminal.ssh")
     private let hostKeyVerifier: SSHHostKeyVerifying?
+    private let systemCalls: SocketSystemCalls
     private let connectStateLock = NSLock()
 
     private var session: OpaquePointer?
@@ -21,8 +88,9 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
     private var cancelRequested = false
     private var pendingSocketFD: Int32 = -1
 
-    init(hostKeyVerifier: SSHHostKeyVerifying? = nil) {
+    init(hostKeyVerifier: SSHHostKeyVerifying? = nil, systemCalls: SocketSystemCalls = LiveSocketSystemCalls.live) {
         self.hostKeyVerifier = hostKeyVerifier
+        self.systemCalls = systemCalls
         LibSSH2Global.shared.initialize()
     }
 
@@ -156,7 +224,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
             self.connectedHost = nil
             self.connectedPort = nil
             if self.socketFD >= 0 {
-                Self.closeSocket(self.socketFD)
+                self.closeSocket(self.socketFD)
                 self.socketFD = -1
             }
         }
@@ -164,7 +232,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
 
     func cancel() async {
         if let pending = requestCancellation() {
-            Self.closeSocket(pending)
+            closeSocket(pending)
         }
         await disconnect()
     }
@@ -328,6 +396,37 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
     }
 
     private func openSocket(host: String, port: Int) throws -> Int32 {
+        let addresses = try resolveAddresses(host: host, port: port)
+        let deadline = DispatchTime.now().advanced(by: .seconds(Int(Self.connectTimeoutSeconds)))
+        return try openSocket(resolvedAddresses: addresses, deadline: deadline)
+    }
+
+    func openSocket(resolvedAddresses: [ResolvedAddress], deadline: DispatchTime) throws -> Int32 {
+        var lastError: String?
+        for address in resolvedAddresses {
+            do {
+                if let socketFD = try connectToAddress(address, deadline: deadline) {
+                    return socketFD
+                }
+            } catch let sshError as SSHClientError {
+                if sshError == .cancelled {
+                    throw sshError
+                }
+                if case .connectionFailed(let message) = sshError {
+                    lastError = message
+                } else {
+                    lastError = "Connection failed."
+                }
+            } catch {
+                lastError = "Connection failed."
+            }
+        }
+
+        let message = lastError ?? "Unable to connect to host."
+        throw SSHClientError.connectionFailed(message: message)
+    }
+
+    private func resolveAddresses(host: String, port: Int) throws -> [ResolvedAddress] {
         var hints = addrinfo(
             ai_flags: 0,
             ai_family: AF_UNSPEC,
@@ -345,101 +444,93 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         }
         defer { freeaddrinfo(result) }
 
-        let deadline = DispatchTime.now().advanced(by: .seconds(Int(Self.connectTimeoutSeconds)))
+        var addresses: [ResolvedAddress] = []
         var pointer: UnsafeMutablePointer<addrinfo>? = result
-        var lastError: String?
         while let addrInfo = pointer {
-            try checkCancellation()
-            let remaining = remainingTimeoutMilliseconds(until: deadline)
-            if remaining == 0 {
-                throw SSHClientError.connectionFailed(message: "Connection timed out.")
-            }
-            let socketFD = socket(addrInfo.pointee.ai_family, addrInfo.pointee.ai_socktype, addrInfo.pointee.ai_protocol)
-            if socketFD >= 0 {
-                setPendingSocket(socketFD)
-                if isCancelRequested() {
-                    if clearPendingSocket(socketFD) {
-                        Self.closeSocket(socketFD)
-                    }
-                    throw SSHClientError.cancelled
-                }
-                let originalFlags = fcntl(socketFD, F_GETFL, 0)
-                if originalFlags >= 0 {
-                    if fcntl(socketFD, F_SETFL, originalFlags | O_NONBLOCK) < 0 {
-                        lastError = "Failed to set socket non-blocking mode."
-                        if clearPendingSocket(socketFD) {
-                            Self.closeSocket(socketFD)
-                        }
-                        pointer = addrInfo.pointee.ai_next
-                        continue
-                    }
-                } else {
-                    lastError = "Failed to read socket flags."
-                    if clearPendingSocket(socketFD) {
-                        Self.closeSocket(socketFD)
-                    }
-                    pointer = addrInfo.pointee.ai_next
-                    continue
-                }
-                let connectResult = Darwin.connect(socketFD, addrInfo.pointee.ai_addr, addrInfo.pointee.ai_addrlen)
-                if connectResult == 0 {
-                    if isCancelRequested() {
-                        _ = clearPendingSocket(socketFD)
-                        Self.closeSocket(socketFD)
-                        throw SSHClientError.cancelled
-                    }
-                    _ = fcntl(socketFD, F_SETFL, originalFlags)
-                    _ = clearPendingSocket(socketFD)
-                    return socketFD
-                }
-
-                if errno == EINPROGRESS {
-                    do {
-                        let connected = try waitForConnect(socketFD: socketFD, deadline: deadline)
-                        if connected {
-                            if isCancelRequested() {
-                                _ = clearPendingSocket(socketFD)
-                                Self.closeSocket(socketFD)
-                                throw SSHClientError.cancelled
-                            }
-                            _ = fcntl(socketFD, F_SETFL, originalFlags)
-                            _ = clearPendingSocket(socketFD)
-                            return socketFD
-                        }
-                        lastError = "Connection timed out."
-                    } catch {
-                        _ = clearPendingSocket(socketFD)
-                        if let sshError = error as? SSHClientError {
-                            if sshError == .cancelled {
-                                Self.closeSocket(socketFD)
-                                throw sshError
-                            }
-                            if case .connectionFailed(let message) = sshError {
-                                lastError = message
-                            } else {
-                                lastError = "Connection failed."
-                            }
-                        } else {
-                            lastError = "Connection failed."
-                        }
-                    }
-                } else {
-                    lastError = socketErrorDescription(prefix: "Connect failed")
-                }
-
-                if clearPendingSocket(socketFD) {
-                    Self.closeSocket(socketFD)
-                }
+            if let addr = addrInfo.pointee.ai_addr, addrInfo.pointee.ai_addrlen > 0 {
+                let data = Data(bytes: addr, count: Int(addrInfo.pointee.ai_addrlen))
+                addresses.append(
+                    ResolvedAddress(
+                        family: addrInfo.pointee.ai_family,
+                        socktype: addrInfo.pointee.ai_socktype,
+                        proto: addrInfo.pointee.ai_protocol,
+                        addrData: data
+                    )
+                )
             }
             pointer = addrInfo.pointee.ai_next
         }
 
-        let message = lastError ?? "Unable to connect to host."
+        guard !addresses.isEmpty else {
+            throw SSHClientError.connectionFailed(message: "Unable to resolve host.")
+        }
+        return addresses
+    }
+
+    private func connectToAddress(_ address: ResolvedAddress, deadline: DispatchTime) throws -> Int32? {
+        try checkCancellation()
+        let remaining = remainingTimeoutMilliseconds(until: deadline)
+        if remaining == 0 {
+            throw SSHClientError.connectionFailed(message: "Connection timed out.")
+        }
+
+        let socketFD = systemCalls.socket(address.family, address.socktype, address.proto)
+        guard socketFD >= 0 else { return nil }
+
+        var shouldClose = true
+        setPendingSocket(socketFD)
+        defer {
+            if shouldClose, clearPendingSocket(socketFD) {
+                closeSocket(socketFD)
+            }
+        }
+
+        if isCancelRequested() {
+            throw SSHClientError.cancelled
+        }
+
+        let originalFlags = systemCalls.fcntl(socketFD, F_GETFL, 0)
+        guard originalFlags >= 0 else {
+            throw SSHClientError.connectionFailed(message: "Failed to read socket flags.")
+        }
+        if systemCalls.fcntl(socketFD, F_SETFL, originalFlags | O_NONBLOCK) < 0 {
+            throw SSHClientError.connectionFailed(message: "Failed to set socket non-blocking mode.")
+        }
+
+        let connectResult = address.addrData.withUnsafeBytes { rawBuffer -> Int32 in
+            let addrPointer = rawBuffer.baseAddress?.assumingMemoryBound(to: sockaddr.self)
+            return systemCalls.connect(socketFD, addrPointer, socklen_t(rawBuffer.count))
+        }
+        if connectResult == 0 {
+            if isCancelRequested() {
+                throw SSHClientError.cancelled
+            }
+            _ = systemCalls.fcntl(socketFD, F_SETFL, originalFlags)
+            _ = clearPendingSocket(socketFD)
+            shouldClose = false
+            return socketFD
+        }
+
+        if systemCalls.currentErrno == EINPROGRESS {
+            let connected = try waitForConnect(socketFD: socketFD, deadline: deadline)
+            if connected {
+                if isCancelRequested() {
+                    throw SSHClientError.cancelled
+                }
+                _ = systemCalls.fcntl(socketFD, F_SETFL, originalFlags)
+                _ = clearPendingSocket(socketFD)
+                shouldClose = false
+                return socketFD
+            }
+            throw SSHClientError.connectionFailed(message: "Connection timed out.")
+        }
+
+        let message = socketErrorDescription(prefix: "Connect failed")
         throw SSHClientError.connectionFailed(message: message)
     }
 
-    private static func closeSocket(_ socketFD: Int32) {
-        close(socketFD)
+    private func closeSocket(_ socketFD: Int32) {
+        _ = systemCalls.close(socketFD)
     }
 
     private func waitForConnect(socketFD: Int32, deadline: DispatchTime) throws -> Bool {
@@ -451,7 +542,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                 return false
             }
             let result = withUnsafeMutablePointer(to: &pollFD) { pointer in
-                poll(pointer, 1, timeout)
+                systemCalls.poll(pointer, 1, timeout)
             }
             if result > 0 {
                 if pollFD.revents & Int16(POLLNVAL | POLLERR | POLLHUP) != 0 {
@@ -466,7 +557,7 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
                 throw SSHClientError.connectionFailed(message: message)
             } else if result == 0 {
                 return false
-            } else if errno == EINTR {
+            } else if systemCalls.currentErrno == EINTR {
                 continue
             } else {
                 let message = socketErrorDescription(prefix: "Poll failed")
@@ -475,8 +566,8 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
         }
     }
 
-    private func remainingTimeoutMilliseconds(until deadline: DispatchTime) -> Int32 {
-        let now = DispatchTime.now().uptimeNanoseconds
+    func remainingTimeoutMilliseconds(until deadline: DispatchTime, now: DispatchTime = .now()) -> Int32 {
+        let now = now.uptimeNanoseconds
         let deadlineNs = deadline.uptimeNanoseconds
         guard deadlineNs > now else { return 0 }
         let remainingNs = deadlineNs - now
@@ -491,8 +582,8 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
     }
 
     private func socketErrorDescription(prefix: String, errnoOverride: Int32? = nil) -> String {
-        let errorCode = errnoOverride ?? Int32(errno)
-        guard let errorCString = strerror(errorCode) else {
+        let errorCode = errnoOverride ?? systemCalls.currentErrno
+        guard let errorCString = systemCalls.strerror(errorCode) else {
             return "\(prefix) (\(errorCode))."
         }
         let message = String(cString: errorCString)
@@ -502,8 +593,8 @@ final class LibSSH2Client: SSHClient, @unchecked Sendable {
     private func getSocketError(_ socketFD: Int32) -> Int32 {
         var error: Int32 = 0
         var length = socklen_t(MemoryLayout.size(ofValue: error))
-        if getsockopt(socketFD, SOL_SOCKET, SO_ERROR, &error, &length) != 0 {
-            return Int32(errno)
+        if systemCalls.getsockopt(socketFD, SOL_SOCKET, SO_ERROR, &error, &length) != 0 {
+            return systemCalls.currentErrno
         }
         return error
     }
