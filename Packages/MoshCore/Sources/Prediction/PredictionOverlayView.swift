@@ -1,6 +1,7 @@
 import CoreText
 import UIKit
 
+@MainActor
 public final class PredictionOverlayView: UIView {
     public var model: PredictionRenderModel = PredictionRenderModel() {
         didSet {
@@ -47,7 +48,6 @@ public final class PredictionOverlayView: UIView {
     private var _cellMetrics: CellMetrics?
     private var pendingRedraw = false
     private var redrawWorkItem: DispatchWorkItem?
-    private let redrawQueue = DispatchQueue(label: "com.mosh.overlay", qos: .userInteractive)
 
     private let minFrameInterval: TimeInterval = 1.0 / 60.0
     private var cellMetrics: CellMetrics {
@@ -95,13 +95,11 @@ public final class PredictionOverlayView: UIView {
 
         redrawWorkItem?.cancel()
         redrawWorkItem = DispatchWorkItem { [weak self] in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.pendingRedraw = false
-                self.setNeedsDisplay()
-            }
+            guard let self = self else { return }
+            self.pendingRedraw = false
+            self.setNeedsDisplay()
         }
-        redrawQueue.asyncAfter(deadline: .now() + minFrameInterval, execute: redrawWorkItem!)
+        DispatchQueue.main.asyncAfter(deadline: .now() + minFrameInterval, execute: redrawWorkItem!)
     }
 
     public override func draw(_ rect: CGRect) {

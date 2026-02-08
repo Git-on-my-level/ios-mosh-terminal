@@ -327,6 +327,7 @@ private struct TerminalDebugOverlay: View {
 /// TerminalView has custom first-responder handling that can cause the accessory
 /// to persist on screen even when the keyboard is dismissed. By explicitly setting
 /// it to `nil` when the keyboard hides, we guarantee correct behavior.
+@MainActor
 private struct TerminalContainerView: UIViewRepresentable {
     @ObservedObject var controller: TerminalSessionController
     let fontSize: Double
