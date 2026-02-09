@@ -20,6 +20,8 @@
 	<string>https://github.com/Git-on-my-level/ios-mosh-terminal/issues</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Used to connect to servers on your local network.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
