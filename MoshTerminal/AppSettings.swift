@@ -100,7 +100,7 @@ final class AppSettings: ObservableObject {
            let themeMode = ThemeMode(rawValue: storedTheme) {
             self.themeMode = themeMode
         } else {
-            themeMode = .system
+            themeMode = .dark
         }
         keepAwake = defaults.object(forKey: Keys.keepAwake) as? Bool ?? false
         if let storedPreference = defaults.string(forKey: Keys.predictionDisplayPreference),
