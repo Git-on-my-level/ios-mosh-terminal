@@ -50,6 +50,38 @@ final class PredictionEngineCullTests: XCTestCase {
         XCTAssertEqual(engine.debugState.confirmedEpoch, 1)
     }
 
+    func testEarlyTypedCharactersDoNotPreventEnterEpochPromotionOnNextOutput() {
+        let engine = PredictionEngine()
+        engine.displayPreference = .always
+        let grid = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 0, cursorCol: 0)
+
+        // Enter creates a tentative epoch with pending output promotion.
+        engine.updateNetworkSnapshot(
+            PredictionNetworkSnapshot(lastSentStateNum: 0, lastAckedStateNum: 0, echoAck: 0, srttMillis: 10)
+        )
+        engine.newUserBytes(Data([0x0D]), displayGrid: grid, nowMillis: 1000)
+        XCTAssertEqual(engine.debugState.predictionEpoch, 1)
+        XCTAssertEqual(engine.debugState.confirmedEpoch, 0)
+
+        // User types before the next output arrives; these predictions should remain gated (hidden).
+        engine.newUserBytes(Data("b".utf8), displayGrid: grid, nowMillis: 1010)
+        let preOutput = engine.currentRenderModel(confirmedGrid: grid, nowMillis: 1015)
+        XCTAssertTrue(visibleCells(in: preOutput).isEmpty)
+
+        // When output arrives (but does not echo the typed character yet), we should discard the
+        // hidden/unconfirmed predictions and still promote the Enter epoch so subsequent typing
+        // regains predictive behavior immediately.
+        let confirmed = FakeDisplayGrid(cols: 5, rows: 3, cursorRow: 1, cursorCol: 0)
+        engine.cull(confirmedGrid: confirmed, nowMillis: 1100, didReceiveOutput: true)
+
+        XCTAssertEqual(engine.debugState.confirmedEpoch, 1)
+        XCTAssertTrue(engine.debugState.overlayRows.flatMap { $0.cells }.allSatisfy { !$0.active })
+
+        engine.newUserBytes(Data("c".utf8), displayGrid: confirmed, nowMillis: 1110)
+        let postOutput = engine.currentRenderModel(confirmedGrid: confirmed, nowMillis: 1110)
+        XCTAssertFalse(visibleCells(in: postOutput).isEmpty)
+    }
+
     func testEpochGatingHidesPostCarriageReturnCharacterUntilConfirmed() {
         let engine = PredictionEngine()
         engine.displayPreference = .always

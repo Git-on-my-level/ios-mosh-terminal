@@ -44,11 +44,21 @@ final class PredictionEngine {
 
     private var predictionEpoch = 0
     private var confirmedEpoch = 0
+
     /// When set, indicates an epoch that became tentative due to an unsupported/unknown
-    /// user input sequence that did not produce any character predictions. If we later
-    /// observe confirmed server output, we can safely promote this epoch so predictions
-    /// resume immediately (without waiting for an echo confirmation).
-    private var pendingOutputPromotionEpoch: Int?
+    /// user input sequence that did not produce any character predictions (e.g. Enter or
+    /// an unhandled escape sequence). If we later observe confirmed server output, we can
+    /// optionally promote this epoch so predictions resume immediately (without waiting for
+    /// an echo confirmation).
+    ///
+    /// Note: If the user begins typing printable characters before that next output arrives,
+    /// we mark the promotion as having character predictions. Promotion then requires
+    /// discarding those unconfirmed predictions first, otherwise we'd leak input.
+    private struct PendingOutputPromotion {
+        var epoch: Int
+        var hasCharacterPredictions: Bool
+    }
+    private var pendingOutputPromotion: PendingOutputPromotion?
     private var lastUserByte: UInt8?
     var displayPreference: PredictionDisplayPreference = .adaptive
 
@@ -80,7 +90,7 @@ final class PredictionEngine {
         overlayRows = makeEmptyRows()
         predictionEpoch = 0
         confirmedEpoch = 0
-        pendingOutputPromotionEpoch = nil
+        pendingOutputPromotion = nil
         lastConfirmedCursor = nil
     }
 
@@ -112,7 +122,7 @@ final class PredictionEngine {
         for action in actions {
             switch action {
             case .print(let char, let width):
-                pendingOutputPromotionEpoch = nil
+                pendingOutputPromotion?.hasCharacterPredictions = true
                 guard width == 1 else {
                     becomeTentative(promoteOnNextOutput: true)
                     continue
@@ -120,15 +130,15 @@ final class PredictionEngine {
                 applyPrintable(char: char, width: width, displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .backspace:
-                pendingOutputPromotionEpoch = nil
+                pendingOutputPromotion?.hasCharacterPredictions = true
                 applyBackspace(displayGrid: displayGrid, nowMillis: nowMillis)
 
             case .carriageReturn:
-                pendingOutputPromotionEpoch = nil
+                pendingOutputPromotion = nil
                 applyCarriageReturn(nowMillis: nowMillis)
 
             case .lineFeed:
-                pendingOutputPromotionEpoch = nil
+                pendingOutputPromotion = nil
                 applyLineFeed(nowMillis: nowMillis)
 
             case .arrowLeft:
@@ -317,11 +327,18 @@ final class PredictionEngine {
         // If we became tentative due to an unknown input that produced no character predictions,
         // allow the next confirmed server output to "resync" and re-enable predictions immediately.
         if didReceiveOutput,
-           let pending = pendingOutputPromotionEpoch,
-           pending > confirmedEpoch,
-           activeCellPositions.isEmpty {
-            confirmedEpoch = pending
-            pendingOutputPromotionEpoch = nil
+           let pending = pendingOutputPromotion,
+           pending.epoch > confirmedEpoch {
+            if activeCellPositions.isEmpty {
+                confirmedEpoch = pending.epoch
+                pendingOutputPromotion = nil
+            } else if pending.hasCharacterPredictions {
+                discardPredictions(atOrAfterEpoch: pending.epoch, confirmedGrid: confirmedGrid)
+                if activeCellPositions.isEmpty {
+                    confirmedEpoch = pending.epoch
+                    pendingOutputPromotion = nil
+                }
+            }
         }
     }
 
@@ -791,15 +808,38 @@ final class PredictionEngine {
     private func becomeTentative(promoteOnNextOutput: Bool) {
         predictionEpoch += 1
         if promoteOnNextOutput {
-            pendingOutputPromotionEpoch = predictionEpoch
+            pendingOutputPromotion = PendingOutputPromotion(epoch: predictionEpoch, hasCharacterPredictions: false)
         } else {
-            pendingOutputPromotionEpoch = nil
+            pendingOutputPromotion = nil
         }
     }
 
     private func currentSendIntervalMillis() -> Int64 {
         let half = (srttMillis + 1) / 2
         return min(max(half, Constants.sendIntervalMin), Constants.sendIntervalMax)
+    }
+
+    private func discardPredictions(atOrAfterEpoch epoch: Int, confirmedGrid: DisplayGrid) {
+        // Drop cursor predictions unconditionally. Keeping older cursor predictions can misplace
+        // subsequent predictions after we intentionally discard hidden/unconfirmed input.
+        cursorPredictions.removeAll()
+
+        // Reset predicted cursor to the confirmed cursor to avoid "drifting" predictions after
+        // we intentionally discard hidden/unconfirmed input.
+        predictedCursorRow = confirmedGrid.cursorRow
+        predictedCursorCol = confirmedGrid.cursorCol
+
+        for rowIndex in Array(activeRowIndices) {
+            guard rowIndex < overlayRows.count else { continue }
+            for cellIndex in overlayRows[rowIndex].cells.indices {
+                if overlayRows[rowIndex].cells[cellIndex].active,
+                   overlayRows[rowIndex].cells[cellIndex].tentativeUntilEpoch >= epoch {
+                    var cell = overlayRows[rowIndex].cells[cellIndex]
+                    resetCell(&cell, row: rowIndex)
+                    overlayRows[rowIndex].cells[cellIndex] = cell
+                }
+            }
+        }
     }
 
 }
