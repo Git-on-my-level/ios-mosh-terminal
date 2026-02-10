@@ -42,9 +42,6 @@ struct TerminalView: View {
                 updatePredictionPreference()
             }
 #endif
-            .onTapGesture {
-                controller.focus()
-            }
             .navigationTitle(host.resolvedDisplayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -334,7 +331,7 @@ private struct TerminalContainerView: UIViewRepresentable {
     let palette: AppTheme.TerminalPalette
     let isKeyboardVisible: Bool
 
-    func makeUIView(context: Context) -> TerminalUIKitView {
+    func makeUIView(context: Context) -> TerminalViewportContainerUIKitView {
         let terminalView: TerminalUIKitView
         let reusedView = controller.terminalView != nil
         if let cachedView = controller.terminalView {
@@ -358,24 +355,33 @@ private struct TerminalContainerView: UIViewRepresentable {
             terminalView.layoutIfNeeded()
             terminalView.setNeedsDisplay()
         }
+        terminalView.contentInsetAdjustmentBehavior = .never
+        terminalView.delaysContentTouches = false
+        terminalView.canCancelContentTouches = true
         context.coordinator.accessoryView = TerminalAccessoryHostingView(controller: controller)
         terminalView.inputAccessoryView = nil
+
+        let container = TerminalViewportContainerUIKitView()
+        container.attach(terminalView: terminalView)
 
         DispatchQueue.main.async {
             controller.focus()
         }
-        return terminalView
+        return container
     }
 
-    func updateUIView(_ terminalView: TerminalUIKitView, context: Context) {
+    func updateUIView(_ container: TerminalViewportContainerUIKitView, context: Context) {
+        guard let terminalView = container.terminalView else { return }
         if controller.terminalView !== terminalView {
             controller.attach(view: terminalView)
         }
         if terminalView.terminalDelegate !== context.coordinator {
             terminalView.terminalDelegate = context.coordinator
         }
+        var didChangeFont = false
         if terminalView.font.pointSize != CGFloat(fontSize) {
             terminalView.font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+            didChangeFont = true
         }
         applyPalette(palette, to: terminalView)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller)
@@ -389,6 +395,12 @@ private struct TerminalContainerView: UIViewRepresentable {
         if terminalView.inputAccessoryView !== expectedAccessory {
             terminalView.inputAccessoryView = expectedAccessory
             terminalView.reloadInputViews()
+        }
+        if didChangeFont {
+            // SwiftTerm resizes itself by observing frame/bounds changes via Auto Layout.
+            terminalView.setNeedsLayout()
+            terminalView.layoutIfNeeded()
+            terminalView.setNeedsDisplay()
         }
     }
 
@@ -412,8 +424,54 @@ private struct TerminalContainerView: UIViewRepresentable {
 
 }
 
+enum TerminalAccessoryLayout {
+    static let accessoryHeight: CGFloat = 44
+}
+
+@MainActor
+final class TerminalViewportContainerUIKitView: UIView {
+    private(set) weak var terminalView: TerminalUIKitView?
+    private var installedConstraints: [NSLayoutConstraint] = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        clipsToBounds = true
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func attach(terminalView: TerminalUIKitView) {
+        if self.terminalView === terminalView {
+            return
+        }
+
+        installedConstraints.forEach { $0.isActive = false }
+        installedConstraints.removeAll(keepingCapacity: false)
+
+        self.terminalView?.removeFromSuperview()
+        self.terminalView = terminalView
+
+        terminalView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(terminalView)
+
+        // Drive terminal resizing by changing its actual frame via Auto Layout.
+        // SwiftTerm observes frame/bounds changes and resizes the grid without doing a DECSTR soft reset.
+        installedConstraints = [
+            terminalView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            terminalView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            terminalView.topAnchor.constraint(equalTo: topAnchor),
+            terminalView.bottomAnchor.constraint(equalTo: keyboardLayoutGuide.topAnchor)
+        ]
+        NSLayoutConstraint.activate(installedConstraints)
+    }
+}
+
 // IMPORTANT: The prediction overlay must be a subview of SwiftTerm's TerminalUIKitView.
-// Wrapping TerminalUIKitView in a container view regressed UDP connectivity.
+// We can wrap the terminal view in a container (for keyboard-safe layout), but the overlay must
+// still be attached directly to the SwiftTerm view so it tracks its scrolling/viewport correctly.
 @MainActor
 @discardableResult
 func installPredictionOverlay(
@@ -454,13 +512,12 @@ func installPredictionOverlay(
 /// UIKit hosting view that wraps the SwiftUI TerminalAccessoryRow for use as inputAccessoryView
 private final class TerminalAccessoryHostingView: UIInputView {
     private let hostingController: UIHostingController<TerminalAccessoryRow>
-    private static let accessoryHeight: CGFloat = 44
 
     init(controller: TerminalSessionController) {
         let accessoryRow = TerminalAccessoryRow(controller: controller)
         self.hostingController = UIHostingController(rootView: accessoryRow)
 
-        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: Self.accessoryHeight),
+        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: TerminalAccessoryLayout.accessoryHeight),
                    inputViewStyle: .keyboard)
 
         hostingController.view.backgroundColor = .clear
@@ -472,7 +529,7 @@ private final class TerminalAccessoryHostingView: UIInputView {
             hostingController.view.leadingAnchor.constraint(equalTo: leadingAnchor),
             hostingController.view.trailingAnchor.constraint(equalTo: trailingAnchor),
             hostingController.view.topAnchor.constraint(equalTo: topAnchor),
-            hostingController.view.heightAnchor.constraint(equalToConstant: Self.accessoryHeight)
+            hostingController.view.heightAnchor.constraint(equalToConstant: TerminalAccessoryLayout.accessoryHeight)
         ])
 
         autoresizingMask = [.flexibleWidth]
@@ -483,7 +540,7 @@ private final class TerminalAccessoryHostingView: UIInputView {
     }
 
     override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: Self.accessoryHeight)
+        CGSize(width: UIView.noIntrinsicMetric, height: TerminalAccessoryLayout.accessoryHeight)
     }
 }
 
@@ -547,7 +604,7 @@ private struct TerminalAccessoryRow: View {
             }
             .padding(.trailing, 8)
         }
-        .frame(height: 36)
+        .frame(height: TerminalAccessoryLayout.accessoryHeight)
         .onAppear {
             hapticFeedback.prepare()
         }
@@ -624,6 +681,7 @@ private struct TerminalAccessoryRow: View {
                 let ctrlByte = ascii & 0x1F
                 controller.sendControl(ctrlByte)
             }
+            controller.focus()
         } label: {
             Text("^\(key)")
                 .font(.system(size: 13, weight: .medium, design: .monospaced))
@@ -654,6 +712,7 @@ private struct TerminalAccessoryRow: View {
         Button {
             hapticFeedback.impactOccurred()
             action()
+            controller.focus()
         } label: {
             Text(title)
                 .font(.system(size: 14, weight: .medium))
@@ -668,6 +727,7 @@ private struct TerminalAccessoryRow: View {
         Button {
             hapticFeedback.impactOccurred()
             action()
+            controller.focus()
         } label: {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .medium))

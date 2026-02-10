@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0FE22A9F977F4DE5866962DB /* MoshClientCoreUtilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */; };
+		8B1C2D3E4F5061728394A5B7 /* TerminalGridSizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1C2D3E4F5061728394A5B6 /* TerminalGridSizerTests.swift */; };
 		1452E163F5D344E295B6A360 /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77D60C4676C4F66AF196A80 /* RepositoryTests.swift */; };
 		1AB459535CE46863FA6D7E24 /* TransportSenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */; };
 		33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5887890B1C9820791F281160 /* ProtoCodecTests.swift */; };
@@ -24,6 +25,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */; };
 		C0C0C0C0C0C0C0C0C0C0C0C2 /* StableTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C0C0C0C0C0C0C0C0C0C0C1 /* StableTerminalView.swift */; };
+		9A7C2E3F4B5D6E708192A3B5 /* TerminalGridSizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7C2E3F4B5D6E708192A3B4 /* TerminalGridSizer.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */; };
 		F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C0 /* LicensesView.swift */; };
@@ -118,6 +120,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1AA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
 		C0C0C0C0C0C0C0C0C0C0C0C1 /* StableTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableTerminalView.swift; sourceTree = "<group>"; };
+		9A7C2E3F4B5D6E708192A3B4 /* TerminalGridSizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGridSizer.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = file.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -133,6 +136,7 @@
 		C1C1C1C1C1C1C1C1C1C1C1C2 /* TrustedHostKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustedHostKey.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStore.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStoreTests.swift; sourceTree = "<group>"; };
+		8B1C2D3E4F5061728394A5B6 /* TerminalGridSizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalGridSizerTests.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = MoshTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6EC9BE9B0064F3AA5527163 /* LibSSH2AvailabilityGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibSSH2AvailabilityGuard.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManagementView.swift; sourceTree = "<group>"; };
@@ -236,6 +240,7 @@
 				89E508C0249C443DB5EBB2E5 /* Licenses.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1AC /* TerminalView.swift */,
 				C0C0C0C0C0C0C0C0C0C0C0C1 /* StableTerminalView.swift */,
+				9A7C2E3F4B5D6E708192A3B4 /* TerminalGridSizer.swift */,
 				F3F3F3F3F3F3F3F3F3F3F301 /* TerminalSessionController.swift */,
 				F3F3F3F3F3F3F3F3F3F3F302 /* TerminalSessionDependencies.swift */,
 				F3F3F3F3F3F3F3F3F3F3F303 /* TerminalSessionViewModel.swift */,
@@ -284,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 					D8C7E6A9B4D3F5E2C8A1B3D4 /* MockProtocols.swift */,
+				8B1C2D3E4F5061728394A5B6 /* TerminalGridSizerTests.swift */,
 				E2E2E2E2E2E2E2E2E2E2E2F1 /* MoshE2EIntegrationTests.swift */,
 				C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */,
 				1732609AEA2E44D18A29D6C6 /* MoshBootstrapperTests.swift */,
@@ -468,6 +474,7 @@
 				74BCF1FED6F14F2BB1B9A388 /* Licenses.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1AB /* TerminalView.swift in Sources */,
 				C0C0C0C0C0C0C0C0C0C0C0C2 /* StableTerminalView.swift in Sources */,
+				9A7C2E3F4B5D6E708192A3B5 /* TerminalGridSizer.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B1 /* TerminalSessionController.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B2 /* TerminalSessionDependencies.swift in Sources */,
 				F3F3F3F3F3F3F3F3F3F3F3B3 /* TerminalSessionViewModel.swift in Sources */,
@@ -505,6 +512,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8B1C2D3E4F5061728394A5B7 /* TerminalGridSizerTests.swift in Sources */,
 				E2E2E2E2E2E2E2E2E2E2E2F2 /* MoshE2EIntegrationTests.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */,
 				A9F2CF4273AA43B8A220FD35 /* MoshBootstrapperTests.swift in Sources */,

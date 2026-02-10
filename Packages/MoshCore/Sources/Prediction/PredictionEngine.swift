@@ -162,13 +162,14 @@ final class PredictionEngine {
         let previousConfirmedCursor = lastConfirmedCursor
 
         if cols != confirmedGrid.cols || rows != confirmedGrid.rows {
-            cols = confirmedGrid.cols
-            rows = confirmedGrid.rows
-            reset()
-            overlayRows = makeEmptyRows()
-            activeCellPositions.removeAll()
-            activeRowIndices.removeAll()
-            return
+            // iOS resizes are frequent (keyboard, rotation). A full reset here makes predicted
+            // input disappear mid-typing. Keep existing epoch-gated state, but clamp it to
+            // the new grid bounds so we don't render out of range.
+            resizeGridPreservingState(
+                newCols: confirmedGrid.cols,
+                newRows: confirmedGrid.rows,
+                confirmedCursor: confirmedCursor
+            )
         }
 
         let sendInterval = currentSendIntervalMillis()
@@ -694,6 +695,54 @@ final class PredictionEngine {
             cols = displayGrid.cols
             rows = displayGrid.rows
             overlayRows = makeEmptyRows()
+        }
+    }
+
+    private func resizeGridPreservingState(newCols: Int, newRows: Int, confirmedCursor: CursorPosition) {
+        cols = newCols
+        rows = newRows
+
+        if overlayRows.count != newRows {
+            if overlayRows.count > newRows {
+                overlayRows = Array(overlayRows.prefix(newRows))
+            } else {
+                overlayRows.append(contentsOf: repeatElement(OverlayRowState(unknownRow: false, cells: []), count: newRows - overlayRows.count))
+            }
+        }
+
+        if cols > 0 {
+            for rowIndex in overlayRows.indices {
+                overlayRows[rowIndex].cells = overlayRows[rowIndex].cells.filter { cell in
+                    cell.active && cell.col >= 0 && cell.col < cols
+                }
+            }
+        } else {
+            for rowIndex in overlayRows.indices {
+                overlayRows[rowIndex].cells.removeAll(keepingCapacity: false)
+            }
+        }
+
+        // Rebuild active indices/positions from the filtered overlay rows.
+        activeCellPositions.removeAll(keepingCapacity: true)
+        activeRowIndices.removeAll(keepingCapacity: true)
+        for rowIndex in overlayRows.indices {
+            var hasAny = false
+            for cell in overlayRows[rowIndex].cells where cell.active {
+                activeCellPositions.insert(CellPosition(row: rowIndex, col: cell.col))
+                hasAny = true
+            }
+            if hasAny {
+                activeRowIndices.insert(rowIndex)
+            }
+        }
+
+        // Cursor predictions are cheap to regenerate; clamp/drop anything out of bounds.
+        cursorPredictions = cursorPredictions.filter { pred in
+            pred.row >= 0 && pred.row < rows && pred.col >= 0 && pred.col < cols
+        }
+        if predictedCursorRow < 0 || predictedCursorRow >= rows || predictedCursorCol < 0 || predictedCursorCol >= cols {
+            predictedCursorRow = max(0, min(rows - 1, confirmedCursor.row))
+            predictedCursorCol = max(0, min(cols - 1, confirmedCursor.col))
         }
     }
 

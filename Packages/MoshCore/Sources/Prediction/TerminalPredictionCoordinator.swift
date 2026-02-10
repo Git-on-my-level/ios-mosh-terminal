@@ -67,8 +67,18 @@ public final class TerminalPredictionCoordinator {
     }
 
     public func handleResize(cols: Int, rows: Int) {
-        engine.reset()
-        updateOverlayWithEmpty()
+        if engine.displayPreference == .off {
+            updateOverlayWithEmpty()
+            return
+        }
+        // Resizes are common on iOS (rotation, keyboard show/hide, split view). Resetting here
+        // makes in-flight predicted input "disappear", which feels like input loss. Instead,
+        // keep state and let the engine cull/adjust against the current confirmed grid.
+        withConfirmedGrid { [self] confirmedGrid, nowMillis in
+            updateNetworkSnapshot()
+            engine.cull(confirmedGrid: confirmedGrid, nowMillis: nowMillis, didReceiveOutput: false)
+            updateOverlay(confirmedGrid: confirmedGrid, nowMillis: nowMillis)
+        }
     }
 
     public func handleEchoAckUpdated() {
