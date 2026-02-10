@@ -79,6 +79,39 @@ final class KeyManagementViewModel: ObservableObject {
         loadKeys()
     }
 
+    func generateEd25519Key(label: String) -> String? {
+        let resolvedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalLabel = resolvedLabel.isEmpty ? "Generated Key" : resolvedLabel
+        do {
+            let generated = try SSHKeyGenerator.generateEd25519OpenSSH(comment: finalLabel)
+            _ = try store.storePrivateKey(
+                data: Data(generated.privateKeyPEM.utf8),
+                label: finalLabel,
+                keyType: generated.keyType,
+                requiresPassphrase: generated.requiresPassphrase
+            )
+            loadKeys()
+            return generated.publicKey
+        } catch {
+            alertMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func publicKeyLine(for key: StoredPrivateKeyMetadata) -> String? {
+        do {
+            let data = try store.loadPrivateKeyData(keyRefId: key.id)
+            guard let text = String(data: data, encoding: .utf8) else {
+                alertMessage = "Unable to read key as text."
+                return nil
+            }
+            return try SSHPublicKeyExporter.publicKeyLine(fromPrivateKeyPEM: text, comment: key.label)
+        } catch {
+            alertMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     private func importKey(text: String, data: Data, label: String?) {
         do {
             let result = try SSHPrivateKeyValidator.validate(text)
@@ -137,6 +170,8 @@ struct KeyManagementView: View {
     @StateObject private var viewModel: KeyManagementViewModel
     @State private var isShowingFileImporter = false
     @State private var isShowingPasteSheet = false
+    @State private var isShowingGenerateSheet = false
+    @State private var publicKeySheet: PublicKeySheetPayload?
 
     init(hostRepository: any HostListing, keyStore: any PrivateKeyManaging) {
         _viewModel = StateObject(
@@ -179,6 +214,20 @@ struct KeyManagementView: View {
                         } label: {
                             Label("Copy Name", systemImage: "doc.on.doc")
                         }
+                        Button {
+                            if let publicKey = viewModel.publicKeyLine(for: key) {
+                                UIPasteboard.general.string = publicKey
+                            }
+                        } label: {
+                            Label("Copy Public Key", systemImage: "doc.on.doc")
+                        }
+                        Button {
+                            if let publicKey = viewModel.publicKeyLine(for: key) {
+                                publicKeySheet = PublicKeySheetPayload(label: key.label, publicKey: publicKey)
+                            }
+                        } label: {
+                            Label("Share Public Key", systemImage: "square.and.arrow.up")
+                        }
                         Divider()
                         Button(role: .destructive) {
                             Task { await deleteKey(key) }
@@ -203,6 +252,9 @@ struct KeyManagementView: View {
                 Button("Import") {
                     isShowingFileImporter = true
                 }
+                Button("Generate") {
+                    isShowingGenerateSheet = true
+                }
             }
         }
         .sheet(isPresented: $isShowingPasteSheet) {
@@ -210,6 +262,16 @@ struct KeyManagementView: View {
                 PasteKeyView { label, text in
                     viewModel.importKeyFromPaste(text: text, label: label)
                     isShowingPasteSheet = false
+                }
+            }
+        }
+        .sheet(isPresented: $isShowingGenerateSheet) {
+            NavigationStack {
+                GenerateKeyView { label in
+                    isShowingGenerateSheet = false
+                    if let publicKey = viewModel.generateEd25519Key(label: label ?? "") {
+                        publicKeySheet = PublicKeySheetPayload(label: label ?? "Generated Key", publicKey: publicKey)
+                    }
                 }
             }
         }
@@ -222,6 +284,11 @@ struct KeyManagementView: View {
                 case .failure(let error):
                     viewModel.alertMessage = error.localizedDescription
                 }
+            }
+        }
+        .sheet(item: $publicKeySheet) { payload in
+            NavigationStack {
+                PublicKeyView(label: payload.label, publicKey: payload.publicKey)
             }
         }
         .alert("Keys", isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })) {
@@ -240,6 +307,12 @@ struct KeyManagementView: View {
             await viewModel.deleteKeys(at: IndexSet(integer: index))
         }
     }
+}
+
+private struct PublicKeySheetPayload: Identifiable, Equatable {
+    let id = UUID()
+    let label: String
+    let publicKey: String
 }
 
 private struct KeyRow: View {
@@ -295,6 +368,73 @@ private struct PasteKeyView: View {
                     onImport(label.isEmpty ? nil : label, keyText)
                 }
                 .disabled(keyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .appScreenBackground()
+    }
+}
+
+private struct GenerateKeyView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var label: String = ""
+    let onGenerate: (_ label: String?) -> Void
+
+    var body: some View {
+        Form {
+            Section("Key Type") {
+                Text("ED25519")
+            }
+            Section("Label") {
+                TextField("My key", text: $label)
+            }
+            Section {
+                Text("Keys are generated without a passphrase and stored in the iOS Keychain. You can copy/share the public key after generating.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Generate Key")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Generate") {
+                    let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+                    onGenerate(trimmed.isEmpty ? nil : trimmed)
+                }
+            }
+        }
+        .appScreenBackground()
+    }
+}
+
+private struct PublicKeyView: View {
+    @Environment(\.dismiss) private var dismiss
+    let label: String
+    let publicKey: String
+
+    var body: some View {
+        Form {
+            Section("Name") {
+                Text(label)
+            }
+            Section("Public Key") {
+                TextEditor(text: .constant(publicKey))
+                    .frame(minHeight: 180)
+                    .font(.system(.body, design: .monospaced))
+            }
+        }
+        .navigationTitle("Public Key")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") { dismiss() }
+            }
+            ToolbarItemGroup(placement: .confirmationAction) {
+                Button("Copy") {
+                    UIPasteboard.general.string = publicKey
+                }
+                ShareLink(item: publicKey)
             }
         }
         .appScreenBackground()
