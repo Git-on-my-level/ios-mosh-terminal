@@ -27,6 +27,8 @@ final class ConnectionManager: ObservableObject {
     }
     @Published private(set) var activeHostId: UUID?
     @Published private(set) var failure: ConnectionFailure?
+    @Published private(set) var statesByHostId: [UUID: State] = [:]
+    @Published private(set) var failuresByHostId: [UUID: ConnectionFailure] = [:]
 
     private let keyStore: PrivateKeyStoring
     private let hostRepository: HostPersisting
@@ -36,28 +38,45 @@ final class ConnectionManager: ObservableObject {
     private let networkPathService: NetworkPathProviding
     private let connectionTimeoutNanoseconds: UInt64
     private let sleep: @Sendable (UInt64) async throws -> Void
+    private let reconnectBackoffPolicy: ReconnectBackoffPolicy
+    private let reconnectRandomUnit: () -> Double
 
-    private var activeHost: HostProfile?
-    private var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
-    private var passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
-    private var activeController: TerminalSessionController?
-    private weak var controller: TerminalSessionController?
-
-    private var engine: MoshEngine?
-    private var lastConnectInfo: MoshConnectInfo?
-
-    private var connectTask: Task<Void, Never>?
-    private var connectToken = UUID()
-
-    private var connectWaiterToken: UUID?
-    private var connectWaiter: CheckedContinuation<Bool, Never>?
+    private var sessions: [UUID: SessionContext] = [:]
 
     private var cancellables: Set<AnyCancellable> = []
-    private var reconnectBackoff: ReconnectBackoffState
-    private var autoReconnectAllowed = true
 #if DEBUG
     private var debugLogger: DebugLogProviding?
 #endif
+
+    private final class SessionContext {
+        var host: HostProfile
+        var hostKeyPrompter: SSHHostKeyPrompting = SSHHostKeyPrompt.denyAll
+        var passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
+        var controller: TerminalSessionController?
+        var engine: MoshEngine?
+        var lastConnectInfo: MoshConnectInfo?
+
+        var connectTask: Task<Void, Never>?
+        var connectToken = UUID()
+
+        var connectWaiterToken: UUID?
+        var connectWaiter: CheckedContinuation<Bool, Never>?
+
+        var reconnectBackoff: ReconnectBackoffState
+        var autoReconnectAllowed = true
+
+        init(
+            host: HostProfile,
+            reconnectBackoffPolicy: ReconnectBackoffPolicy,
+            reconnectRandomUnit: @escaping () -> Double
+        ) {
+            self.host = host
+            self.reconnectBackoff = ReconnectBackoffState(
+                policy: reconnectBackoffPolicy,
+                randomUnit: reconnectRandomUnit
+            )
+        }
+    }
 
     struct DebugSnapshot: Sendable, Equatable {
         let lastHeardAgeMillis: UInt64?
@@ -87,10 +106,8 @@ final class ConnectionManager: ObservableObject {
         self.appLifecycleService = appLifecycleService
         self.networkPathService = networkPathService
         self.connectionTimeoutNanoseconds = connectionTimeoutNanoseconds
-        self.reconnectBackoff = ReconnectBackoffState(
-            policy: reconnectBackoffPolicy,
-            randomUnit: reconnectRandomUnit
-        )
+        self.reconnectBackoffPolicy = reconnectBackoffPolicy
+        self.reconnectRandomUnit = reconnectRandomUnit
         self.sleep = sleep
 
 #if DEBUG
@@ -126,56 +143,103 @@ final class ConnectionManager: ObservableObject {
         hostKeyPrompter: SSHHostKeyPrompting,
         passphrasePrompter: SSHKeyPassphrasePrompting = SSHKeyPassphrasePrompt.denyAll
     ) {
-        autoReconnectAllowed = true
-        self.activeHost = host
-        self.activeHostId = host.id
-        self.activeController = controller
-        self.controller = controller
-        self.hostKeyPrompter = hostKeyPrompter
-        self.passphrasePrompter = passphrasePrompter
-        failure = nil
+        let session = session(for: host)
+        session.autoReconnectAllowed = true
+        session.controller = controller
+        session.hostKeyPrompter = hostKeyPrompter
+        session.passphrasePrompter = passphrasePrompter
 
-        if state == .connected, activeHostId == host.id, let engine {
-            attachEngine(engine, controller: controller)
+        activeHostId = host.id
+        syncActivePublishedState()
+        setFailure(nil, hostId: host.id)
+
+        if state(for: host.id) == .connected, let engine = session.engine {
+            attachEngine(engine, hostId: host.id, controller: controller)
             return
         }
 
-        startConnection(isReconnect: false)
+        startConnection(hostId: host.id, isReconnect: false)
     }
 
     func disconnect(clearSession: Bool) async {
-        cancelConnectTask()
-        await stopEngine()
-        state = .idle
-        failure = nil
-        reconnectBackoff.recordSuccess()
+        guard let activeHostId else {
+            state = .idle
+            failure = nil
+            return
+        }
+        await disconnect(hostId: activeHostId, clearSession: clearSession)
+    }
+
+    func disconnect(hostId: UUID, clearSession: Bool) async {
+        guard let session = sessions[hostId] else {
+            if clearSession {
+                statesByHostId[hostId] = nil
+                failuresByHostId[hostId] = nil
+                if activeHostId == hostId {
+                    activeHostId = nil
+                    syncActivePublishedState()
+                }
+            }
+            return
+        }
+
+        cancelConnectTask(hostId: hostId)
+        await stopEngine(hostId: hostId)
+        setState(.idle, hostId: hostId)
+        setFailure(nil, hostId: hostId)
+        session.reconnectBackoff.recordSuccess()
 
         if clearSession {
-            activeController = nil
-            activeHost = nil
-            activeHostId = nil
-            lastConnectInfo = nil
+            session.controller = nil
+            session.lastConnectInfo = nil
+            sessions[hostId] = nil
+            statesByHostId[hostId] = nil
+            failuresByHostId[hostId] = nil
+
+            if activeHostId == hostId {
+                activeHostId = nil
+            }
+            syncActivePublishedState()
         }
     }
 
     func controller(for host: HostProfile) -> TerminalSessionController {
-        if let activeController, activeHostId == host.id {
-            return activeController
+        let session = session(for: host)
+        if let controller = session.controller {
+            return controller
         }
         let controller = TerminalSessionController()
-        if activeHostId != host.id {
-            activeController?.reset()
-        }
-        activeController = controller
+        session.controller = controller
         return controller
     }
 
-    func clearFailure() {
-        failure = nil
+    func state(for hostId: UUID) -> State {
+        statesByHostId[hostId] ?? .idle
+    }
+
+    func failure(for hostId: UUID) -> ConnectionFailure? {
+        failuresByHostId[hostId]
+    }
+
+    func clearFailure(hostId: UUID? = nil) {
+        if let hostId {
+            setFailure(nil, hostId: hostId)
+            return
+        }
+        if let activeHostId {
+            setFailure(nil, hostId: activeHostId)
+        } else {
+            failure = nil
+        }
     }
 
     func debugSnapshot() async -> DebugSnapshot? {
-        guard let engine = engine as? MoshEngineDebugProviding else { return nil }
+        guard let activeHostId else { return nil }
+        return await debugSnapshot(for: activeHostId)
+    }
+
+    func debugSnapshot(for hostId: UUID) async -> DebugSnapshot? {
+        guard let engine = sessions[hostId]?.engine as? MoshEngineDebugProviding else { return nil }
         let snapshot = await engine.debugSnapshot()
         let predictionNetwork = (engine as? PredictionNetworkSnapshotProviding)?.predictionNetworkSnapshot()
         return DebugSnapshot(
@@ -195,13 +259,20 @@ final class ConnectionManager: ObservableObject {
     }
 
     private func requestReconnect(reason: ReconnectReason) {
-        guard activeHost != nil else { return }
+        for hostId in sessions.keys {
+            requestReconnect(hostId: hostId, reason: reason)
+        }
+    }
+
+    private func requestReconnect(hostId: UUID, reason: ReconnectReason) {
+        guard let session = sessions[hostId] else { return }
+        guard session.lastConnectInfo != nil || state(for: hostId) != .idle else { return }
         guard networkPathService.isSatisfied else { return }
         guard appLifecycleService.state == .foreground else { return }
-        guard connectTask == nil else { return }
-        guard !isConnecting else { return }
-        guard state != .connected else { return }
-        guard autoReconnectAllowed else { return }
+        guard session.connectTask == nil else { return }
+        guard !isConnecting(state(for: hostId)) else { return }
+        guard state(for: hostId) != .connected else { return }
+        guard session.autoReconnectAllowed else { return }
 
         let reasonString: String
         switch reason {
@@ -215,10 +286,10 @@ final class ConnectionManager: ObservableObject {
 #if DEBUG
         logReconnectRequest(reason: reasonString)
 #endif
-        startConnection(isReconnect: true)
+        startConnection(hostId: hostId, isReconnect: true)
     }
 
-    private var isConnecting: Bool {
+    private func isConnecting(_ state: State) -> Bool {
         switch state {
         case .bootstrappingSSH, .connectingUDP, .reconnecting:
             return true
@@ -227,59 +298,79 @@ final class ConnectionManager: ObservableObject {
         }
     }
 
-    private func startConnection(isReconnect: Bool) {
-        cancelConnectTask()
+    private func session(for host: HostProfile) -> SessionContext {
+        if let existing = sessions[host.id] {
+            existing.host = host
+            return existing
+        }
+        let created = SessionContext(
+            host: host,
+            reconnectBackoffPolicy: reconnectBackoffPolicy,
+            reconnectRandomUnit: reconnectRandomUnit
+        )
+        sessions[host.id] = created
+        return created
+    }
+
+    private func startConnection(hostId: UUID, isReconnect: Bool) {
+        guard let session = sessions[hostId] else { return }
+        cancelConnectTask(hostId: hostId)
         let token = UUID()
-        connectToken = token
+        session.connectToken = token
 #if DEBUG
-        logStartAttempt(isReconnect: isReconnect, hostId: activeHost?.uuidString ?? "unknown")
+        logStartAttempt(isReconnect: isReconnect, hostId: hostId.uuidString)
 #endif
-        connectTask = Task { [weak self] in
-            await self?.runConnectionAttempt(isReconnect: isReconnect, token: token)
+        session.connectTask = Task { [weak self] in
+            await self?.runConnectionAttempt(hostId: hostId, isReconnect: isReconnect, token: token)
         }
     }
 
-    private func runConnectionAttempt(isReconnect: Bool, token: UUID) async {
+    private func runConnectionAttempt(hostId: UUID, isReconnect: Bool, token: UUID) async {
         defer {
-            if connectToken == token {
-                connectTask = nil
+            if let session = sessions[hostId], session.connectToken == token {
+                session.connectTask = nil
             }
         }
-        guard let host = activeHost else { return }
-        let controller = self.controller
-        failure = nil
-        await stopEngine()
-        guard connectToken == token else { return }
 
-        if !(await applyReconnectBackoffIfNeeded(isReconnect: isReconnect, token: token)) {
+        guard let session = sessions[hostId] else { return }
+        let host = session.host
+        let controller = session.controller
+
+        setFailure(nil, hostId: hostId)
+        await stopEngine(hostId: hostId)
+        guard session.connectToken == token else { return }
+
+        if !(await applyReconnectBackoffIfNeeded(hostId: hostId, isReconnect: isReconnect, token: token)) {
             return
         }
 
         if isReconnect {
-            state = .reconnecting
-            if let connectInfo = lastConnectInfo {
+            setState(.reconnecting, hostId: hostId)
+            if let connectInfo = session.lastConnectInfo {
                 let resumed = await attemptEngineStart(
+                    hostId: hostId,
                     connectInfo: connectInfo,
                     controller: controller,
                     waitForConnection: true,
                     token: token
                 )
                 if resumed { return }
-                await stopEngine()
+                await stopEngine(hostId: hostId)
             }
         }
 
-        state = .bootstrappingSSH
+        setState(.bootstrappingSSH, hostId: hostId)
         do {
             let privateKey = try keyStore.loadPrivateKeyData(keyRefId: host.keyRefId)
             let metadata = try keyStore.metadata(keyRefId: host.keyRefId)
             let requiresPassphrase = metadata?.requiresPassphrase == true
             let passphrase = await resolvePassphraseIfNeeded(
+                hostId: hostId,
                 metadata: metadata,
                 host: host,
                 token: token
             )
-            guard connectToken == token else { return }
+            guard session.connectToken == token else { return }
             if requiresPassphrase && passphrase == nil {
                 return
             }
@@ -287,210 +378,231 @@ final class ConnectionManager: ObservableObject {
                 host: host,
                 privateKey: privateKey,
                 passphrase: passphrase,
-                hostKeyPrompter: hostKeyPrompter
+                hostKeyPrompter: session.hostKeyPrompter
             )
 #if DEBUG
             logSSHBootstrap(success: true, errorDescription: nil)
 #endif
-            guard connectToken == token else { return }
-            lastConnectInfo = connectInfo
-            state = .connectingUDP
+            guard session.connectToken == token else { return }
+            session.lastConnectInfo = connectInfo
+            setState(.connectingUDP, hostId: hostId)
             _ = await attemptEngineStart(
+                hostId: hostId,
                 connectInfo: connectInfo,
                 controller: controller,
                 waitForConnection: true,
                 token: token
             )
         } catch {
-            if connectToken != token { return }
+            if session.connectToken != token { return }
 #if DEBUG
             logSSHBootstrap(success: false, errorDescription: error.localizedDescription)
 #endif
-            handleConnectionFailure(error)
+            handleConnectionFailure(error, hostId: hostId)
         }
     }
 
     private func attemptEngineStart(
+        hostId: UUID,
         connectInfo: MoshConnectInfo,
         controller: TerminalSessionController?,
         waitForConnection: Bool,
         token: UUID
     ) async -> Bool {
-        guard connectToken == token else { return false }
+        guard let session = sessions[hostId], session.connectToken == token else { return false }
         let engine = moshEngineFactory()
-        self.engine = engine
-        attachEngine(engine, controller: controller)
+        session.engine = engine
+        attachEngine(engine, hostId: hostId, controller: controller)
 
         let size = controller?.currentSize ?? TerminalSize(cols: 80, rows: 24)
-        state = .connectingUDP
+        setState(.connectingUDP, hostId: hostId)
         do {
             try await engine.start(connectInfo: connectInfo, initialTerminalSize: size)
 #if DEBUG
             logUDPConnect(success: true, timeoutMillis: nil)
 #endif
         } catch {
-            if connectToken != token { return false }
+            guard let session = sessions[hostId], session.connectToken == token else { return false }
 #if DEBUG
             logUDPConnect(success: false, timeoutMillis: nil)
 #endif
-            handleConnectionFailure(error)
+            handleConnectionFailure(error, hostId: hostId)
             return false
         }
 
         guard waitForConnection else { return true }
-        let connected = await waitForConnected(timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
+        let connected = await waitForConnected(hostId: hostId, timeoutNanoseconds: connectionTimeoutNanoseconds, token: token)
         if !connected {
-            if connectToken == token, state == .connectingUDP {
+            if let session = sessions[hostId], session.connectToken == token, state(for: hostId) == .connectingUDP {
 #if DEBUG
                 logUDPConnect(success: false, timeoutMillis: connectionTimeoutNanoseconds / 1_000_000)
 #endif
-                handleConnectionFailure(ConnectionFailureReason.udpTimeout)
+                handleConnectionFailure(ConnectionFailureReason.udpTimeout, hostId: hostId)
             }
-            await stopEngine()
+            await stopEngine(hostId: hostId)
             return false
         }
         return true
     }
 
-    private func waitForConnected(timeoutNanoseconds: UInt64, token: UUID) async -> Bool {
-        if state == .connected { return true }
+    private func waitForConnected(hostId: UUID, timeoutNanoseconds: UInt64, token: UUID) async -> Bool {
+        if state(for: hostId) == .connected { return true }
         return await withCheckedContinuation { continuation in
+            guard let session = sessions[hostId] else {
+                continuation.resume(returning: false)
+                return
+            }
             let waiterToken = UUID()
-            connectWaiterToken = waiterToken
-            connectWaiter = continuation
+            session.connectWaiterToken = waiterToken
+            session.connectWaiter = continuation
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: timeoutNanoseconds)
-                guard connectToken == token else { return }
-                guard connectWaiterToken == waiterToken else { return }
-                connectWaiterToken = nil
-                connectWaiter = nil
+                guard let session = self.sessions[hostId], session.connectToken == token else { return }
+                guard session.connectWaiterToken == waiterToken else { return }
+                session.connectWaiterToken = nil
+                session.connectWaiter = nil
                 continuation.resume(returning: false)
             }
         }
     }
 
-    private func attachEngine(_ engine: MoshEngine, controller: TerminalSessionController?) {
+    private func attachEngine(_ engine: MoshEngine, hostId: UUID, controller: TerminalSessionController?) {
 #if DEBUG
         logEngineAttached()
 #endif
         engine.onOutput = { [weak self, weak controller, weak engine] data in
             Task { @MainActor in
-                guard let self, let controller, self.engine === engine else { return }
+                guard let self, let controller, let engine else { return }
+                guard self.sessions[hostId]?.engine === engine else { return }
                 controller.feedOutput(data)
             }
         }
 
         engine.onRemoteResize = { [weak self, weak controller, weak engine] size in
             Task { @MainActor in
-                guard let self, let controller, self.engine === engine else { return }
+                guard let self, let controller, let engine else { return }
+                guard self.sessions[hostId]?.engine === engine else { return }
                 controller.applyRemoteResize(cols: size.cols, rows: size.rows)
             }
         }
 
         engine.onStateChange = { [weak self, weak engine] engineState in
             Task { @MainActor in
-                guard let self, self.engine === engine else { return }
-                self.handleEngineState(engineState)
+                guard let self, let engine else { return }
+                guard self.sessions[hostId]?.engine === engine else { return }
+                self.handleEngineState(engineState, hostId: hostId)
             }
         }
 
         if let controller {
-            attachController(controller)
+            attachController(controller, hostId: hostId)
         }
     }
 
-    private func attachController(_ controller: TerminalSessionController) {
+    private func attachController(_ controller: TerminalSessionController, hostId: UUID) {
         controller.onInput = { [weak self] data in
-            Task { await self?.engine?.sendInput(data) }
+            Task {
+                guard let self else { return }
+                await self.sessions[hostId]?.engine?.sendInput(data)
+            }
         }
         controller.onSizeChange = { [weak self] size in
-            Task { await self?.engine?.updateTerminalSize(cols: size.cols, rows: size.rows) }
+            Task {
+                guard let self else { return }
+                await self.sessions[hostId]?.engine?.updateTerminalSize(cols: size.cols, rows: size.rows)
+            }
         }
+        let engine = sessions[hostId]?.engine
         controller.attachPredictionNetworkProvider(engine as? PredictionNetworkSnapshotProviding)
         if let notifier = engine as? PredictionEchoAckNotifying {
-            notifier.onEchoAck = { [weak self, weak controller, weak engine] _ in
+            notifier.onEchoAck = { [weak self, weak controller, weak notifier] _ in
                 Task { @MainActor in
-                    guard let self, let controller, self.engine === engine else { return }
+                    guard let self, let controller, let notifier else { return }
+                    guard
+                        let currentEngine = self.sessions[hostId]?.engine,
+                        (currentEngine as AnyObject) === (notifier as AnyObject)
+                    else { return }
                     controller.handleEchoAckUpdated()
                 }
             }
         }
     }
 
-    private func handleEngineState(_ engineState: MoshEngineState) {
+    private func handleEngineState(_ engineState: MoshEngineState, hostId: UUID) {
         switch engineState {
         case .idle:
-            state = .idle
+            setState(.idle, hostId: hostId)
         case .starting:
-            state = .connectingUDP
+            setState(.connectingUDP, hostId: hostId)
         case .connected:
-            state = .connected
-            failure = nil
-            reconnectBackoff.recordSuccess()
-            resumeConnectWaiter(connected: true)
+            setState(.connected, hostId: hostId)
+            setFailure(nil, hostId: hostId)
+            sessions[hostId]?.reconnectBackoff.recordSuccess()
+            resumeConnectWaiter(hostId: hostId, connected: true)
             Task { @MainActor [weak self] in
-                await self?.recordLastConnected()
+                await self?.recordLastConnected(hostId: hostId)
             }
         case .disconnected:
-            reconnectBackoff.recordFailure()
+            sessions[hostId]?.reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
                 error: ConnectionFailureReason.disconnected,
-                host: activeHost,
+                host: sessions[hostId]?.host,
                 networkSatisfied: networkPathService.isSatisfied
             )
-            state = .failed(message: mappedFailure.title)
-            failure = mappedFailure
-            autoReconnectAllowed = mappedFailure.allowsRetry
+            setState(.failed(message: mappedFailure.title), hostId: hostId)
+            setFailure(mappedFailure, hostId: hostId)
+            sessions[hostId]?.autoReconnectAllowed = mappedFailure.allowsRetry
 #if DEBUG
             logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? "Disconnected")
 #endif
-            resumeConnectWaiter(connected: false)
-            if autoReconnectAllowed {
-                requestReconnect(reason: .engineDisconnected)
+            resumeConnectWaiter(hostId: hostId, connected: false)
+            if sessions[hostId]?.autoReconnectAllowed == true {
+                requestReconnect(hostId: hostId, reason: .engineDisconnected)
             }
         case .failed(let error):
-            reconnectBackoff.recordFailure()
+            sessions[hostId]?.reconnectBackoff.recordFailure()
             let mappedFailure = ConnectionErrorMapper.map(
                 error: error,
-                host: activeHost,
+                host: sessions[hostId]?.host,
                 networkSatisfied: networkPathService.isSatisfied
             )
-            state = .failed(message: mappedFailure.title)
-            failure = mappedFailure
-            autoReconnectAllowed = mappedFailure.allowsRetry
+            setState(.failed(message: mappedFailure.title), hostId: hostId)
+            setFailure(mappedFailure, hostId: hostId)
+            sessions[hostId]?.autoReconnectAllowed = mappedFailure.allowsRetry
 #if DEBUG
             logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
 #endif
-            resumeConnectWaiter(connected: false)
-            if autoReconnectAllowed {
-                requestReconnect(reason: .engineDisconnected)
+            resumeConnectWaiter(hostId: hostId, connected: false)
+            if sessions[hostId]?.autoReconnectAllowed == true {
+                requestReconnect(hostId: hostId, reason: .engineDisconnected)
             }
         }
     }
 
-    private func resumeConnectWaiter(connected: Bool) {
-        guard let continuation = connectWaiter else { return }
-        connectWaiter = nil
-        connectWaiterToken = nil
+    private func resumeConnectWaiter(hostId: UUID, connected: Bool) {
+        guard let continuation = sessions[hostId]?.connectWaiter else { return }
+        sessions[hostId]?.connectWaiter = nil
+        sessions[hostId]?.connectWaiterToken = nil
         continuation.resume(returning: connected)
     }
 
-    private func handleConnectionFailure(_ error: Error) {
-        reconnectBackoff.recordFailure()
+    private func handleConnectionFailure(_ error: Error, hostId: UUID) {
+        sessions[hostId]?.reconnectBackoff.recordFailure()
         let mappedFailure = ConnectionErrorMapper.map(
             error: error,
-            host: activeHost,
+            host: sessions[hostId]?.host,
             networkSatisfied: networkPathService.isSatisfied
         )
-        state = .failed(message: mappedFailure.title)
-        failure = mappedFailure
-        autoReconnectAllowed = mappedFailure.allowsRetry
+        setState(.failed(message: mappedFailure.title), hostId: hostId)
+        setFailure(mappedFailure, hostId: hostId)
+        sessions[hostId]?.autoReconnectAllowed = mappedFailure.allowsRetry
 #if DEBUG
         logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
 #endif
     }
 
     private func resolvePassphraseIfNeeded(
+        hostId: UUID,
         metadata: StoredPrivateKeyMetadata?,
         host: HostProfile,
         token: UUID
@@ -504,21 +616,21 @@ final class ConnectionManager: ObservableObject {
             hostname: host.hostname,
             username: host.username
         )
-        let passphrase = await passphrasePrompter.promptPassphrase(context: context)
-        guard connectToken == token else { return nil }
+        let passphrase = await sessions[hostId]?.passphrasePrompter.promptPassphrase(context: context)
+        guard sessions[hostId]?.connectToken == token else { return nil }
         guard let passphrase else {
-            state = .idle
-            failure = nil
-            autoReconnectAllowed = false
+            setState(.idle, hostId: hostId)
+            setFailure(nil, hostId: hostId)
+            sessions[hostId]?.autoReconnectAllowed = false
             return nil
         }
         return passphrase
     }
 
-    private func recordLastConnected() async {
-        guard var host = activeHost else { return }
+    private func recordLastConnected(hostId: UUID) async {
+        guard var host = sessions[hostId]?.host else { return }
         host.lastConnectedAt = Date()
-        activeHost = host
+        sessions[hostId]?.host = host
         do {
             try await hostRepository.upsert(host)
         } catch {
@@ -526,36 +638,41 @@ final class ConnectionManager: ObservableObject {
         }
     }
 
-    private func cancelConnectTask() {
-        connectTask?.cancel()
-        connectTask = nil
-        connectToken = UUID()
-        resumeConnectWaiter(connected: false)
+    private func cancelConnectTask(hostId: UUID) {
+        guard let session = sessions[hostId] else { return }
+        session.connectTask?.cancel()
+        session.connectTask = nil
+        session.connectToken = UUID()
+        resumeConnectWaiter(hostId: hostId, connected: false)
     }
 
-    private func stopEngine() async {
-        guard let engine else { return }
+    private func stopEngine(hostId: UUID) async {
+        guard let engine = sessions[hostId]?.engine else { return }
         engine.onOutput = nil
         engine.onRemoteResize = nil
         engine.onStateChange = nil
 #if DEBUG
         logEngineDetached()
 #endif
-        self.engine = nil
+        sessions[hostId]?.engine = nil
         await engine.stop()
     }
 
     private func handleBackground() async {
-        cancelConnectTask()
-        await stopEngine()
-        state = .disconnected
-        failure = nil
-        reconnectBackoff.recordSuccess()
+        let hostIds = Array(sessions.keys)
+        for hostId in hostIds {
+            cancelConnectTask(hostId: hostId)
+            await stopEngine(hostId: hostId)
+            setState(.disconnected, hostId: hostId)
+            setFailure(nil, hostId: hostId)
+            sessions[hostId]?.reconnectBackoff.recordSuccess()
+        }
     }
 
-    private func applyReconnectBackoffIfNeeded(isReconnect: Bool, token: UUID) async -> Bool {
+    private func applyReconnectBackoffIfNeeded(hostId: UUID, isReconnect: Bool, token: UUID) async -> Bool {
         guard isReconnect else { return true }
-        let delaySeconds = reconnectBackoff.nextDelay()
+        guard let session = sessions[hostId] else { return false }
+        let delaySeconds = session.reconnectBackoff.nextDelay()
         guard delaySeconds > 0 else { return true }
         let nanoseconds = UInt64(delaySeconds * 1_000_000_000)
 #if DEBUG
@@ -566,7 +683,31 @@ final class ConnectionManager: ObservableObject {
         } catch {
             return false
         }
-        return connectToken == token
+        return sessions[hostId]?.connectToken == token
+    }
+
+    private func setState(_ newState: State, hostId: UUID) {
+        statesByHostId[hostId] = newState
+        if activeHostId == hostId {
+            state = newState
+        }
+    }
+
+    private func setFailure(_ failure: ConnectionFailure?, hostId: UUID) {
+        failuresByHostId[hostId] = failure
+        if activeHostId == hostId {
+            self.failure = failure
+        }
+    }
+
+    private func syncActivePublishedState() {
+        guard let activeHostId else {
+            state = .idle
+            failure = nil
+            return
+        }
+        state = state(for: activeHostId)
+        failure = failure(for: activeHostId)
     }
 }
 
@@ -579,7 +720,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logStartAttempt(isReconnect: Bool, hostId: String) {
         let event = ConnectionDebugEvent(
             kind: .startAttempt(isReconnect: isReconnect, hostId: hostId),
@@ -587,7 +728,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logReconnectRequest(reason: String) {
         let event = ConnectionDebugEvent(
             kind: .reconnectRequest(reason: reason),
@@ -595,7 +736,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logBackoffApplied(delaySeconds: Double) {
         let event = ConnectionDebugEvent(
             kind: .backoffApplied(delaySeconds: delaySeconds),
@@ -603,7 +744,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logSSHBootstrap(success: Bool, errorDescription: String?) {
         let event = ConnectionDebugEvent(
             kind: .sshBootstrap(success: success, errorDescription: errorDescription),
@@ -611,7 +752,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logUDPConnect(success: Bool, timeoutMillis: UInt64?) {
         let event = ConnectionDebugEvent(
             kind: .udpConnect(success: success, timeoutMillis: timeoutMillis),
@@ -619,7 +760,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logEngineAttached() {
         let event = ConnectionDebugEvent(
             kind: .engineAttached,
@@ -627,7 +768,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logEngineDetached() {
         let event = ConnectionDebugEvent(
             kind: .engineDetached,
@@ -635,7 +776,7 @@ extension ConnectionManager {
         )
         debugLogger?.logConnectionEvent(event)
     }
-    
+
     private func logFailure(title: String, errorDescription: String) {
         let event = ConnectionDebugEvent(
             kind: .failure(title: title, errorDescription: errorDescription),
@@ -682,6 +823,15 @@ extension ConnectionManager.State {
             return "Reconnecting"
         case .failed:
             return "Disconnected"
+        }
+    }
+
+    var isActive: Bool {
+        switch self {
+        case .bootstrappingSSH, .connectingUDP, .connected, .reconnecting:
+            return true
+        case .idle, .disconnected, .failed:
+            return false
         }
     }
 }

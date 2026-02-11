@@ -251,6 +251,124 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertFalse(refreshed === controller)
     }
 
+    func testMultipleHostsCanConnectConcurrentlyWithoutStateBleed() async {
+        let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
+        let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
+        let bootstrapper = TestBootstrapper(results: [
+            .success(makeConnectInfo(port: 61001)),
+            .success(makeConnectInfo(port: 61002))
+        ])
+        let engineFactory = TestEngineFactory(engines: [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .autoConnect)
+        ])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+
+        manager.connect(
+            host: hostA,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostA.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        manager.connect(
+            host: hostB,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostB.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        XCTAssertEqual(manager.state(for: hostA.id), .connected)
+        XCTAssertEqual(manager.state(for: hostB.id), .connected)
+        XCTAssertEqual(bootstrapper.callCount, 2)
+        XCTAssertEqual(engineFactory.createdEngines.count, 2)
+    }
+
+    func testDisconnectingOneHostDoesNotImpactOtherHostSession() async {
+        let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
+        let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
+        let bootstrapper = TestBootstrapper(results: [
+            .success(makeConnectInfo(port: 62001)),
+            .success(makeConnectInfo(port: 62002))
+        ])
+        let engineFactory = TestEngineFactory(engines: [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .autoConnect)
+        ])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+
+        manager.connect(
+            host: hostA,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostA.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        manager.connect(
+            host: hostB,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostB.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        await manager.disconnect(hostId: hostB.id, clearSession: true)
+
+        XCTAssertEqual(manager.state(for: hostA.id), .connected)
+        XCTAssertEqual(manager.state(for: hostB.id), .idle)
+        XCTAssertNil(manager.failure(for: hostA.id))
+        XCTAssertNil(manager.failure(for: hostB.id))
+    }
+
+    func testFailureIsScopedToFailingHostOnly() async {
+        let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
+        let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
+        let bootstrapper = TestBootstrapper(results: [
+            .success(makeConnectInfo(port: 63001)),
+            .success(makeConnectInfo(port: 63002))
+        ])
+        let engineFactory = TestEngineFactory(engines: [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .failStart)
+        ])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+
+        manager.connect(
+            host: hostA,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostA.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        manager.connect(
+            host: hostB,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostB.id) { state in
+            if case .failed = state { return true }
+            return false
+        }
+
+        XCTAssertEqual(manager.state(for: hostA.id), .connected)
+        XCTAssertNil(manager.failure(for: hostA.id))
+        XCTAssertNotNil(manager.failure(for: hostB.id))
+    }
+
     private func makeManager(
         bootstrapper: TestBootstrapper,
         engineFactory: TestEngineFactory,
@@ -271,12 +389,16 @@ final class ConnectionManagerTests: XCTestCase {
     }
 
     private func makeHost() -> HostProfile {
+        makeHost(name: "Test", hostname: "example.com", keyRefId: "key-1")
+    }
+
+    private func makeHost(name: String, hostname: String, keyRefId: String) -> HostProfile {
         HostProfile(
-            displayName: "Test",
-            hostname: "example.com",
+            displayName: name,
+            hostname: hostname,
             username: "mosh",
             sshPort: 22,
-            keyRefId: "key-1",
+            keyRefId: keyRefId,
             lastConnectedAt: nil
         )
     }
@@ -295,6 +417,25 @@ final class ConnectionManagerTests: XCTestCase {
         var cancellable: AnyCancellable?
         cancellable = manager.$state.sink { state in
             if matches(state) {
+                expectation.fulfill()
+            }
+        }
+        await fulfillment(of: [expectation], timeout: timeout)
+        cancellable?.cancel()
+    }
+
+    private func awaitHostState(
+        _ manager: ConnectionManager,
+        hostId: UUID,
+        matches: @escaping (ConnectionManager.State) -> Bool,
+        timeout: TimeInterval = 1.5
+    ) async {
+        if matches(manager.state(for: hostId)) { return }
+        let expectation = expectation(description: "host state change")
+        var cancellable: AnyCancellable?
+        cancellable = manager.$statesByHostId.sink { states in
+            let hostState = states[hostId] ?? .idle
+            if matches(hostState) {
                 expectation.fulfill()
             }
         }

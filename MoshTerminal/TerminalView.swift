@@ -18,6 +18,7 @@ struct TerminalView: View {
     @State private var isVisible = false
     @State private var passphraseInput = ""
     @State private var lastConnectionState: ConnectionManager.State = .idle
+    @State private var connectionState: ConnectionManager.State = .idle
     @State private var wantsReconnectPrompt = false
     @State private var terminalViewId = UUID()
     @State private var openURLCandidate: URL?
@@ -40,6 +41,7 @@ struct TerminalView: View {
             statusBarBackground: AppTheme.colors(for: colorScheme).surfaceElevated
         )
         let colors = AppTheme.colors(for: colorScheme)
+        let currentState = connectionState
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .id(terminalViewId)
             .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in
@@ -105,7 +107,7 @@ struct TerminalView: View {
                 VStack(spacing: 12) {
 #if DEBUG
                     if settings.debugOverlayEnabled {
-                        TerminalDebugOverlay(connectionManager: connectionManager, controller: controller)
+                        TerminalDebugOverlay(connectionManager: connectionManager, controller: controller, hostId: host.id)
                     }
 #endif
                     if !keyboardObserver.isKeyboardVisible {
@@ -147,6 +149,8 @@ struct TerminalView: View {
             }
             .onAppear {
                 isVisible = true
+                connectionState = connectionManager.state(for: host.id)
+                lastConnectionState = connectionState
                 wantsReconnectPrompt = false
                 updatePredictionPreference()
                 controller.resetPredictions()
@@ -164,7 +168,8 @@ struct TerminalView: View {
             .onChange(of: settings.keepAwake) { _ in
                 updateIdleTimer()
             }
-            .onChange(of: connectionManager.state) { newState in
+            .onReceive(connectionManager.$statesByHostId.map { $0[host.id] ?? .idle }.removeDuplicates()) { newState in
+                connectionState = newState
                 triggerConnectionHaptic(from: lastConnectionState, to: newState)
                 lastConnectionState = newState
                 switch newState {
@@ -184,7 +189,7 @@ struct TerminalView: View {
             .safeAreaInset(edge: .top) {
                 VStack(spacing: 0) {
                     TerminalStatusBar(
-                        state: connectionManager.state,
+                        state: currentState,
                         palette: palette
                     )
                     if let failure = viewModel.failure {
@@ -273,7 +278,7 @@ struct TerminalView: View {
     }
 
     private var shouldShowReconnectAction: Bool {
-        switch connectionManager.state {
+        switch connectionState {
         case .disconnected, .failed:
             return true
         case .idle:
@@ -300,6 +305,7 @@ struct TerminalView: View {
 private struct TerminalDebugOverlay: View {
     @ObservedObject var connectionManager: ConnectionManager
     let controller: TerminalSessionController
+    let hostId: UUID
     @State private var snapshot: ConnectionManager.DebugSnapshot?
     @State private var predictionSnapshot: PredictionDebugMetrics?
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -309,7 +315,7 @@ private struct TerminalDebugOverlay: View {
             Text("Debug")
                 .font(.caption2)
                 .bold()
-            Text("State: \(connectionManager.state.statusText)")
+            Text("State: \(connectionManager.state(for: hostId).statusText)")
             Text("Last heard: \(formatAge(snapshot?.lastHeardAgeMillis))")
             Text("Send interval: \(formatMillis(snapshot?.sendIntervalMillis))")
             Text("RTO: \(formatMillis(snapshot?.rtoMillis))")
@@ -346,7 +352,7 @@ private struct TerminalDebugOverlay: View {
 
     private func refresh() {
         Task { @MainActor in
-            snapshot = await connectionManager.debugSnapshot()
+            snapshot = await connectionManager.debugSnapshot(for: hostId)
             predictionSnapshot = controller.predictionDebugSnapshot()
         }
     }

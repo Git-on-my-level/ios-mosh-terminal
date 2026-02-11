@@ -29,7 +29,12 @@ final class TerminalSessionViewModel: ObservableObject {
         self.host = host
         self.connectionManager = dependencies.connectionManager
         self.controller = controller
-        connectionManager.$failure
+        failure = connectionManager.failure(for: host.id)
+        connectionManager.$failuresByHostId
+            .map { failures in
+                failures[host.id]
+            }
+            .removeDuplicates()
             .sink { [weak self] message in
                 self?.failure = message
             }
@@ -45,7 +50,7 @@ final class TerminalSessionViewModel: ObservableObject {
 
     func stop() {
         Task {
-            await connectionManager.disconnect(clearSession: true)
+            await connectionManager.disconnect(hostId: host.id, clearSession: true)
         }
         if let continuation = hostKeyContinuation {
             hostKeyContinuation = nil
@@ -73,7 +78,7 @@ final class TerminalSessionViewModel: ObservableObject {
 
     func dismissFailure() {
         failure = nil
-        connectionManager.clearFailure()
+        connectionManager.clearFailure(hostId: host.id)
     }
 
     func retry() {

@@ -91,10 +91,10 @@ struct HostsListView: View {
                             )
                         )
                     } label: {
-                        CardRow(isActive: connectionManager.activeHostId == host.id) {
+                        CardRow(isActive: connectionManager.state(for: host.id).isActive) {
                             HostRowView(
                                 host: host,
-                                connectionState: connectionManager.activeHostId == host.id ? connectionManager.state : .idle
+                                connectionState: connectionManager.state(for: host.id)
                             )
                         }
                     }
@@ -173,9 +173,7 @@ struct HostsListView: View {
     }
 
     private func deleteHost(_ host: HostProfile) async {
-        if connectionManager.activeHostId == host.id {
-            await connectionManager.disconnect(clearSession: true)
-        }
+        await connectionManager.disconnect(hostId: host.id, clearSession: true)
         await viewModel.deleteHost(id: host.id)
         await viewModel.loadHosts()
     }
