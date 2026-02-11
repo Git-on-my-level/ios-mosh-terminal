@@ -6,6 +6,7 @@ typealias TerminalUIKitView = SwiftTerm.TerminalView
 
 final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
     @Published var isCtrlActive = false
+    @Published var pendingOpenURL: URL?
 
     var terminalView: TerminalUIKitView?
     var onInput: (@Sendable (Data) -> Void)?
@@ -118,7 +119,11 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
             predictionCoordinator.reset()
         }
     }
-    func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {}
+    func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {
+        guard let url = URL(string: link) else { return }
+        guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else { return }
+        pendingOpenURL = url
+    }
     func bell(source: TerminalUIKitView) {}
     func clipboardCopy(source: TerminalUIKitView, content: Data) {
         guard !content.isEmpty else { return }

@@ -13,11 +13,13 @@ struct TerminalView: View {
     @EnvironmentObject private var settings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var isVisible = false
     @State private var passphraseInput = ""
     @State private var lastConnectionState: ConnectionManager.State = .idle
     @State private var wantsReconnectPrompt = false
     @State private var terminalViewId = UUID()
+    @State private var openURLCandidate: URL?
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
@@ -33,6 +35,24 @@ struct TerminalView: View {
         let colors = AppTheme.colors(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .id(terminalViewId)
+            .onReceive(controller.$pendingOpenURL) { url in
+                if let url {
+                    openURLCandidate = url
+                    controller.pendingOpenURL = nil
+                }
+            }
+            .alert("Open Link?", isPresented: Binding(
+                get: { openURLCandidate != nil },
+                set: { if !$0 { openURLCandidate = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { openURLCandidate = nil }
+                Button("Open") {
+                    if let url = openURLCandidate { openURL(url) }
+                    openURLCandidate = nil
+                }
+            } message: {
+                Text(openURLCandidate?.absoluteString ?? "")
+            }
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
