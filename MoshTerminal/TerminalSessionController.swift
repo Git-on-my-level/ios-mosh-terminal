@@ -27,8 +27,12 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     private let predictionCoordinator = TerminalPredictionCoordinator()
 
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
+    private(set) var isBracketedPasteEnabled = false
     private var pendingRemoteResize: TerminalSize?
     private var outputBuffer = [UInt8]()
+    private var bracketProbe = Data()
+    private let bracketEnable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x68]) // ESC[?2004h
+    private let bracketDisable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x6C]) // ESC[?2004l
 
     func reset() {
         terminalView = nil
@@ -80,13 +84,21 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     func pasteFromClipboard() {
         guard let string = UIPasteboard.general.string, !string.isEmpty else { return }
+        sendPasteData(preparedPasteData(from: string))
+    }
 
+    func preparedPasteData(from string: String) -> Data {
         let normalized = string
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\n", with: "\r")
 
-        let data = Data(normalized.utf8)
-        sendPasteData(data)
+        let isMultiline = string.contains("\n") || string.contains("\r")
+        if isMultiline, isBracketedPasteEnabled {
+            let start = "\u{1B}[200~"
+            let end = "\u{1B}[201~"
+            return Data((start + normalized + end).utf8)
+        }
+        return Data(normalized.utf8)
     }
 
     private func sendPasteData(_ data: Data) {
@@ -113,12 +125,29 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     func feedOutput(_ data: Data) {
         guard !data.isEmpty else { return }
+        updateBracketedPasteMode(with: data)
         if outputBuffer.count < data.count {
             outputBuffer = Array(repeating: 0, count: data.count)
         }
         data.copyBytes(to: &outputBuffer, count: data.count)
         terminalView?.feed(byteArray: outputBuffer[..<data.count])
         predictionCoordinator.handleConfirmedOutputApplied()
+    }
+
+    private func updateBracketedPasteMode(with output: Data) {
+        let maxProbe = 64
+        bracketProbe.append(output)
+        if bracketProbe.count > maxProbe {
+            bracketProbe.removeFirst(bracketProbe.count - maxProbe)
+        }
+
+        if bracketProbe.range(of: bracketEnable) != nil {
+            isBracketedPasteEnabled = true
+            bracketProbe.removeAll(keepingCapacity: true)
+        } else if bracketProbe.range(of: bracketDisable) != nil {
+            isBracketedPasteEnabled = false
+            bracketProbe.removeAll(keepingCapacity: true)
+        }
     }
 
     func applyRemoteResize(cols: Int, rows: Int) {
