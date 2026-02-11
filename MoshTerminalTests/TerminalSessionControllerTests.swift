@@ -1,5 +1,6 @@
 import XCTest
 @testable import MoshTerminal
+import UIKit
 
 final class TerminalSessionControllerTests: XCTestCase {
     private let enableSequence = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x68]) // ESC[?2004h
@@ -50,5 +51,69 @@ final class TerminalSessionControllerTests: XCTestCase {
         let text = String(decoding: payload, as: UTF8.self)
 
         XCTAssertEqual(text, "echo hello")
+    }
+
+    func testAltPrefixesPrintableInputWithEscapeWhenEnabled() {
+        let controller = TerminalSessionController()
+        controller.isAltActive = true
+        let source = TerminalUIKitView(
+            frame: .zero,
+            font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        )
+
+        var captured: Data?
+        controller.onInput = { captured = $0 }
+
+        controller.send(source: source, data: [UInt8(ascii: "f")][...])
+
+        XCTAssertEqual(captured, Data([0x1B, UInt8(ascii: "f")]))
+    }
+
+    func testAltDoesNotTransformInputWhenDisabled() {
+        let controller = TerminalSessionController()
+        let source = TerminalUIKitView(
+            frame: .zero,
+            font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        )
+
+        var captured: Data?
+        controller.onInput = { captured = $0 }
+
+        controller.send(source: source, data: [UInt8(ascii: "f")][...])
+
+        XCTAssertEqual(captured, Data([UInt8(ascii: "f")]))
+    }
+
+    func testAltIgnoresNonPrintableSingleByte() {
+        let controller = TerminalSessionController()
+        controller.isAltActive = true
+        let source = TerminalUIKitView(
+            frame: .zero,
+            font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        )
+
+        var captured: Data?
+        controller.onInput = { captured = $0 }
+
+        controller.send(source: source, data: [0x09][...]) // tab
+
+        XCTAssertEqual(captured, Data([0x09]))
+    }
+
+    func testCtrlTransformationStillTakesPrecedenceOverAlt() {
+        let controller = TerminalSessionController()
+        controller.isCtrlActive = true
+        controller.isAltActive = true
+        let source = TerminalUIKitView(
+            frame: .zero,
+            font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        )
+
+        var captured: Data?
+        controller.onInput = { captured = $0 }
+
+        controller.send(source: source, data: [UInt8(ascii: "f")][...])
+
+        XCTAssertEqual(captured, Data([0x06])) // Ctrl+F
     }
 }

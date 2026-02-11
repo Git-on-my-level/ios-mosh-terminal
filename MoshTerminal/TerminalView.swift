@@ -545,7 +545,7 @@ private final class TerminalAccessoryHostingView: UIInputView {
 /// Custom keyboard accessory bar providing terminal-specific keys.
 ///
 /// ## Main Row (default)
-/// - **Modifiers**: Esc, Ctrl (toggle), Tab
+/// - **Modifiers**: Esc, Ctrl (toggle), Alt (sticky toggle), Tab
 /// - **Direct Ctrl shortcuts**: ^C (interrupt), ^D (EOF), ^Z (suspend), ^L (clear), ^A (start of line), ^E (end of line)
 /// - **Symbols**: ~, |, /, -
 /// - **Navigation**: Arrow keys (←, ↓, ↑, →)
@@ -554,6 +554,7 @@ private final class TerminalAccessoryHostingView: UIInputView {
 /// - F1 through F10
 ///
 /// The Ctrl toggle allows sending any Ctrl+key combination by tapping Ctrl then a letter on the main keyboard.
+/// The Alt toggle is sticky and sends ESC-prefixed printable input while enabled.
 /// Direct ^C/^D/etc. buttons provide single-tap access to the most common control sequences.
 private struct TerminalAccessoryRow: View {
     @ObservedObject var controller: TerminalSessionController
@@ -616,6 +617,9 @@ private struct TerminalAccessoryRow: View {
             }
             accessoryButton("Ctrl", isActive: controller.isCtrlActive) {
                 controller.toggleCtrl()
+            }
+            accessoryButton("Alt", isActive: controller.isAltActive) {
+                controller.toggleAlt()
             }
             accessoryButton("Tab") {
                 controller.sendControl(0x09)

@@ -6,6 +6,7 @@ typealias TerminalUIKitView = SwiftTerm.TerminalView
 
 final class TerminalSessionController: NSObject, ObservableObject, TerminalViewDelegate {
     @Published var isCtrlActive = false
+    @Published var isAltActive = false
     @Published var pendingOpenURL: URL?
 
     var terminalView: TerminalUIKitView?
@@ -72,6 +73,10 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
 
     func toggleCtrl() {
         isCtrlActive.toggle()
+    }
+
+    func toggleAlt() {
+        isAltActive.toggle()
     }
 
     func sendText(_ text: String) {
@@ -207,6 +212,8 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     func send(source: TerminalUIKitView, data: ArraySlice<UInt8>) {
         if let transformed = applyCtrlIfNeeded(data) {
             forwardUserInput(Data(transformed))
+        } else if let transformed = applyAltIfNeeded(data) {
+            forwardUserInput(Data(transformed))
         } else {
             forwardUserInput(Data(data))
         }
@@ -230,6 +237,16 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
             return nil
         }
         return [ctrlByte]
+    }
+
+    private func applyAltIfNeeded(_ data: ArraySlice<UInt8>) -> [UInt8]? {
+        guard isAltActive, data.count == 1, let byte = data.first else {
+            return nil
+        }
+        guard (0x20...0x7E).contains(byte) else {
+            return nil
+        }
+        return [0x1B, byte]
     }
 
     func handleEchoAckUpdated() {
