@@ -418,6 +418,8 @@ private final class PopObserverController: UIViewController {
 /// to persist on screen even when the keyboard is dismissed. By explicitly setting
 /// it to `nil` when the keyboard hides, we guarantee correct behavior.
 private struct TerminalContainerView: UIViewRepresentable {
+    private static let pinchRecognizerName = "TerminalSessionControllerPinchRecognizer"
+
     @ObservedObject var controller: TerminalSessionController
     let fontSize: Double
     let palette: AppTheme.TerminalPalette
@@ -438,9 +440,7 @@ private struct TerminalContainerView: UIViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
-        let pinch = UIPinchGestureRecognizer(target: controller, action: #selector(TerminalSessionController.handleTerminalPinch(_:)))
-        pinch.cancelsTouchesInView = false
-        terminalView.addGestureRecognizer(pinch)
+        installPinchRecognizerIfNeeded(on: terminalView)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller, replaceExisting: reusedView)
         overlayView.predictionTextColor = UIColor(palette.foreground)
         overlayView.predictionBackgroundColor = UIColor(palette.background)
@@ -500,6 +500,27 @@ private struct TerminalContainerView: UIViewRepresentable {
         if view.backgroundColor != background {
             view.backgroundColor = background
         }
+    }
+
+    private func installPinchRecognizerIfNeeded(on terminalView: TerminalUIKitView) {
+        let pinchRecognizers = (terminalView.gestureRecognizers ?? []).filter {
+            $0.name == Self.pinchRecognizerName
+        }
+        if let primaryPinch = pinchRecognizers.first as? UIPinchGestureRecognizer {
+            primaryPinch.cancelsTouchesInView = false
+            for recognizer in pinchRecognizers.dropFirst() {
+                terminalView.removeGestureRecognizer(recognizer)
+            }
+            return
+        }
+
+        let pinch = UIPinchGestureRecognizer(
+            target: controller,
+            action: #selector(TerminalSessionController.handleTerminalPinch(_:))
+        )
+        pinch.name = Self.pinchRecognizerName
+        pinch.cancelsTouchesInView = false
+        terminalView.addGestureRecognizer(pinch)
     }
 
 }

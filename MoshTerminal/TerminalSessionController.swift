@@ -167,18 +167,26 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     }
 
     private func updateBracketedPasteMode(with output: Data) {
-        let maxProbe = 64
-        bracketProbe.append(output)
-        if bracketProbe.count > maxProbe {
-            bracketProbe.removeFirst(bracketProbe.count - maxProbe)
+        guard !output.isEmpty else { return }
+
+        var probe = bracketProbe
+        probe.append(output)
+
+        let lastEnableIndex = probe.lastRange(of: bracketEnable)?.lowerBound
+        let lastDisableIndex = probe.lastRange(of: bracketDisable)?.lowerBound
+        if let enableIndex = lastEnableIndex, let disableIndex = lastDisableIndex {
+            isBracketedPasteEnabled = enableIndex > disableIndex
+        } else if lastEnableIndex != nil {
+            isBracketedPasteEnabled = true
+        } else if lastDisableIndex != nil {
+            isBracketedPasteEnabled = false
         }
 
-        if bracketProbe.range(of: bracketEnable) != nil {
-            isBracketedPasteEnabled = true
-            bracketProbe.removeAll(keepingCapacity: true)
-        } else if bracketProbe.range(of: bracketDisable) != nil {
-            isBracketedPasteEnabled = false
-            bracketProbe.removeAll(keepingCapacity: true)
+        let overlap = max(bracketEnable.count, bracketDisable.count) - 1
+        if probe.count > overlap {
+            bracketProbe = Data(probe.suffix(overlap))
+        } else {
+            bracketProbe = probe
         }
     }
 

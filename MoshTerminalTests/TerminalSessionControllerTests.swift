@@ -53,6 +53,30 @@ final class TerminalSessionControllerTests: XCTestCase {
         XCTAssertEqual(text, "echo hello")
     }
 
+    func testBracketedPasteModeDetectsMarkerWithinLargeChunk() {
+        let controller = TerminalSessionController()
+        var output = Data(repeating: UInt8(ascii: "x"), count: 80)
+        output.append(enableSequence)
+        output.append(Data(repeating: UInt8(ascii: "y"), count: 10))
+
+        controller.feedOutput(output)
+
+        XCTAssertTrue(controller.isBracketedPasteEnabled)
+    }
+
+    func testBracketedPasteModeUsesLastMarkerWhenChunkContainsBoth() {
+        let controller = TerminalSessionController()
+        var output = Data(repeating: UInt8(ascii: "z"), count: 16)
+        output.append(enableSequence)
+        output.append(Data(repeating: UInt8(ascii: "q"), count: 4))
+        output.append(disableSequence)
+        output.append(Data(repeating: UInt8(ascii: "w"), count: 4))
+
+        controller.feedOutput(output)
+
+        XCTAssertFalse(controller.isBracketedPasteEnabled)
+    }
+
     func testAltPrefixesPrintableInputWithEscapeWhenEnabled() {
         let controller = TerminalSessionController()
         controller.isAltActive = true
