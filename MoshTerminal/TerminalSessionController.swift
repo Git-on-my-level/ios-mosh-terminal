@@ -78,6 +78,39 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         forwardUserInput(Data([byte]))
     }
 
+    func pasteFromClipboard() {
+        guard let string = UIPasteboard.general.string, !string.isEmpty else { return }
+
+        let normalized = string
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\n", with: "\r")
+
+        let data = Data(normalized.utf8)
+        sendPasteData(data)
+    }
+
+    private func sendPasteData(_ data: Data) {
+        let chunkSize = 4096
+        let interChunkDelayNs: UInt64 = 2_000_000
+
+        guard data.count > chunkSize else {
+            forwardUserInput(data)
+            return
+        }
+
+        predictionCoordinator.reset()
+
+        Task { @MainActor in
+            var idx = data.startIndex
+            while idx < data.endIndex {
+                let end = min(idx + chunkSize, data.endIndex)
+                forwardUserInput(data.subdata(in: idx..<end))
+                idx = end
+                try? await Task.sleep(nanoseconds: interChunkDelayNs)
+            }
+        }
+    }
+
     func feedOutput(_ data: Data) {
         guard !data.isEmpty else { return }
         if outputBuffer.count < data.count {
