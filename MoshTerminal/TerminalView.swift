@@ -20,6 +20,7 @@ struct TerminalView: View {
     @State private var wantsReconnectPrompt = false
     @State private var terminalViewId = UUID()
     @State private var openURLCandidate: URL?
+    @State private var clipboardHasString = UIPasteboard.general.hasStrings
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
@@ -35,6 +36,12 @@ struct TerminalView: View {
         let colors = AppTheme.colors(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .id(terminalViewId)
+            .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in
+                clipboardHasString = UIPasteboard.general.hasStrings
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                clipboardHasString = UIPasteboard.general.hasStrings
+            }
             .onReceive(controller.$pendingOpenURL) { url in
                 if let url {
                     openURLCandidate = url
@@ -112,6 +119,22 @@ struct TerminalView: View {
                                 .shadow(color: colors.divider.opacity(0.6), radius: 6, x: 0, y: 3)
                         }
                         .accessibilityLabel("Show keyboard")
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    if !keyboardObserver.isKeyboardVisible, clipboardHasString {
+                        Button {
+                            controller.pasteFromClipboard()
+                        } label: {
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(colors.accent)
+                                .frame(width: 52, height: 52)
+                                .background(colors.surfaceElevated)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(colors.divider, lineWidth: 1))
+                                .shadow(color: colors.divider.opacity(0.6), radius: 6, x: 0, y: 3)
+                        }
+                        .accessibilityLabel("Paste")
                         .transition(.scale.combined(with: .opacity))
                     }
                 }
