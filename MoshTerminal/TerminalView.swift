@@ -32,7 +32,12 @@ struct TerminalView: View {
     }
 
     var body: some View {
-        let palette = AppTheme.terminalPalette(for: colorScheme)
+        let chosen = AppTheme.TerminalThemes.theme(id: settings.terminalThemeId)
+        let palette = AppTheme.TerminalPalette(
+            background: chosen.background,
+            foreground: chosen.foreground,
+            statusBarBackground: AppTheme.colors(for: colorScheme).surfaceElevated
+        )
         let colors = AppTheme.colors(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .id(terminalViewId)

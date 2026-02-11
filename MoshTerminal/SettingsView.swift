@@ -11,6 +11,12 @@ struct SettingsView: View {
             Section {
                 ThemePickerRow(selection: $settings.themeMode)
 
+                NavigationLink {
+                    TerminalThemePickerView()
+                } label: {
+                    AppRowLabel("Terminal Theme", systemImage: "paintpalette")
+                }
+
                 Stepper(value: $settings.fontSize, in: 10...24, step: 1) {
                     HStack {
                         AppRowLabel("Font Size", systemImage: "textformat.size")
@@ -156,6 +162,56 @@ private struct ThemePickerRow: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+struct TerminalThemePickerView: View {
+    @EnvironmentObject private var settings: AppSettings
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let colors = AppTheme.colors(for: colorScheme)
+        List {
+            ForEach(AppTheme.TerminalThemes.all) { theme in
+                Button {
+                    settings.terminalThemeId = theme.id
+                } label: {
+                    HStack {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(theme.background)
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .stroke(colors.divider, lineWidth: 1)
+                                )
+                            Text("Aa")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundStyle(theme.foreground)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(theme.name)
+                                .font(AppTheme.typography.body)
+                                .foregroundStyle(colors.primaryText)
+                            Text("Preview")
+                                .font(AppTheme.typography.caption)
+                                .foregroundStyle(colors.secondaryText)
+                        }
+                        Spacer()
+                        if settings.terminalThemeId == theme.id {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(colors.accent)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .navigationTitle("Terminal Theme")
+        .navigationBarTitleDisplayMode(.inline)
+        .appScreenBackground()
     }
 }
 
