@@ -8,10 +8,13 @@ typealias TerminalUIKitView = SwiftTerm.TerminalView
 @MainActor
 final class TerminalSessionController: NSObject, ObservableObject, @preconcurrency TerminalViewDelegate, UIScrollViewDelegate {
     @Published var isCtrlActive = false
+    @Published var isAltActive = false
+    @Published var pendingOpenURL: URL?
 
     var terminalView: TerminalUIKitView?
     var onInput: (@Sendable (Data) -> Void)?
     var onSizeChange: (@Sendable (TerminalSize) -> Void)?
+    var onRequestFontSizeDelta: ((Int) -> Void)?
 
     /// Holds the keyboard accessory view for reuse across keyboard show/hide cycles.
     /// Set by `TerminalContainerView.makeUIView` and attached/detached in `updateUIView`
@@ -28,6 +31,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     private let predictionCoordinator = TerminalPredictionCoordinator()
 
     private(set) var currentSize = TerminalSize(cols: 80, rows: 24)
+    private(set) var isBracketedPasteEnabled = false
     private var pendingRemoteResize: TerminalSize?
 
     private var isUserScrolledAwayFromBottom: Bool = false
@@ -42,6 +46,11 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     private var pendingOutputData = Data()
     private var pendingOutputFlush: DispatchWorkItem?
     private var outputBuffer = [UInt8]()
+    private var bracketProbe = Data()
+    private let bracketEnable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x68]) // ESC[?2004h
+    private let bracketDisable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x6C]) // ESC[?2004l
+    private var pinchAccumulatedScale: CGFloat = 1.0
+    private let pinchThreshold: CGFloat = 0.15
 
     func reset() {
         let existingTerminalView = terminalView
@@ -53,6 +62,8 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         predictionOverlayView = nil
         predictionCoordinator.terminalView = nil
         predictionCoordinator.reset()
+
+        pinchAccumulatedScale = 1.0
 
         isUserScrolledAwayFromBottom = false
         lastUserContentOffset = nil
@@ -69,6 +80,29 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         pendingOutputFlush?.cancel()
         pendingOutputFlush = nil
         pendingOutputData.removeAll(keepingCapacity: false)
+    }
+
+    @objc func handleTerminalPinch(_ gesture: UIPinchGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            pinchAccumulatedScale = 1.0
+        case .changed:
+            let scale = gesture.scale
+            gesture.scale = 1.0
+            pinchAccumulatedScale *= scale
+
+            if pinchAccumulatedScale > 1.0 + pinchThreshold {
+                onRequestFontSizeDelta?(+1)
+                pinchAccumulatedScale = 1.0
+            } else if pinchAccumulatedScale < 1.0 - pinchThreshold {
+                onRequestFontSizeDelta?(-1)
+                pinchAccumulatedScale = 1.0
+            }
+        case .ended, .cancelled:
+            pinchAccumulatedScale = 1.0
+        default:
+            break
+        }
     }
 
     func attach(view: TerminalUIKitView) {
@@ -102,6 +136,10 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         isCtrlActive.toggle()
     }
 
+    func toggleAlt() {
+        isAltActive.toggle()
+    }
+
     func sendText(_ text: String) {
         forwardUserInput(Data(text.utf8))
     }
@@ -110,10 +148,76 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         forwardUserInput(Data([byte]))
     }
 
+    func pasteFromClipboard() {
+        guard let string = UIPasteboard.general.string, !string.isEmpty else { return }
+        sendPasteData(preparedPasteData(from: string))
+    }
+
+    func preparedPasteData(from string: String) -> Data {
+        let normalized = string
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\n", with: "\r")
+
+        let isMultiline = string.contains("\n") || string.contains("\r")
+        if isMultiline, isBracketedPasteEnabled {
+            let start = "\u{1B}[200~"
+            let end = "\u{1B}[201~"
+            return Data((start + normalized + end).utf8)
+        }
+        return Data(normalized.utf8)
+    }
+
+    private func sendPasteData(_ data: Data) {
+        let chunkSize = 4096
+        let interChunkDelayNs: UInt64 = 2_000_000
+
+        guard data.count > chunkSize else {
+            forwardUserInput(data)
+            return
+        }
+
+        predictionCoordinator.reset()
+
+        Task { @MainActor in
+            var idx = data.startIndex
+            while idx < data.endIndex {
+                let end = min(idx + chunkSize, data.endIndex)
+                forwardUserInput(data.subdata(in: idx..<end))
+                idx = end
+                try? await Task.sleep(nanoseconds: interChunkDelayNs)
+            }
+        }
+    }
+
     func feedOutput(_ data: Data) {
         guard !data.isEmpty else { return }
+        updateBracketedPasteMode(with: data)
         pendingOutputData.append(data)
         scheduleOutputFlush()
+    }
+
+    private func updateBracketedPasteMode(with output: Data) {
+        guard !output.isEmpty else { return }
+
+        var probe = bracketProbe
+        probe.append(output)
+
+        let lastEnableIndex = probe.lastRange(of: bracketEnable)?.lowerBound
+        let lastDisableIndex = probe.lastRange(of: bracketDisable)?.lowerBound
+        if let enableIndex = lastEnableIndex, let disableIndex = lastDisableIndex {
+            isBracketedPasteEnabled = enableIndex > disableIndex
+        } else if lastEnableIndex != nil {
+            isBracketedPasteEnabled = true
+        } else if lastDisableIndex != nil {
+            isBracketedPasteEnabled = false
+        }
+
+        let overlap = max(bracketEnable.count, bracketDisable.count) - 1
+        if probe.count > overlap {
+            bracketProbe = Data(probe.suffix(overlap))
+        } else {
+            bracketProbe = probe
+        }
     }
 
     func applyRemoteResize(cols: Int, rows: Int) {
@@ -160,15 +264,38 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
 
     func setTerminalTitle(source: TerminalUIKitView, title: String) {}
     func hostCurrentDirectoryUpdate(source: TerminalUIKitView, directory: String?) {}
-    func scrolled(source: TerminalUIKitView, position: Double) {}
-    func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {}
+    func scrolled(source: TerminalUIKitView, position: Double) {
+        if position < 0.999 {
+            predictionCoordinator.reset()
+        }
+    }
+    func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {
+        guard let url = URL(string: link) else { return }
+        guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else { return }
+        pendingOpenURL = url
+    }
     func bell(source: TerminalUIKitView) {}
-    func clipboardCopy(source: TerminalUIKitView, content: Data) {}
+    func clipboardCopy(source: TerminalUIKitView, content: Data) {
+        guard !content.isEmpty else { return }
+
+        let string = String(data: content, encoding: .utf8)
+            ?? String(decoding: content, as: UTF8.self)
+
+        UIPasteboard.general.string = string
+
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        #if DEBUG
+        DebugLogger.shared.logClipboardCopy(bytes: content.count)
+        #endif
+    }
     func iTermContent(source: TerminalUIKitView, content: ArraySlice<UInt8>) {}
     func rangeChanged(source: TerminalUIKitView, startY: Int, endY: Int) {}
 
     func send(source: TerminalUIKitView, data: ArraySlice<UInt8>) {
         if let transformed = applyCtrlIfNeeded(data) {
+            forwardUserInput(Data(transformed))
+        } else if let transformed = applyAltIfNeeded(data) {
             forwardUserInput(Data(transformed))
         } else {
             forwardUserInput(Data(data))
@@ -193,6 +320,16 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
             return nil
         }
         return [ctrlByte]
+    }
+
+    private func applyAltIfNeeded(_ data: ArraySlice<UInt8>) -> [UInt8]? {
+        guard isAltActive, data.count == 1, let byte = data.first else {
+            return nil
+        }
+        guard (0x20...0x7E).contains(byte) else {
+            return nil
+        }
+        return [0x1B, byte]
     }
 
     func handleEchoAckUpdated() {

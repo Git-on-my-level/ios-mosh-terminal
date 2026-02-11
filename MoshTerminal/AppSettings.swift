@@ -37,6 +37,7 @@ final class AppSettings: ObservableObject {
         static let themeMode = "settings.themeMode"
         static let keepAwake = "settings.keepAwake"
         static let predictionDisplayPreference = "settings.predictionDisplayPreference"
+        static let terminalThemeId = "settings.terminalThemeId"
 #if DEBUG
     static let debugOverlayEnabled = "settings.debugOverlayEnabled"
     static let debugLoggingEnabled = "settings.debugLoggingEnabled"
@@ -67,6 +68,12 @@ final class AppSettings: ObservableObject {
     @Published var predictionDisplayPreference: PredictionDisplayPreference {
         didSet {
             defaults.set(predictionDisplayPreference.rawValue, forKey: Keys.predictionDisplayPreference)
+        }
+    }
+
+    @Published var terminalThemeId: String {
+        didSet {
+            defaults.set(terminalThemeId, forKey: Keys.terminalThemeId)
         }
     }
 
@@ -113,6 +120,7 @@ final class AppSettings: ObservableObject {
         } else {
             predictionDisplayPreference = .always
         }
+        terminalThemeId = defaults.string(forKey: Keys.terminalThemeId) ?? "default"
 
 #if DEBUG
         debugOverlayEnabled = defaults.object(forKey: Keys.debugOverlayEnabled) as? Bool ?? false
@@ -123,7 +131,7 @@ final class AppSettings: ObservableObject {
     }
 }
 
-private extension Comparable {
+extension Comparable {
     func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }

@@ -6,6 +6,7 @@ protocol DebugLogProviding: Sendable {
     func logConnectionEvent(_ event: ConnectionDebugEvent)
     func logTransportEvent(_ event: TransportDebugEvent)
     func logLivenessEvent(_ event: LivenessDebugEvent)
+    func logClipboardCopy(bytes: Int)
     func logPredictionEvent(_ event: PredictionDebugEvent)
 }
 
@@ -41,6 +42,10 @@ final class DebugLogger: DebugLogProviding {
     func logLivenessEvent(_ event: LivenessDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
+    }
+    func logClipboardCopy(bytes: Int) {
+        guard isEnabled else { return }
+        logger.info("Clipboard copy: \(bytes) bytes")
     }
 
     func logPredictionEvent(_ event: PredictionDebugEvent) {

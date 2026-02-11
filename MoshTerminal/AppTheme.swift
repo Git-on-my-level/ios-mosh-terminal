@@ -1,6 +1,26 @@
 import SwiftUI
 
 enum AppTheme {
+    struct TerminalTheme: Identifiable, Equatable {
+        let id: String
+        let name: String
+        let background: Color
+        let foreground: Color
+    }
+
+    enum TerminalThemes {
+        static let all: [TerminalTheme] = [
+            .init(id: "default", name: "Default", background: Color(red: 0.06, green: 0.06, blue: 0.07), foreground: Color(red: 0.92, green: 0.93, blue: 0.95)),
+            .init(id: "dracula", name: "Dracula", background: Color(red: 0.16, green: 0.14, blue: 0.21), foreground: Color(red: 0.97, green: 0.97, blue: 0.99)),
+            .init(id: "solarized-dark", name: "Solarized Dark", background: Color(red: 0.0, green: 0.17, blue: 0.21), foreground: Color(red: 0.51, green: 0.58, blue: 0.59)),
+            .init(id: "solarized-light", name: "Solarized Light", background: Color(red: 0.99, green: 0.96, blue: 0.89), foreground: Color(red: 0.35, green: 0.43, blue: 0.46)),
+        ]
+
+        static func theme(id: String) -> TerminalTheme {
+            all.first(where: { $0.id == id }) ?? all[0]
+        }
+    }
+
     struct Colors: Equatable {
         let background: Color
         let surface: Color

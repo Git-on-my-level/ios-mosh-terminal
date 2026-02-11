@@ -14,11 +14,14 @@ struct TerminalView: View {
     @EnvironmentObject private var settings: AppSettings
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var isVisible = false
     @State private var passphraseInput = ""
     @State private var lastConnectionState: ConnectionManager.State = .idle
     @State private var wantsReconnectPrompt = false
     @State private var terminalViewId = UUID()
+    @State private var openURLCandidate: URL?
+    @State private var clipboardHasString = UIPasteboard.general.hasStrings
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
@@ -30,10 +33,39 @@ struct TerminalView: View {
     }
 
     var body: some View {
-        let palette = AppTheme.terminalPalette(for: colorScheme)
+        let chosen = AppTheme.TerminalThemes.theme(id: settings.terminalThemeId)
+        let palette = AppTheme.TerminalPalette(
+            background: chosen.background,
+            foreground: chosen.foreground,
+            statusBarBackground: AppTheme.colors(for: colorScheme).surfaceElevated
+        )
         let colors = AppTheme.colors(for: colorScheme)
         TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
             .id(terminalViewId)
+            .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in
+                clipboardHasString = UIPasteboard.general.hasStrings
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                clipboardHasString = UIPasteboard.general.hasStrings
+            }
+            .onReceive(controller.$pendingOpenURL) { url in
+                if let url {
+                    openURLCandidate = url
+                    controller.pendingOpenURL = nil
+                }
+            }
+            .alert("Open Link?", isPresented: Binding(
+                get: { openURLCandidate != nil },
+                set: { if !$0 { openURLCandidate = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { openURLCandidate = nil }
+                Button("Open") {
+                    if let url = openURLCandidate { openURL(url) }
+                    openURLCandidate = nil
+                }
+            } message: {
+                Text(openURLCandidate?.absoluteString ?? "")
+            }
             .onChange(of: settings.predictionDisplayPreference) { _ in
                 updatePredictionPreference()
             }
@@ -92,6 +124,22 @@ struct TerminalView: View {
                         .accessibilityLabel("Show keyboard")
                         .transition(.scale.combined(with: .opacity))
                     }
+                    if !keyboardObserver.isKeyboardVisible, clipboardHasString {
+                        Button {
+                            controller.pasteFromClipboard()
+                        } label: {
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(colors.accent)
+                                .frame(width: 52, height: 52)
+                                .background(colors.surfaceElevated)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(colors.divider, lineWidth: 1))
+                                .shadow(color: colors.divider.opacity(0.6), radius: 6, x: 0, y: 3)
+                        }
+                        .accessibilityLabel("Paste")
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
                 .padding(.trailing, 16)
                 .padding(.bottom, 16)
@@ -103,6 +151,7 @@ struct TerminalView: View {
                 updatePredictionPreference()
                 controller.resetPredictions()
                 updateIdleTimer()
+                controller.onRequestFontSizeDelta = handleFontSizeDelta
                 if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
                     viewModel.start(autoConnect: autoConnect)
                 }
@@ -198,6 +247,11 @@ struct TerminalView: View {
 
     private func updateIdleTimer() {
         UIApplication.shared.isIdleTimerDisabled = isVisible && settings.keepAwake
+    }
+
+    private func handleFontSizeDelta(delta: Int) {
+        let newValue = (settings.fontSize + Double(delta)).clamped(to: 10...24)
+        settings.fontSize = newValue
     }
 
     private func passphraseMessage(_ context: SSHKeyPassphraseContext) -> String {
@@ -326,6 +380,8 @@ private struct TerminalDebugOverlay: View {
 /// it to `nil` when the keyboard hides, we guarantee correct behavior.
 @MainActor
 private struct TerminalContainerView: UIViewRepresentable {
+    private static let pinchRecognizerName = "TerminalSessionControllerPinchRecognizer"
+
     @ObservedObject var controller: TerminalSessionController
     let fontSize: Double
     let palette: AppTheme.TerminalPalette
@@ -346,6 +402,7 @@ private struct TerminalContainerView: UIViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
+        installPinchRecognizerIfNeeded(on: terminalView)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller, replaceExisting: reusedView)
         overlayView.predictionTextColor = UIColor(palette.foreground)
         overlayView.predictionBackgroundColor = UIColor(palette.background)
@@ -420,6 +477,27 @@ private struct TerminalContainerView: UIViewRepresentable {
         if view.backgroundColor != background {
             view.backgroundColor = background
         }
+    }
+
+    private func installPinchRecognizerIfNeeded(on terminalView: TerminalUIKitView) {
+        let pinchRecognizers = (terminalView.gestureRecognizers ?? []).filter {
+            $0.name == Self.pinchRecognizerName
+        }
+        if let primaryPinch = pinchRecognizers.first as? UIPinchGestureRecognizer {
+            primaryPinch.cancelsTouchesInView = false
+            for recognizer in pinchRecognizers.dropFirst() {
+                terminalView.removeGestureRecognizer(recognizer)
+            }
+            return
+        }
+
+        let pinch = UIPinchGestureRecognizer(
+            target: controller,
+            action: #selector(TerminalSessionController.handleTerminalPinch(_:))
+        )
+        pinch.name = Self.pinchRecognizerName
+        pinch.cancelsTouchesInView = false
+        terminalView.addGestureRecognizer(pinch)
     }
 
 }
@@ -547,7 +625,7 @@ private final class TerminalAccessoryHostingView: UIInputView {
 /// Custom keyboard accessory bar providing terminal-specific keys.
 ///
 /// ## Main Row (default)
-/// - **Modifiers**: Esc, Ctrl (toggle), Tab
+/// - **Modifiers**: Esc, Ctrl (toggle), Alt (sticky toggle), Tab
 /// - **Direct Ctrl shortcuts**: ^C (interrupt), ^D (EOF), ^Z (suspend), ^L (clear), ^A (start of line), ^E (end of line)
 /// - **Symbols**: ~, |, /, -
 /// - **Navigation**: Arrow keys (←, ↓, ↑, →)
@@ -556,6 +634,7 @@ private final class TerminalAccessoryHostingView: UIInputView {
 /// - F1 through F10
 ///
 /// The Ctrl toggle allows sending any Ctrl+key combination by tapping Ctrl then a letter on the main keyboard.
+/// The Alt toggle is sticky and sends ESC-prefixed printable input while enabled.
 /// Direct ^C/^D/etc. buttons provide single-tap access to the most common control sequences.
 private struct TerminalAccessoryRow: View {
     @ObservedObject var controller: TerminalSessionController
@@ -619,8 +698,14 @@ private struct TerminalAccessoryRow: View {
             accessoryButton("Ctrl", isActive: controller.isCtrlActive) {
                 controller.toggleCtrl()
             }
+            accessoryButton("Alt", isActive: controller.isAltActive) {
+                controller.toggleAlt()
+            }
             accessoryButton("Tab") {
                 controller.sendControl(0x09)
+            }
+            accessoryButton("Paste") {
+                controller.pasteFromClipboard()
             }
 
             Divider()
