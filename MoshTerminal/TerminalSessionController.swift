@@ -120,7 +120,20 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     }
     func requestOpenLink(source: TerminalUIKitView, link: String, params: [String: String]) {}
     func bell(source: TerminalUIKitView) {}
-    func clipboardCopy(source: TerminalUIKitView, content: Data) {}
+    func clipboardCopy(source: TerminalUIKitView, content: Data) {
+        guard !content.isEmpty else { return }
+
+        let string = String(data: content, encoding: .utf8)
+            ?? String(decoding: content, as: UTF8.self)
+
+        UIPasteboard.general.string = string
+
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        #if DEBUG
+        DebugLogger.shared.logClipboardCopy(bytes: content.count)
+        #endif
+    }
     func iTermContent(source: TerminalUIKitView, content: ArraySlice<UInt8>) {}
     func rangeChanged(source: TerminalUIKitView, startY: Int, endY: Int) {}
 
