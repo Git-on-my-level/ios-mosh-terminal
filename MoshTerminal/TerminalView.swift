@@ -125,6 +125,7 @@ struct TerminalView: View {
                 updatePredictionPreference()
                 controller.resetPredictions()
                 updateIdleTimer()
+                controller.onRequestFontSizeDelta = handleFontSizeDelta
                 if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
                     viewModel.start(autoConnect: autoConnect)
                 }
@@ -220,6 +221,11 @@ struct TerminalView: View {
 
     private func updateIdleTimer() {
         UIApplication.shared.isIdleTimerDisabled = isVisible && settings.keepAwake
+    }
+
+    private func handleFontSizeDelta(delta: Int) {
+        let newValue = (settings.fontSize + Double(delta)).clamped(to: 10...24)
+        settings.fontSize = newValue
     }
 
     private func passphraseMessage(_ context: SSHKeyPassphraseContext) -> String {
@@ -404,6 +410,9 @@ private struct TerminalContainerView: UIViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
         controller.attach(view: terminalView)
+        let pinch = UIPinchGestureRecognizer(target: controller, action: #selector(TerminalSessionController.handleTerminalPinch(_:)))
+        pinch.cancelsTouchesInView = false
+        terminalView.addGestureRecognizer(pinch)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller, replaceExisting: reusedView)
         overlayView.predictionTextColor = UIColor(palette.foreground)
         overlayView.predictionBackgroundColor = UIColor(palette.background)

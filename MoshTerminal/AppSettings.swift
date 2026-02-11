@@ -122,7 +122,7 @@ final class AppSettings: ObservableObject {
     }
 }
 
-private extension Comparable {
+extension Comparable {
     func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }

@@ -12,6 +12,7 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     var terminalView: TerminalUIKitView?
     var onInput: (@Sendable (Data) -> Void)?
     var onSizeChange: (@Sendable (TerminalSize) -> Void)?
+    var onRequestFontSizeDelta: ((Int) -> Void)?
 
     /// Holds the keyboard accessory view for reuse across keyboard show/hide cycles.
     /// Set by `TerminalContainerView.makeUIView` and attached/detached in `updateUIView`
@@ -34,6 +35,8 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
     private var bracketProbe = Data()
     private let bracketEnable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x68]) // ESC[?2004h
     private let bracketDisable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x6C]) // ESC[?2004l
+    private var pinchAccumulatedScale: CGFloat = 1.0
+    private let pinchThreshold: CGFloat = 0.15
 
     func reset() {
         terminalView = nil
@@ -44,6 +47,30 @@ final class TerminalSessionController: NSObject, ObservableObject, TerminalViewD
         predictionOverlayView = nil
         predictionCoordinator.terminalView = nil
         predictionCoordinator.reset()
+        pinchAccumulatedScale = 1.0
+    }
+
+    @objc func handleTerminalPinch(_ gesture: UIPinchGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            pinchAccumulatedScale = 1.0
+        case .changed:
+            let scale = gesture.scale
+            gesture.scale = 1.0
+            pinchAccumulatedScale *= scale
+
+            if pinchAccumulatedScale > 1.0 + pinchThreshold {
+                onRequestFontSizeDelta?(+1)
+                pinchAccumulatedScale = 1.0
+            } else if pinchAccumulatedScale < 1.0 - pinchThreshold {
+                onRequestFontSizeDelta?(-1)
+                pinchAccumulatedScale = 1.0
+            }
+        case .ended, .cancelled:
+            pinchAccumulatedScale = 1.0
+        default:
+            break
+        }
     }
 
     func attach(view: TerminalUIKitView) {
