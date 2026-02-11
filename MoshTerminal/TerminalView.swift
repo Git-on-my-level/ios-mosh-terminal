@@ -620,6 +620,9 @@ private struct TerminalAccessoryRow: View {
             accessoryButton("Tab") {
                 controller.sendControl(0x09)
             }
+            accessoryButton("Paste") {
+                controller.pasteFromClipboard()
+            }
 
             Divider()
                 .frame(height: 20)
