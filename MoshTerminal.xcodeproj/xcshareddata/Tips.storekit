@@ -22,7 +22,7 @@
 				<key>productType</key>
 				<string>consumable</string>
 				<key>price</key>
-				<real>0.99</real>
+				<real>3</real>
 				<key>localizations</key>
 				<dict>
 					<key>en_US</key>
@@ -46,7 +46,7 @@
 				<key>productType</key>
 				<string>consumable</string>
 				<key>price</key>
-				<real>2.99</real>
+				<real>10</real>
 				<key>localizations</key>
 				<dict>
 					<key>en_US</key>
@@ -70,7 +70,7 @@
 				<key>productType</key>
 				<string>consumable</string>
 				<key>price</key>
-				<real>6.99</real>
+				<real>50</real>
 				<key>localizations</key>
 				<dict>
 					<key>en_US</key>
@@ -88,4 +88,3 @@
 	<string>Xcode</string>
 </dict>
 </plist>
-

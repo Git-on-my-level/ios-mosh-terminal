@@ -1,5 +1,6 @@
 import XCTest
 @testable import MoshTerminal
+@testable import Prediction
 
 final class PredictionParserTests: XCTestCase {
     var parser: UTF8ByteParser!

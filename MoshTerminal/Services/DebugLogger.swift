@@ -7,14 +7,15 @@ protocol DebugLogProviding: Sendable {
     func logTransportEvent(_ event: TransportDebugEvent)
     func logLivenessEvent(_ event: LivenessDebugEvent)
     func logClipboardCopy(bytes: Int)
+    func logPredictionEvent(_ event: PredictionDebugEvent)
 }
 
 final class DebugLogger: DebugLogProviding {
     static let shared = DebugLogger()
-    
+
     private let logger: Logger
     private let subsystem = "com.moshterminal"
-    
+
     var isEnabled: Bool {
         didSet {
             if isEnabled {
@@ -22,30 +23,34 @@ final class DebugLogger: DebugLogProviding {
             }
         }
     }
-    
+
     init() {
         self.logger = Logger(subsystem: subsystem, category: "Connection")
         self.isEnabled = false
     }
-    
+
     func logConnectionEvent(_ event: ConnectionDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
-    
+
     func logTransportEvent(_ event: TransportDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
-    
+
     func logLivenessEvent(_ event: LivenessDebugEvent) {
         guard isEnabled else { return }
         logger.info("\(event.description, privacy: .public)")
     }
-    
     func logClipboardCopy(bytes: Int) {
         guard isEnabled else { return }
         logger.info("Clipboard copy: \(bytes) bytes")
+    }
+
+    func logPredictionEvent(_ event: PredictionDebugEvent) {
+        guard isEnabled else { return }
+        logger.info("\(event.description, privacy: .public)")
     }
 }
 
@@ -63,10 +68,10 @@ struct ConnectionDebugEvent: Sendable {
         case idleSessionStart(isReconnect: Bool)
         case idleSessionEnd
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -104,13 +109,13 @@ struct ConnectionDebugEvent: Sendable {
             return "[\(timestampStr)] Idle session ended"
         }
     }
-    
+
     private func redactUUID(_ uuid: String) -> String {
         let str = uuid.replacingOccurrences(of: "-", with: "")
         guard str.count >= 8 else { return "[REDACTED]" }
         return String(str.prefix(8)) + "..."
     }
-    
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000
@@ -127,10 +132,10 @@ struct TransportDebugEvent: Sendable {
         case connectAttempt(host: String, port: UInt16)
         case roundtripSuccess
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -148,7 +153,7 @@ struct TransportDebugEvent: Sendable {
             return "[\(timestampStr)] Roundtrip success"
         }
     }
-    
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000
@@ -166,10 +171,10 @@ struct LivenessDebugEvent: Sendable {
         case corruptPacket(consecutiveCount: Int)
         case unreachableSend(consecutiveCount: Int)
     }
-    
+
     let kind: Kind
     let timestamp: UInt64
-    
+
     var description: String {
         let timestampStr = formatTimestamp(timestamp)
         switch kind {
@@ -189,7 +194,39 @@ struct LivenessDebugEvent: Sendable {
             return "[\(timestampStr)] Unreachable send (consecutive: \(count))"
         }
     }
-    
+
+    private func formatTimestamp(_ millis: UInt64) -> String {
+        let seconds = millis / 1000
+        let remainder = millis % 1000
+        return String(format: "%06d.%03d", seconds, remainder)
+    }
+}
+
+struct PredictionDebugEvent: Sendable {
+    enum Kind: Sendable {
+        case echoAckUpdate(value: UInt64)
+        case networkSnapshot(
+            lastSentStateNum: UInt64,
+            lastAckedStateNum: UInt64,
+            echoAck: UInt64,
+            srttMillis: UInt64?
+        )
+    }
+
+    let kind: Kind
+    let timestamp: UInt64
+
+    var description: String {
+        let timestampStr = formatTimestamp(timestamp)
+        switch kind {
+        case .echoAckUpdate(let value):
+            return "[\(timestampStr)] Echo ack updated: \(value)"
+        case .networkSnapshot(let sent, let acked, let echo, let srtt):
+            let srttStr = srtt.map { "\($0)ms" } ?? "nil"
+            return "[\(timestampStr)] Network snapshot: sent=\(sent), acked=\(acked), echoAck=\(echo), srtt=\(srttStr)"
+        }
+    }
+
     private func formatTimestamp(_ millis: UInt64) -> String {
         let seconds = millis / 1000
         let remainder = millis % 1000

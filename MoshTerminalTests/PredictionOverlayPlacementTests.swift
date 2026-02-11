@@ -1,3 +1,4 @@
+import Prediction
 import XCTest
 @testable import MoshTerminal
 

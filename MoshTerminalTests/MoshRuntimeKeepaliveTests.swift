@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+@testable import MoshClientCore
 @testable import MoshTerminal
 
 final class MoshRuntimeKeepaliveTests: XCTestCase {

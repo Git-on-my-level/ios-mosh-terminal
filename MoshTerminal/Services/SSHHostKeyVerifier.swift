@@ -1,6 +1,6 @@
 import Foundation
 
-final class TOFUHostKeyVerifier: SSHHostKeyVerifying, @unchecked Sendable {
+final class TOFUHostKeyVerifier: SSHHostKeyVerifying {
     private let repository: TrustedHostKeyRepository
     private let prompter: SSHHostKeyPrompting
 

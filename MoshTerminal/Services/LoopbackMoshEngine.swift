@@ -1,5 +1,7 @@
 import Foundation
 
+/// `@unchecked Sendable` because this engine is only used from the main actor
+/// (preview/debug paths) and has no internal synchronization.
 final class LoopbackMoshEngine: MoshEngine, MoshEngineDebugProviding, @unchecked Sendable {
     var onOutput: (@Sendable (Data) -> Void)?
     var onRemoteResize: (@Sendable (TerminalSize) -> Void)?

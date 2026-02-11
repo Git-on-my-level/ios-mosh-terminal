@@ -1,5 +1,6 @@
 import XCTest
 @testable import MoshTerminal
+@testable import Prediction
 
 final class PredictionEngineInputTests: XCTestCase {
     func testTypingABCGeneratesOverlayCellsAndCursorMoves() {
