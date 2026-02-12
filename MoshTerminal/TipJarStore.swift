@@ -16,10 +16,10 @@ final class TipJarStore: ObservableObject {
         case failed(String)
     }
 
-    static let productIDs: [String] = [
-        "com.scalingforever.MoshTerminal.tip.small",
-        "com.scalingforever.MoshTerminal.tip.medium",
-        "com.scalingforever.MoshTerminal.tip.large",
+    private static let tipTiers = ["tip.small", "tip.medium", "tip.large"]
+    private static let fallbackPrefixes = [
+        "com.scalingforever.MoshTerminal",
+        "com.scalingforever.moshterminal",
     ]
 
     @Published private(set) var products: [Product] = []
@@ -29,6 +29,11 @@ final class TipJarStore: ObservableObject {
 
     private var hasStarted = false
     private var transactionUpdatesTask: Task<Void, Never>?
+    private let productIDs: [String]
+
+    init(productIDs: [String]? = nil) {
+        self.productIDs = productIDs ?? Self.resolveProductIDs()
+    }
 
     deinit {
         transactionUpdatesTask?.cancel()
@@ -39,7 +44,7 @@ final class TipJarStore: ObservableObject {
         hasStarted = true
 
         transactionUpdatesTask = Task.detached {
-            await TipJarTransactionObserver.observe(productIDs: Self.productIDs)
+            await TipJarTransactionObserver.observe(productIDs: self.productIDs)
         }
     }
 
@@ -47,7 +52,7 @@ final class TipJarStore: ObservableObject {
         guard loadState != .loading else { return }
         loadState = .loading
         do {
-            let fetched = try await Product.products(for: Self.productIDs)
+            let fetched = try await Product.products(for: productIDs)
             guard !fetched.isEmpty else {
                 loadState = .failed("No tip products are available.")
                 return
@@ -105,6 +110,43 @@ final class TipJarStore: ObservableObject {
                 message: error.localizedDescription
             )
         }
+    }
+
+    private static func resolveProductIDs() -> [String] {
+        if let configuredIDs = Bundle.main.object(forInfoDictionaryKey: "TIP_JAR_PRODUCT_IDS") as? [String] {
+            let trimmed = configuredIDs
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            if !trimmed.isEmpty {
+                var deduped: [String] = []
+                var seen = Set<String>()
+                for id in trimmed where seen.insert(id).inserted {
+                    deduped.append(id)
+                }
+                return deduped
+            }
+        }
+
+        var prefixes: [String] = []
+        if let bundleID = Bundle.main.bundleIdentifier, !bundleID.isEmpty {
+            prefixes.append(bundleID)
+            let lowercasedBundleID = bundleID.lowercased()
+            if lowercasedBundleID != bundleID {
+                prefixes.append(lowercasedBundleID)
+            }
+        }
+        prefixes.append(contentsOf: fallbackPrefixes)
+
+        var productIDs: [String] = []
+        var seen = Set<String>()
+        for prefix in prefixes {
+            for tier in tipTiers {
+                let id = "\(prefix).\(tier)"
+                guard seen.insert(id).inserted else { continue }
+                productIDs.append(id)
+            }
+        }
+        return productIDs
     }
 
 }
