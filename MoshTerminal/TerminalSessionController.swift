@@ -51,6 +51,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     private let bracketDisable = Data([0x1B, 0x5B, 0x3F, 0x32, 0x30, 0x30, 0x34, 0x6C]) // ESC[?2004l
     private var pinchAccumulatedScale: CGFloat = 1.0
     private let pinchThreshold: CGFloat = 0.15
+    private var autoFocusSuppressionUntil: Date = .distantPast
 
     func reset() {
         let existingTerminalView = terminalView
@@ -80,6 +81,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         pendingOutputFlush?.cancel()
         pendingOutputFlush = nil
         pendingOutputData.removeAll(keepingCapacity: false)
+        autoFocusSuppressionUntil = .distantPast
     }
 
     @objc func handleTerminalPinch(_ gesture: UIPinchGestureRecognizer) {
@@ -128,8 +130,17 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         predictionCoordinator.reset()
     }
 
-    func focus() {
+    func focus(force: Bool = false) {
+        if !force, Date() < autoFocusSuppressionUntil {
+            return
+        }
         _ = terminalView?.becomeFirstResponder()
+    }
+
+    func dismissKeyboard() {
+        // Prevent immediate re-focus from async view/state callbacks while dismissal is in-flight.
+        autoFocusSuppressionUntil = Date().addingTimeInterval(0.75)
+        _ = terminalView?.resignFirstResponder()
     }
 
     func toggleCtrl() {

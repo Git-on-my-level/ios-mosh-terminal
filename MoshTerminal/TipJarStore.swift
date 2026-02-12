@@ -54,7 +54,9 @@ final class TipJarStore: ObservableObject {
         do {
             let fetched = try await Product.products(for: productIDs)
             guard !fetched.isEmpty else {
-                loadState = .failed("No tip products are available.")
+                loadState = .failed(
+                    "No tip products were returned. Expected IDs: \(productIDs.joined(separator: ", "))"
+                )
                 return
             }
             products = fetched.sorted { lhs, rhs in
@@ -65,7 +67,7 @@ final class TipJarStore: ObservableObject {
             }
             loadState = .loaded
         } catch {
-            loadState = .failed(error.localizedDescription)
+            loadState = .failed("StoreKit error: \(error.localizedDescription)")
         }
     }
 

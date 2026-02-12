@@ -22,11 +22,14 @@ struct TipJarView: View {
                         ProgressView()
                         Spacer()
                     }
-                case .failed:
+                case .failed(let message):
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Tips are unavailable right now.")
                             .font(AppTheme.typography.body)
                             .foregroundStyle(colors.primaryText)
+                        Text(message)
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
                         Button("Try Again") {
                             Task { await tipJar.loadProducts() }
                         }

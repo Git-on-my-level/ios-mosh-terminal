@@ -112,7 +112,7 @@ struct TerminalView: View {
 #endif
                     if !keyboardObserver.isKeyboardVisible {
                         Button {
-                            controller.focus()
+                            controller.focus(force: true)
                         } label: {
                             Image(systemName: "keyboard")
                                 .font(.system(size: 20, weight: .semibold))
@@ -678,7 +678,7 @@ private struct TerminalAccessoryRow: View {
 
                 Button {
                     hapticFeedback.impactOccurred()
-                    controller.terminalView?.resignFirstResponder()
+                    controller.dismissKeyboard()
                 } label: {
                     Image(systemName: "keyboard.chevron.compact.down")
                         .font(.system(size: 14, weight: .medium))
