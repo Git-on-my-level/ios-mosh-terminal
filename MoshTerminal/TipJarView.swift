@@ -9,9 +9,30 @@ struct TipJarView: View {
         let colors = AppTheme.colors(for: colorScheme)
         Form {
             Section {
-                Text("Optional tip. No additional features are unlocked.")
-                    .font(AppTheme.typography.caption)
-                    .foregroundStyle(colors.secondaryText)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Optional tip.")
+                        .font(AppTheme.typography.headline)
+                        .foregroundStyle(colors.secondaryText)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("No additional features are unlocked.")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
+
+                        Text("Your support helps fund the development of this and other apps!")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
+
+                        Text("Check out the code, git the repository a star, or contribute a feature at:")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
+                    }
+
+                    Link("github.com/Git-on-my-level/ios-mosh-terminal", destination: URL(string: "https://github.com/Git-on-my-level/ios-mosh-terminal")!)
+                        .font(AppTheme.typography.caption)
+                        .padding(.top, 1)
+                }
+                .padding(.vertical, 4)
             }
 
             Section {

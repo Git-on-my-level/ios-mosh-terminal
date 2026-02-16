@@ -106,7 +106,14 @@ final class ConnectionManagerTests: XCTestCase {
             TestMoshEngine(behavior: .autoConnect, stopState: .disconnected)
         ]
         let engineFactory = TestEngineFactory(engines: engines)
-        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+        let lifecycle = TestAppLifecycleService()
+        let network = TestNetworkPathService(status: .satisfied)
+        let manager = makeManager(
+            bootstrapper: bootstrapper,
+            engineFactory: engineFactory,
+            lifecycle: lifecycle,
+            network: network
+        )
 
         manager.connect(
             host: host,
@@ -120,12 +127,62 @@ final class ConnectionManagerTests: XCTestCase {
         }
 
         await manager.disconnect(clearSession: false)
+        lifecycle.send(.foreground)
+        network.setStatus(.satisfied)
         try? await Task.sleep(nanoseconds: 50_000_000)
 
         XCTAssertEqual(manager.state, .idle)
         XCTAssertNil(manager.failure)
         XCTAssertEqual(engineFactory.createdEngines.count, 1)
         XCTAssertEqual(bootstrapper.callCount, 1)
+    }
+
+    func testForegroundReconnectSkipsHostsThatWereNeverConnected() async {
+        let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
+        let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
+        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let engineFactory = TestEngineFactory(engines: [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .autoConnect)
+        ])
+        let lifecycle = TestAppLifecycleService()
+        let network = TestNetworkPathService(status: .satisfied)
+        let manager = makeManager(
+            bootstrapper: bootstrapper,
+            engineFactory: engineFactory,
+            lifecycle: lifecycle,
+            network: network
+        )
+
+        _ = manager.controller(for: hostB)
+
+        manager.connect(
+            host: hostA,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: hostA.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        lifecycle.send(.background)
+        await awaitHostState(manager, hostId: hostA.id) { state in
+            if case .disconnected = state { return true }
+            return false
+        }
+
+        lifecycle.send(.foreground)
+        await awaitHostState(manager, hostId: hostA.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(bootstrapper.callCount, 1)
+        XCTAssertEqual(engineFactory.createdEngines.count, 2)
+        XCTAssertEqual(manager.state(for: hostB.id), .disconnected)
+        XCTAssertNil(manager.failure(for: hostB.id))
     }
 
     func testBackgroundMarksDisconnectedWithoutFailureAndReconnectsOnForeground() async {
@@ -414,6 +471,7 @@ final class ConnectionManagerTests: XCTestCase {
     ) async {
         if matches(manager.state) { return }
         let expectation = expectation(description: "state change")
+        expectation.assertForOverFulfill = false
         var cancellable: AnyCancellable?
         cancellable = manager.$state.sink { state in
             if matches(state) {
@@ -432,6 +490,7 @@ final class ConnectionManagerTests: XCTestCase {
     ) async {
         if matches(manager.state(for: hostId)) { return }
         let expectation = expectation(description: "host state change")
+        expectation.assertForOverFulfill = false
         var cancellable: AnyCancellable?
         cancellable = manager.$statesByHostId.sink { states in
             let hostState = states[hostId] ?? .idle

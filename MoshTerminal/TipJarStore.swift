@@ -21,6 +21,8 @@ final class TipJarStore: ObservableObject {
         "com.scalingforever.MoshTerminal",
         "com.scalingforever.moshterminal",
     ]
+    private static let maxProductLoadAttempts = 3
+    private static let retryBaseDelayNanoseconds: UInt64 = 500_000_000
 
     @Published private(set) var products: [Product] = []
     @Published private(set) var loadState: LoadState = .idle
@@ -51,12 +53,17 @@ final class TipJarStore: ObservableObject {
     func loadProducts() async {
         guard loadState != .loading else { return }
         loadState = .loading
+
+        debugLog("Loading products for bundle=\(Bundle.main.bundleIdentifier ?? "nil"), ids=\(productIDs)")
+        debugLog("STOREKIT_CONFIG_PATH=\(ProcessInfo.processInfo.environment["STOREKIT_CONFIG_PATH"] ?? "not set")")
+
         do {
-            let fetched = try await Product.products(for: productIDs)
+            let fetched = try await fetchProductsWithRetry()
             guard !fetched.isEmpty else {
                 loadState = .failed(
-                    "No tip products were returned. Expected IDs: \(productIDs.joined(separator: ", "))"
+                    "No tip products were returned. Expected IDs: \(productIDs.joined(separator: ", "))\(debugFailureDetails())"
                 )
+                debugLog("No products returned after all attempts.")
                 return
             }
             products = fetched.sorted { lhs, rhs in
@@ -66,8 +73,13 @@ final class TipJarStore: ObservableObject {
                 return lhs.price < rhs.price
             }
             loadState = .loaded
+            debugLog("Loaded products: \(products.map(\.id).joined(separator: ", "))")
+        } catch is CancellationError {
+            loadState = .idle
+            debugLog("Load cancelled")
         } catch {
             loadState = .failed("StoreKit error: \(error.localizedDescription)")
+            debugLog("StoreKit error: \(error.localizedDescription)")
         }
     }
 
@@ -151,6 +163,73 @@ final class TipJarStore: ObservableObject {
         return productIDs
     }
 
+    private func fetchProductsWithRetry() async throws -> [Product] {
+        let batches = Self.productIDLookupBatches(from: productIDs)
+        var lastError: Error?
+
+        for ids in batches {
+            for attempt in 1...Self.maxProductLoadAttempts {
+                try Task.checkCancellation()
+                do {
+                    debugLog("Product lookup attempt \(attempt) for ids=\(ids)")
+                    let fetched = try await Product.products(for: ids)
+                    if !fetched.isEmpty {
+                        debugLog("Lookup succeeded with \(fetched.count) product(s).")
+                        return fetched
+                    }
+                    debugLog("Lookup returned 0 products.")
+                } catch {
+                    lastError = error
+                    debugLog("Lookup failed: \(error.localizedDescription)")
+                }
+
+                guard attempt < Self.maxProductLoadAttempts else { break }
+                let delay = Self.retryBaseDelayNanoseconds * UInt64(attempt)
+                try await Task.sleep(nanoseconds: delay)
+            }
+        }
+
+        if let lastError {
+            throw lastError
+        }
+        return []
+    }
+
+    private static func productIDLookupBatches(from productIDs: [String]) -> [[String]] {
+        let normalized = deduplicated(productIDs)
+        guard !normalized.isEmpty else { return [productIDs] }
+
+        let lowercased = deduplicated(normalized.map { $0.lowercased() })
+        if lowercased != normalized {
+            return [normalized, lowercased]
+        }
+        return [normalized]
+    }
+
+    private static func deduplicated(_ ids: [String]) -> [String] {
+        var deduped: [String] = []
+        var seen = Set<String>()
+        for id in ids where seen.insert(id).inserted {
+            deduped.append(id)
+        }
+        return deduped
+    }
+
+    private func debugLog(_ message: String) {
+#if DEBUG
+        print("[TipJarStore] \(message)")
+#endif
+    }
+
+    private func debugFailureDetails() -> String {
+#if DEBUG
+        let bundleID = Bundle.main.bundleIdentifier ?? "nil"
+        let storeKitPath = ProcessInfo.processInfo.environment["STOREKIT_CONFIG_PATH"] ?? "not set"
+        return "\n\nDebug: bundle=\(bundleID), STOREKIT_CONFIG_PATH=\(storeKitPath)"
+#else
+        return ""
+#endif
+    }
 }
 
 private enum TipJarTransactionObserver {

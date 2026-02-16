@@ -172,6 +172,8 @@ struct KeyManagementView: View {
     @State private var isShowingPasteSheet = false
     @State private var isShowingGenerateSheet = false
     @State private var publicKeySheet: PublicKeySheetPayload?
+    @State private var pendingKeyDeletionIds: [String] = []
+    @State private var isShowingDeleteConfirmation = false
 
     init(hostRepository: any HostListing, keyStore: any PrivateKeyManaging) {
         _viewModel = StateObject(
@@ -203,9 +205,24 @@ struct KeyManagementView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
-                    .swipeActions(edge: .trailing) {
+                    .onTapGesture {
+                        showPublicKey(for: key)
+                    }
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        Button("Copy") {
+                            if let publicKey = viewModel.publicKeyLine(for: key) {
+                                UIPasteboard.general.string = publicKey
+                            }
+                        }
+                        .tint(.green)
+                        Button("Export") {
+                            showPublicKey(for: key)
+                        }
+                        .tint(.blue)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button("Delete", role: .destructive) {
-                            Task { await deleteKey(key) }
+                            requestDelete(key)
                         }
                     }
                     .contextMenu {
@@ -226,18 +243,18 @@ struct KeyManagementView: View {
                                 publicKeySheet = PublicKeySheetPayload(label: key.label, publicKey: publicKey)
                             }
                         } label: {
-                            Label("Share Public Key", systemImage: "square.and.arrow.up")
+                            Label("Export Public Key", systemImage: "square.and.arrow.up")
                         }
                         Divider()
                         Button(role: .destructive) {
-                            Task { await deleteKey(key) }
+                            requestDelete(key)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
                 }
                 .onDelete { offsets in
-                    Task { await viewModel.deleteKeys(at: offsets) }
+                    requestDelete(at: offsets)
                 }
             }
         }
@@ -291,6 +308,16 @@ struct KeyManagementView: View {
                 PublicKeyView(label: payload.label, publicKey: payload.publicKey)
             }
         }
+        .alert(deleteAlertTitle, isPresented: $isShowingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                pendingKeyDeletionIds = []
+            }
+            Button(deleteConfirmationButtonTitle, role: .destructive) {
+                Task { await confirmKeyDeletion() }
+            }
+        } message: {
+            Text(deleteAlertMessage)
+        }
         .alert("Keys", isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -302,9 +329,60 @@ struct KeyManagementView: View {
         .appScreenBackground()
     }
 
-    private func deleteKey(_ key: StoredPrivateKeyMetadata) async {
-        if let index = viewModel.keys.firstIndex(where: { $0.id == key.id }) {
-            await viewModel.deleteKeys(at: IndexSet(integer: index))
+    private var deleteAlertTitle: String {
+        pendingKeyDeletionIds.count == 1 ? "Delete Key?" : "Delete Keys?"
+    }
+
+    private var deleteConfirmationButtonTitle: String {
+        pendingKeyDeletionIds.count == 1 ? "Delete Key" : "Delete \(pendingKeyDeletionIds.count) Keys"
+    }
+
+    private var deleteAlertMessage: String {
+        if pendingKeyDeletionIds.count == 1,
+           let key = viewModel.keys.first(where: { $0.id == pendingKeyDeletionIds[0] }) {
+            return "Delete \"\(key.label)\"? This cannot be undone."
+        }
+        return "This will permanently remove the selected keys."
+    }
+
+    private func requestDelete(_ key: StoredPrivateKeyMetadata) {
+        pendingKeyDeletionIds = [key.id]
+        isShowingDeleteConfirmation = true
+    }
+
+    private func requestDelete(at offsets: IndexSet) {
+        let ids = offsets.map { viewModel.keys[$0].id }
+        guard !ids.isEmpty else {
+            return
+        }
+        pendingKeyDeletionIds = ids
+        isShowingDeleteConfirmation = true
+    }
+
+    private func confirmKeyDeletion() async {
+        let ids = pendingKeyDeletionIds
+        pendingKeyDeletionIds = []
+        guard !ids.isEmpty else {
+            return
+        }
+        await deleteKeys(withIds: ids)
+    }
+
+    private func deleteKeys(withIds ids: [String]) async {
+        let offsets = IndexSet(
+            ids.compactMap { id in
+                viewModel.keys.firstIndex(where: { $0.id == id })
+            }
+        )
+        guard !offsets.isEmpty else {
+            return
+        }
+        await viewModel.deleteKeys(at: offsets)
+    }
+
+    private func showPublicKey(for key: StoredPrivateKeyMetadata) {
+        if let publicKey = viewModel.publicKeyLine(for: key) {
+            publicKeySheet = PublicKeySheetPayload(label: key.label, publicKey: publicKey)
         }
     }
 }
@@ -335,6 +413,9 @@ private struct KeyRow: View {
                         .foregroundStyle(colors.secondaryText)
                 }
             }
+            Text("Tap to copy or export public key")
+                .font(AppTheme.typography.caption)
+                .foregroundStyle(colors.secondaryText)
         }
     }
 }
@@ -434,7 +515,9 @@ private struct PublicKeyView: View {
                 Button("Copy") {
                     UIPasteboard.general.string = publicKey
                 }
-                ShareLink(item: publicKey)
+                ShareLink(item: publicKey) {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
             }
         }
         .appScreenBackground()

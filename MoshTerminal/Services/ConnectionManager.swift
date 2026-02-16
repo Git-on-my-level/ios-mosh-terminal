@@ -55,6 +55,7 @@ final class ConnectionManager: ObservableObject {
         var controller: TerminalSessionController?
         var engine: MoshEngine?
         var lastConnectInfo: MoshConnectInfo?
+        var reconnectOnLifecycle = false
 
         var connectTask: Task<Void, Never>?
         var connectToken = UUID()
@@ -188,6 +189,8 @@ final class ConnectionManager: ObservableObject {
         setState(.idle, hostId: hostId)
         setFailure(nil, hostId: hostId)
         session.reconnectBackoff.recordSuccess()
+        session.autoReconnectAllowed = false
+        session.reconnectOnLifecycle = false
 
         if clearSession {
             session.controller = nil
@@ -266,6 +269,9 @@ final class ConnectionManager: ObservableObject {
 
     private func requestReconnect(hostId: UUID, reason: ReconnectReason) {
         guard let session = sessions[hostId] else { return }
+        if reason == .foreground || reason == .networkSatisfied {
+            guard session.reconnectOnLifecycle else { return }
+        }
         guard session.lastConnectInfo != nil || state(for: hostId) != .idle else { return }
         guard networkPathService.isSatisfied else { return }
         guard appLifecycleService.state == .foreground else { return }
@@ -538,6 +544,7 @@ final class ConnectionManager: ObservableObject {
             setState(.connected, hostId: hostId)
             setFailure(nil, hostId: hostId)
             sessions[hostId]?.reconnectBackoff.recordSuccess()
+            sessions[hostId]?.reconnectOnLifecycle = true
             resumeConnectWaiter(hostId: hostId, connected: true)
             Task { @MainActor [weak self] in
                 await self?.recordLastConnected(hostId: hostId)
@@ -622,6 +629,7 @@ final class ConnectionManager: ObservableObject {
             setState(.idle, hostId: hostId)
             setFailure(nil, hostId: hostId)
             sessions[hostId]?.autoReconnectAllowed = false
+            sessions[hostId]?.reconnectOnLifecycle = false
             return nil
         }
         return passphrase
@@ -661,6 +669,7 @@ final class ConnectionManager: ObservableObject {
     private func handleBackground() async {
         let hostIds = Array(sessions.keys)
         for hostId in hostIds {
+            sessions[hostId]?.reconnectOnLifecycle = state(for: hostId) == .connected
             cancelConnectTask(hostId: hostId)
             await stopEngine(hostId: hostId)
             setState(.disconnected, hostId: hostId)

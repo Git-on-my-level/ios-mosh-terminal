@@ -52,6 +52,8 @@ final class HostsListViewModel: ObservableObject {
 struct HostsListView: View {
     @StateObject private var viewModel: HostsListViewModel
     @State private var editorContext: HostEditorContext?
+    @State private var pendingHostDeletion: [HostProfile] = []
+    @State private var isShowingDeleteConfirmation = false
 
     private let hostRepository: any HostRepositoryProtocol
     private let keyStore: any PrivateKeyManaging
@@ -101,9 +103,9 @@ struct HostsListView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
-                    .swipeActions(edge: .trailing) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button("Delete", role: .destructive) {
-                            Task { await deleteHost(host) }
+                            requestDelete(host)
                         }
                         Button("Edit") {
                             editorContext = HostEditorContext(mode: .edit(host))
@@ -118,19 +120,14 @@ struct HostsListView: View {
                         }
                         Divider()
                         Button(role: .destructive) {
-                            Task { await deleteHost(host) }
+                            requestDelete(host)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
                 }
                 .onDelete { offsets in
-                    Task {
-                        let hostsToDelete = offsets.map { viewModel.hosts[$0] }
-                        for host in hostsToDelete {
-                            await deleteHost(host)
-                        }
-                    }
+                    requestDelete(at: offsets)
                 }
             }
         }
@@ -158,6 +155,16 @@ struct HostsListView: View {
                 }
             }
         }
+        .alert(deleteAlertTitle, isPresented: $isShowingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                pendingHostDeletion = []
+            }
+            Button(deleteConfirmationButtonTitle, role: .destructive) {
+                Task { await confirmHostDeletion() }
+            }
+        } message: {
+            Text(deleteAlertMessage)
+        }
         .alert(
             "Hosts",
             isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })
@@ -172,9 +179,49 @@ struct HostsListView: View {
         .appScreenBackground()
     }
 
-    private func deleteHost(_ host: HostProfile) async {
-        await connectionManager.disconnect(hostId: host.id, clearSession: true)
-        await viewModel.deleteHost(id: host.id)
+    private var deleteAlertTitle: String {
+        pendingHostDeletion.count == 1 ? "Delete Host?" : "Delete Hosts?"
+    }
+
+    private var deleteConfirmationButtonTitle: String {
+        pendingHostDeletion.count == 1 ? "Delete Host" : "Delete \(pendingHostDeletion.count) Hosts"
+    }
+
+    private var deleteAlertMessage: String {
+        guard pendingHostDeletion.count == 1, let host = pendingHostDeletion.first else {
+            return "This will permanently remove the selected hosts."
+        }
+        return "Delete \"\(host.resolvedDisplayName)\"? This cannot be undone."
+    }
+
+    private func requestDelete(_ host: HostProfile) {
+        pendingHostDeletion = [host]
+        isShowingDeleteConfirmation = true
+    }
+
+    private func requestDelete(at offsets: IndexSet) {
+        let hosts = offsets.map { viewModel.hosts[$0] }
+        guard !hosts.isEmpty else {
+            return
+        }
+        pendingHostDeletion = hosts
+        isShowingDeleteConfirmation = true
+    }
+
+    private func confirmHostDeletion() async {
+        let hostsToDelete = pendingHostDeletion
+        pendingHostDeletion = []
+        guard !hostsToDelete.isEmpty else {
+            return
+        }
+        await deleteHosts(hostsToDelete)
+    }
+
+    private func deleteHosts(_ hosts: [HostProfile]) async {
+        for host in hosts {
+            await connectionManager.disconnect(hostId: host.id, clearSession: true)
+            await viewModel.deleteHost(id: host.id)
+        }
         await viewModel.loadHosts()
     }
 }

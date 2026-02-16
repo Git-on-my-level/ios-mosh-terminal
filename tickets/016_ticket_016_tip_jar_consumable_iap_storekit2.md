@@ -30,7 +30,7 @@ Ship a frictionless, App Store–safe tip jar using **consumable** In‑App Purc
 
 ## Testing plan
 - Manual verification with StoreKit Testing in Xcode:
-  - StoreKit config: `MoshTerminal.xcodeproj/xcshareddata/Tips.storekit`
+  - StoreKit config: `Tips.storekit`
   - Validate purchase, cancel, pending, and repeated purchases
 
 ## Rollout plan

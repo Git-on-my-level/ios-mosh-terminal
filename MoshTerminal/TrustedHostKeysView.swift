@@ -35,6 +35,8 @@ final class TrustedHostKeysViewModel: ObservableObject {
 
 struct TrustedHostKeysView: View {
     @StateObject private var viewModel: TrustedHostKeysViewModel
+    @State private var pendingDeletion: TrustedHostKey?
+    @State private var isShowingDeleteConfirmation = false
 
     init(repository: any TrustedHostKeyManaging) {
         _viewModel = StateObject(wrappedValue: TrustedHostKeysViewModel(repository: repository))
@@ -59,15 +61,34 @@ struct TrustedHostKeysView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: metrics.rowSpacing / 2, leading: 16, bottom: metrics.rowSpacing / 2, trailing: 16))
-                }
-                .onDelete { offsets in
-                    Task { await viewModel.deleteKeys(at: offsets) }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button("Delete", role: .destructive) {
+                            requestDelete(key)
+                        }
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            requestDelete(key)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
             }
         }
         .listStyle(.plain)
         .listSectionSpacing(metrics.rowSpacing)
         .navigationTitle("Trusted Host Keys")
+        .alert("Delete Trusted Host Key?", isPresented: $isShowingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                pendingDeletion = nil
+            }
+            Button("Delete", role: .destructive) {
+                Task { await confirmDelete() }
+            }
+        } message: {
+            Text(deleteAlertMessage)
+        }
         .alert(
             "Trusted Host Keys",
             isPresented: Binding(get: { viewModel.alertMessage != nil }, set: { _ in viewModel.alertMessage = nil })
@@ -80,6 +101,29 @@ struct TrustedHostKeysView: View {
             await viewModel.loadKeys()
         }
         .appScreenBackground()
+    }
+
+    private var deleteAlertMessage: String {
+        guard let pendingDeletion else {
+            return "This will remove the selected trusted host key."
+        }
+        return "Delete \(pendingDeletion.hostname):\(pendingDeletion.port)? This cannot be undone."
+    }
+
+    private func requestDelete(_ key: TrustedHostKey) {
+        pendingDeletion = key
+        isShowingDeleteConfirmation = true
+    }
+
+    private func confirmDelete() async {
+        guard let key = pendingDeletion else {
+            return
+        }
+        pendingDeletion = nil
+        guard let index = viewModel.keys.firstIndex(of: key) else {
+            return
+        }
+        await viewModel.deleteKeys(at: IndexSet(integer: index))
     }
 }
 

@@ -23,6 +23,7 @@ struct TerminalView: View {
     @State private var terminalViewId = UUID()
     @State private var openURLCandidate: URL?
     @State private var clipboardHasString = UIPasteboard.general.hasStrings
+    @State private var isShowingDisconnectConfirmation = false
 
     init(host: HostProfile, dependencies: TerminalSessionDependencies, autoConnect: Bool = true) {
         self.host = host
@@ -91,10 +92,7 @@ struct TerminalView: View {
                         .accessibilityLabel("Reconnect")
                     } else {
                         Button(role: .destructive) {
-                            wantsReconnectPrompt = true
-                            controller.reset()
-                            terminalViewId = UUID()
-                            viewModel.stop()
+                            isShowingDisconnectConfirmation = true
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16, weight: .semibold))
@@ -246,12 +244,27 @@ struct TerminalView: View {
             .onChange(of: viewModel.passphrasePrompt?.id) { _ in
                 passphraseInput = ""
             }
+            .alert("Disconnect Session?", isPresented: $isShowingDisconnectConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Disconnect", role: .destructive) {
+                    disconnectSession()
+                }
+            } message: {
+                Text("This will end the current terminal session.")
+            }
             .toolbarBackground(colors.surface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func updateIdleTimer() {
         UIApplication.shared.isIdleTimerDisabled = isVisible && settings.keepAwake
+    }
+
+    private func disconnectSession() {
+        wantsReconnectPrompt = true
+        controller.reset()
+        terminalViewId = UUID()
+        viewModel.stop()
     }
 
     private func handleFontSizeDelta(delta: Int) {
