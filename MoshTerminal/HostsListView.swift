@@ -96,7 +96,8 @@ struct HostsListView: View {
                         CardRow(isActive: connectionManager.state(for: host.id).isActive) {
                             HostRowView(
                                 host: host,
-                                connectionState: connectionManager.state(for: host.id)
+                                connectionState: connectionManager.state(for: host.id),
+                                persistenceOutcome: connectionManager.persistenceOutcome(for: host.id)
                             )
                         }
                     }
@@ -229,6 +230,7 @@ struct HostsListView: View {
 private struct HostRowView: View {
     let host: HostProfile
     let connectionState: ConnectionManager.State
+    let persistenceOutcome: PersistenceOutcome?
     @Environment(\.colorScheme) private var colorScheme
 
     private var lastConnectedText: String? {
@@ -249,7 +251,7 @@ private struct HostRowView: View {
                     .font(AppTheme.typography.headline)
                     .foregroundStyle(colors.primaryText)
                 Spacer(minLength: 8)
-                StatusBadge(state: connectionState)
+                StatusBadge(state: badgeState)
             }
             Text("\(host.username)@\(host.hostname)")
                 .font(AppTheme.typography.captionMonospaced)
@@ -260,7 +262,36 @@ private struct HostRowView: View {
                     .foregroundStyle(colors.secondaryText)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: connectionState)
+        .animation(.easeInOut(duration: 0.2), value: badgeState)
+    }
+
+    private var badgeState: HostStatusBadgeState {
+        switch connectionState {
+        case .bootstrappingSSH, .connectingUDP, .reconnecting:
+            return .connecting
+        case .connected:
+            return .connected
+        case .failed:
+            return .disconnected
+        case .idle, .disconnected:
+            return hasResumableManagedSession ? .connected : .idle
+        }
+    }
+
+    private var hasResumableManagedSession: Bool {
+        guard host.sessionPersistenceMode == .managedTmux else { return false }
+        guard host.lastConnectedAt != nil else { return false }
+        guard host.tmuxSetupConsent != .declined else { return false }
+
+        guard let persistenceOutcome else {
+            return true
+        }
+        switch persistenceOutcome {
+        case .managedTmuxActive:
+            return true
+        case .fallbackPlainShell:
+            return false
+        }
     }
 }
 

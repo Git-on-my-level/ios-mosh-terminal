@@ -193,7 +193,7 @@ struct CardRow<Content: View>: View {
 
 struct StatusBadge: View {
     @Environment(\.colorScheme) private var colorScheme
-    let state: ConnectionManager.State
+    let state: HostStatusBadgeState
 
     var body: some View {
         let colors = AppTheme.colors(for: colorScheme)
@@ -209,20 +209,44 @@ struct StatusBadge: View {
         .padding(.vertical, 4)
         .background(status.color.opacity(colorScheme == .dark ? 0.22 : 0.12))
         .clipShape(Capsule())
-        .accessibilityLabel(Text("Status \(state.statusText)"))
+        .accessibilityLabel(Text("Status \(state.accessibilityLabel)"))
     }
 
     private func statusStyle(colors: AppTheme.Colors) -> (label: String, icon: String, color: Color) {
         switch state {
         case .connected:
-            return (state.shortStatusText, "checkmark.circle.fill", colors.statusConnected)
-        case .bootstrappingSSH, .connectingUDP, .reconnecting:
-            return (state.shortStatusText, "arrow.triangle.2.circlepath", colors.statusConnecting)
-        case .failed, .disconnected:
-            return (state.shortStatusText, "xmark.octagon.fill", colors.statusError)
+            return (state.label, "checkmark.circle.fill", colors.statusConnected)
+        case .connecting:
+            return (state.label, "arrow.triangle.2.circlepath", colors.statusConnecting)
+        case .disconnected:
+            return (state.label, "xmark.octagon.fill", colors.statusError)
         case .idle:
-            return (state.shortStatusText, "minus.circle", colors.secondaryText)
+            return (state.label, "minus.circle", colors.secondaryText)
         }
+    }
+}
+
+enum HostStatusBadgeState: Equatable {
+    case idle
+    case disconnected
+    case connected
+    case connecting
+
+    var label: String {
+        switch self {
+        case .idle:
+            return "Idle"
+        case .disconnected:
+            return "Disconnected"
+        case .connected:
+            return "Connected"
+        case .connecting:
+            return "Connecting"
+        }
+    }
+
+    var accessibilityLabel: String {
+        label
     }
 }
 

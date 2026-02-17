@@ -711,10 +711,14 @@ final class ConnectionManager: ObservableObject {
     private func handleBackground() async {
         let hostIds = Array(sessions.keys)
         for hostId in hostIds {
-            sessions[hostId]?.reconnectOnLifecycle = state(for: hostId) == .connected
+            let stateAtBackground = state(for: hostId)
+            let hasResumableSession = sessions[hostId]?.lastConnectInfo != nil
+            let shouldMarkDisconnected = stateAtBackground == .connected || hasResumableSession
+
+            sessions[hostId]?.reconnectOnLifecycle = stateAtBackground == .connected
             cancelConnectTask(hostId: hostId)
             await stopEngine(hostId: hostId)
-            setState(.disconnected, hostId: hostId)
+            setState(shouldMarkDisconnected ? .disconnected : .idle, hostId: hostId)
             setFailure(nil, hostId: hostId)
             sessions[hostId]?.reconnectBackoff.recordSuccess()
         }

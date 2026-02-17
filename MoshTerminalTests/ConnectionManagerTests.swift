@@ -275,7 +275,7 @@ final class ConnectionManagerTests: XCTestCase {
 
         XCTAssertEqual(bootstrapper.callCount, 1)
         XCTAssertEqual(engineFactory.createdEngines.count, 2)
-        XCTAssertEqual(manager.state(for: hostB.id), .disconnected)
+        XCTAssertEqual(manager.state(for: hostB.id), .idle)
         XCTAssertNil(manager.failure(for: hostB.id))
     }
 
