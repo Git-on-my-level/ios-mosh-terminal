@@ -234,6 +234,12 @@ struct HostsListView: View {
 }
 
 private struct HostRowView: View {
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+
     let host: HostProfile
     let connectionState: ConnectionManager.State
     let persistenceOutcome: PersistenceOutcome?
@@ -243,9 +249,7 @@ private struct HostRowView: View {
         guard let date = host.lastConnectedAt else {
             return nil
         }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        let relative = formatter.localizedString(for: date, relativeTo: Date())
+        let relative = Self.relativeDateFormatter.localizedString(for: date, relativeTo: Date())
         return "Last connected \(relative)"
     }
 

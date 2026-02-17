@@ -46,6 +46,15 @@ final class MoshTerminalUITests: XCTestCase {
             latestSnapshot.hostsLoadEndMs,
             "hostsLoadEndMs should become non-nil within timeout"
         )
+
+        if let loadStart = latestSnapshot.hostsLoadStartMs, let loadEnd = latestSnapshot.hostsLoadEndMs {
+            let loadTimeMs = loadEnd - loadStart
+            XCTAssertLessThan(
+                loadTimeMs,
+                1500,
+                "Hosts load time should be under 1500ms"
+            )
+        }
     }
 
     func testSeededHostsAppearInHostsList() throws {
