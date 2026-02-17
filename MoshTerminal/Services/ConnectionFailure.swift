@@ -22,6 +22,13 @@ struct ConnectionFailure: Identifiable, Equatable {
     let allowsRetry: Bool
 }
 
+struct PersistenceWarning: Equatable {
+    let title: String
+    let message: String
+    let actionTitle: String
+    let installCommand: String?
+}
+
 enum ConnectionFailureReason: Error, Equatable {
     case udpUnreachable
     case udpTimeout
@@ -62,6 +69,55 @@ struct ConnectionErrorMapper {
             helpInfo: nil,
             allowsRetry: true
         )
+    }
+
+    static func mapPersistenceWarning(outcome: PersistenceOutcome?) -> PersistenceWarning? {
+        guard case .fallbackPlainShell(let reason)? = outcome else { return nil }
+        switch reason {
+        case .hostPreferencePlainShell:
+            return nil
+        case .tmuxMissingConsentRequired(let installCommand):
+            return PersistenceWarning(
+                title: "Persistence unavailable",
+                message: "tmux is missing on this host. Approve setup to enable managed persistence.",
+                actionTitle: "Retry Setup",
+                installCommand: installCommand
+            )
+        case .tmuxMissingConsentDeclined(let installCommand):
+            return PersistenceWarning(
+                title: "Persistence unavailable",
+                message: "Managed persistence is currently disabled for this host. Retry setup to install tmux later.",
+                actionTitle: "Retry Setup",
+                installCommand: installCommand
+            )
+        case .tmuxInstallFailed(_, let details):
+            let detailText: String
+            if let details, !details.isEmpty {
+                detailText = " \(details)"
+            } else {
+                detailText = ""
+            }
+            return PersistenceWarning(
+                title: "Persistence unavailable",
+                message: "tmux setup failed and this session is using a plain shell.\(detailText)",
+                actionTitle: "Retry Setup",
+                installCommand: reason.installCommand
+            )
+        case .tmuxInstallerUnavailable:
+            return PersistenceWarning(
+                title: "Persistence unavailable",
+                message: "No supported package manager was detected. Install tmux manually and retry setup.",
+                actionTitle: "Retry Setup",
+                installCommand: nil
+            )
+        case .tmuxLaunchFailed(let message):
+            return PersistenceWarning(
+                title: "Persistence unavailable",
+                message: "tmux setup failed (\(message)). Connected with a plain shell.",
+                actionTitle: "Retry Setup",
+                installCommand: nil
+            )
+        }
     }
 
     private static func map(reason: ConnectionFailureReason) -> ConnectionFailure {
@@ -218,6 +274,19 @@ struct ConnectionErrorMapper {
                 helpInfo: nil,
                 allowsRetry: true
             )
+        }
+    }
+}
+
+private extension PersistenceFallbackReason {
+    var installCommand: String? {
+        switch self {
+        case .tmuxMissingConsentRequired(let installCommand),
+             .tmuxMissingConsentDeclined(let installCommand),
+             .tmuxInstallFailed(let installCommand, _):
+            return installCommand
+        case .hostPreferencePlainShell, .tmuxInstallerUnavailable, .tmuxLaunchFailed:
+            return nil
         }
     }
 }

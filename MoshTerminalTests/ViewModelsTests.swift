@@ -394,6 +394,119 @@ final class ViewModelsTests: XCTestCase {
         XCTAssertEqual(savedHost?.username, "testuser")
         XCTAssertEqual(savedHost?.sshPort, 22)
         XCTAssertEqual(savedHost?.keyRefId, "key-1")
+        XCTAssertEqual(savedHost?.sessionPersistenceMode, .managedTmux)
+        XCTAssertEqual(savedHost?.tmuxSetupConsent, .unknown)
+    }
+
+    func testHostEditorViewModelDefaultsManagedPersistenceEnabled() {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore
+        )
+
+        XCTAssertEqual(viewModel.sessionPersistenceMode, .managedTmux)
+    }
+
+    func testHostEditorViewModelSavePersistsSelectedPersistenceMode() async {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let existingHost = HostProfile(
+            displayName: "Existing",
+            hostname: "example.com",
+            username: "mosh",
+            sshPort: 22,
+            keyRefId: "key-1",
+            sessionPersistenceMode: .managedTmux,
+            tmuxSetupConsent: .approved
+        )
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore,
+            host: existingHost
+        )
+        viewModel.sessionPersistenceMode = .plainShell
+
+        var savedHost: HostProfile?
+        await viewModel.save { host in
+            savedHost = host
+        }
+
+        XCTAssertEqual(savedHost?.sessionPersistenceMode, .plainShell)
+        XCTAssertEqual(savedHost?.tmuxSetupConsent, .approved)
+    }
+
+    func testHostEditorViewModelCanResetDeclinedTmuxConsentWhenManagedPersistenceEnabled() async {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let existingHost = HostProfile(
+            displayName: "Existing",
+            hostname: "example.com",
+            username: "mosh",
+            sshPort: 22,
+            keyRefId: "key-1",
+            sessionPersistenceMode: .managedTmux,
+            tmuxSetupConsent: .declined
+        )
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore,
+            host: existingHost
+        )
+
+        XCTAssertTrue(viewModel.canResetTmuxSetupConsent)
+        viewModel.shouldPromptForTmuxSetupOnNextConnect = true
+
+        var savedHost: HostProfile?
+        await viewModel.save { host in
+            savedHost = host
+        }
+
+        XCTAssertEqual(savedHost?.tmuxSetupConsent, .unknown)
+    }
+
+    func testHostEditorViewModelKeepsDeclinedTmuxConsentWhenResetOptionNotSelected() async {
+        let mockRepo = MockHostRepository()
+        let mockKeyStore = MockPrivateKeyStore()
+        mockKeyStore.keys = [
+            StoredPrivateKeyMetadata(id: "key-1", label: "Key 1", keyType: .ed25519, requiresPassphrase: false)
+        ]
+
+        let existingHost = HostProfile(
+            displayName: "Existing",
+            hostname: "example.com",
+            username: "mosh",
+            sshPort: 22,
+            keyRefId: "key-1",
+            sessionPersistenceMode: .managedTmux,
+            tmuxSetupConsent: .declined
+        )
+
+        let viewModel = HostEditorViewModel(
+            hostRepository: mockRepo,
+            keyStore: mockKeyStore,
+            host: existingHost
+        )
+
+        XCTAssertFalse(viewModel.shouldPromptForTmuxSetupOnNextConnect)
+
+        var savedHost: HostProfile?
+        await viewModel.save { host in
+            savedHost = host
+        }
+
+        XCTAssertEqual(savedHost?.tmuxSetupConsent, .declined)
     }
 
     func testHostEditorViewModelInlineErrorsNotShownBeforeSaveAttempt() {

@@ -7,7 +7,7 @@ import XCTest
 final class ConnectionManagerTests: XCTestCase {
     func testConnectTransitionsToConnected() async {
         let host = makeHost()
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
         let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
 
@@ -24,6 +24,100 @@ final class ConnectionManagerTests: XCTestCase {
 
         XCTAssertEqual(bootstrapper.callCount, 1)
         XCTAssertEqual(engineFactory.createdEngines.first?.startCalls, 1)
+    }
+
+    func testConnectPublishesPersistenceOutcomeFromBootstrap() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [
+            .success(
+                makeBootstrapResult(
+                    connectInfo: makeConnectInfo(),
+                    outcome: .fallbackPlainShell(
+                        reason: .tmuxInstallFailed(
+                            installCommand: "sudo -n apt-get install -y tmux",
+                            details: "sudo failed"
+                        )
+                    )
+                )
+            )
+        ])
+        let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+
+        await awaitHostState(manager, hostId: host.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        XCTAssertEqual(
+            manager.persistenceOutcome(for: host.id),
+            .fallbackPlainShell(
+                reason: .tmuxInstallFailed(
+                    installCommand: "sudo -n apt-get install -y tmux",
+                    details: "sudo failed"
+                )
+            )
+        )
+    }
+
+    func testRetryPersistenceSetupTriggersFreshBootstrapAttempt() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [
+            .success(
+                makeBootstrapResult(
+                    connectInfo: makeConnectInfo(port: 60001),
+                    outcome: .fallbackPlainShell(
+                        reason: .tmuxMissingConsentRequired(
+                            installCommand: "sudo -n apt-get update && sudo -n apt-get install -y tmux"
+                        )
+                    )
+                )
+            ),
+            .success(
+                makeBootstrapResult(
+                    connectInfo: makeConnectInfo(port: 60002),
+                    outcome: .managedTmuxActive
+                )
+            )
+        ])
+        let engineFactory = TestEngineFactory(engines: [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .autoConnect)
+        ])
+        let hostRepository = TestHostRepository()
+        let manager = makeManager(
+            bootstrapper: bootstrapper,
+            engineFactory: engineFactory,
+            hostRepository: hostRepository
+        )
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: host.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        await manager.setTmuxSetupConsent(hostId: host.id, consent: .approved)
+        manager.retryPersistenceSetup(hostId: host.id)
+
+        await waitUntil(bootstrapper.callCount >= 2)
+        await awaitHostState(manager, hostId: host.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        XCTAssertEqual(manager.persistenceOutcome(for: host.id), .managedTmuxActive)
+        XCTAssertEqual(hostRepository.upsertedHosts.last?.tmuxSetupConsent, .approved)
     }
 
     func testReconnectIgnoresRepeatedTriggersWhileConnecting() async {
@@ -52,7 +146,7 @@ final class ConnectionManagerTests: XCTestCase {
 
         XCTAssertEqual(bootstrapper.callCount, 1)
 
-        bootstrapper.resume(with: .success(makeConnectInfo()))
+        bootstrapper.resume(with: .success(makeBootstrapResult(connectInfo: makeConnectInfo())))
         await awaitState(manager) { state in
             if case .connected = state { return true }
             return false
@@ -61,8 +155,8 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testReconnectAttemptsResumeThenBootstrapsAfterTimeout() async {
         let host = makeHost()
-        let connectInfoA = makeConnectInfo(port: 60001)
-        let connectInfoB = makeConnectInfo(port: 60002)
+        let connectInfoA = makeBootstrapResult(connectInfo: makeConnectInfo(port: 60001))
+        let connectInfoB = makeBootstrapResult(connectInfo: makeConnectInfo(port: 60002))
         let bootstrapper = TestBootstrapper(results: [.success(connectInfoA), .success(connectInfoB)])
         let engines: [TestMoshEngine] = [
             TestMoshEngine(behavior: .autoConnect),
@@ -100,7 +194,7 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testDisconnectDoesNotTriggerReconnectOrFailure() async {
         let host = makeHost()
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engines = [
             TestMoshEngine(behavior: .autoConnect, stopState: .disconnected),
             TestMoshEngine(behavior: .autoConnect, stopState: .disconnected)
@@ -140,7 +234,7 @@ final class ConnectionManagerTests: XCTestCase {
     func testForegroundReconnectSkipsHostsThatWereNeverConnected() async {
         let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
         let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engineFactory = TestEngineFactory(engines: [
             TestMoshEngine(behavior: .autoConnect),
             TestMoshEngine(behavior: .autoConnect)
@@ -187,7 +281,7 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testBackgroundMarksDisconnectedWithoutFailureAndReconnectsOnForeground() async {
         let host = makeHost()
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engines = [
             TestMoshEngine(behavior: .autoConnect),
             TestMoshEngine(behavior: .autoConnect)
@@ -235,7 +329,7 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testConnectUpdatesLastConnectedAt() async {
         let host = makeHost()
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
         let hostRepository = TestHostRepository()
         let manager = makeManager(
@@ -264,7 +358,7 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testControllerForHostReusesActiveController() async {
         let host = makeHost()
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
         let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
         let controller = manager.controller(for: host)
@@ -286,7 +380,7 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testControllerForHostResetsAfterClearSessionDisconnect() async {
         let host = makeHost()
-        let bootstrapper = TestBootstrapper(results: [.success(makeConnectInfo())])
+        let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
         let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
         let controller = manager.controller(for: host)
@@ -312,8 +406,8 @@ final class ConnectionManagerTests: XCTestCase {
         let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
         let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
         let bootstrapper = TestBootstrapper(results: [
-            .success(makeConnectInfo(port: 61001)),
-            .success(makeConnectInfo(port: 61002))
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 61001))),
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 61002)))
         ])
         let engineFactory = TestEngineFactory(engines: [
             TestMoshEngine(behavior: .autoConnect),
@@ -351,8 +445,8 @@ final class ConnectionManagerTests: XCTestCase {
         let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
         let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
         let bootstrapper = TestBootstrapper(results: [
-            .success(makeConnectInfo(port: 62001)),
-            .success(makeConnectInfo(port: 62002))
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 62001))),
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 62002)))
         ])
         let engineFactory = TestEngineFactory(engines: [
             TestMoshEngine(behavior: .autoConnect),
@@ -392,8 +486,8 @@ final class ConnectionManagerTests: XCTestCase {
         let hostA = makeHost(name: "A", hostname: "a.example.com", keyRefId: "key-a")
         let hostB = makeHost(name: "B", hostname: "b.example.com", keyRefId: "key-b")
         let bootstrapper = TestBootstrapper(results: [
-            .success(makeConnectInfo(port: 63001)),
-            .success(makeConnectInfo(port: 63002))
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 63001))),
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 63002)))
         ])
         let engineFactory = TestEngineFactory(engines: [
             TestMoshEngine(behavior: .autoConnect),
@@ -462,6 +556,13 @@ final class ConnectionManagerTests: XCTestCase {
 
     private func makeConnectInfo(port: Int = 60000) -> MoshConnectInfo {
         MoshConnectInfo(udpPort: port, sessionKey: "abc123=", serverAddress: "example.com")
+    }
+
+    private func makeBootstrapResult(
+        connectInfo: MoshConnectInfo,
+        outcome: PersistenceOutcome = .managedTmuxActive
+    ) -> MoshBootstrapResult {
+        MoshBootstrapResult(connectInfo: connectInfo, persistenceOutcome: outcome)
     }
 
     private func awaitState(
@@ -578,11 +679,11 @@ private final class TestHostRepository: HostPersisting {
 }
 
 private final class TestBootstrapper: MoshBootstrapping {
-    var results: [Result<MoshConnectInfo, Error>]
+    var results: [Result<MoshBootstrapResult, Error>]
     private(set) var callCount = 0
-    private var continuation: CheckedContinuation<MoshConnectInfo, Error>?
+    private var continuation: CheckedContinuation<MoshBootstrapResult, Error>?
 
-    init(results: [Result<MoshConnectInfo, Error>]) {
+    init(results: [Result<MoshBootstrapResult, Error>]) {
         self.results = results
     }
 
@@ -590,7 +691,7 @@ private final class TestBootstrapper: MoshBootstrapping {
         continuation != nil
     }
 
-    func resume(with result: Result<MoshConnectInfo, Error>) {
+    func resume(with result: Result<MoshBootstrapResult, Error>) {
         continuation?.resume(with: result)
         continuation = nil
     }
@@ -600,7 +701,7 @@ private final class TestBootstrapper: MoshBootstrapping {
         privateKey: Data,
         passphrase: String?,
         hostKeyPrompter: SSHHostKeyPrompting
-    ) async throws -> MoshConnectInfo {
+    ) async throws -> MoshBootstrapResult {
         callCount += 1
         if !results.isEmpty {
             return try results.removeFirst().get()

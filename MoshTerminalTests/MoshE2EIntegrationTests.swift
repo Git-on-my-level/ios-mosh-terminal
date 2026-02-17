@@ -43,9 +43,9 @@ final class MoshE2EIntegrationTests: XCTestCase {
         )
 
         let hostKeyPrompter = SSHHostKeyPrompt { _ in true }
-        let connectInfo: MoshConnectInfo
+        let bootstrapResult: MoshBootstrapResult
         do {
-            connectInfo = try await bootstrapper.bootstrap(
+            bootstrapResult = try await bootstrapper.bootstrap(
                 host: hostProfile,
                 privateKey: privateKey,
                 passphrase: nil,
@@ -93,7 +93,10 @@ final class MoshE2EIntegrationTests: XCTestCase {
             Task { await engine.stop() }
         }
 
-        try await engine.start(connectInfo: connectInfo, initialTerminalSize: TerminalSize(cols: 80, rows: 24))
+        try await engine.start(
+            connectInfo: bootstrapResult.connectInfo,
+            initialTerminalSize: TerminalSize(cols: 80, rows: 24)
+        )
 
         let connectedResult = await XCTWaiter().fulfillment(of: [connected], timeout: timeout)
         if connectedResult != .completed {

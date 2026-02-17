@@ -17,5 +17,5 @@ protocol MoshBootstrapping {
         privateKey: Data,
         passphrase: String?,
         hostKeyPrompter: SSHHostKeyPrompting
-    ) async throws -> MoshConnectInfo
+    ) async throws -> MoshBootstrapResult
 }

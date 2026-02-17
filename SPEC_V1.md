@@ -7,6 +7,7 @@ A minimal iOS-native client that:
 - Bootstraps `mosh-server` over SSH
 - Runs a Mosh session over UDP
 - Reconnects reliably on app foreground + network changes
+- Uses app-managed tmux sessions by default for server-side persistence
 - Provides a tmux-friendly terminal + keyboard row
 - Offers a few global settings (font size, theme, keep-awake)
 
@@ -25,6 +26,7 @@ People who live in `tmux` and want a dependable mobile Mosh experience on flaky 
 - Portrait + landscape supported
 - External hardware keyboard supported
 - Background execution: **not guaranteed**; treat backgrounding as disconnect and rely on reconnect
+- Session continuity is achieved via remote session management (managed tmux), not iOS keepalive
 
 ---
 
@@ -71,6 +73,7 @@ Fields:
 - Hostname (required)
 - Username (required)
 - SSH port (default 22)
+- Managed persistence (default on; app-managed tmux)
 - SSH key (required):
   - Choose from existing imported keys
   - Import from Files or Paste (OpenSSH private key formats)
@@ -103,7 +106,15 @@ Global only:
 
 ### 6.2 Bootstrap flow
 - Connect via SSH using selected private key
-- Execute `mosh-server` in a way that yields a line like:
+- If host uses managed persistence, launch `mosh-server` through app-managed tmux:
+  - `mosh-server new -- tmux -u new-session -A -s moshterminal_<hostIdPrefix>`
+- If `tmux` is missing:
+  - Prompt once per host for install consent
+  - Show exact install command selected from detected package manager (`apt-get`, `dnf`, `yum`, `zypper`, `pacman`, `apk`, `brew`, `pkg`)
+  - If approved, run installer command (non-interactive sudo where needed)
+  - If setup fails, continue with plain shell and show non-blocking persistence warning with retry setup
+- Otherwise execute plain `mosh-server new`
+- Parse output line:
   - `MOSH CONNECT <udpPort> <base64Key>`
 - Parse UDP port and session key
 - Close SSH connection after bootstrap
@@ -124,6 +135,7 @@ Global only:
   - Stop/park the Mosh engine promptly
   - Update UI state to disconnected
 - Do not attempt background keepalive.
+- Managed persistence may keep remote shell processes alive server-side between reconnects.
 
 ### 6.5 UDP-blocked / unreachable networks
 If SSH bootstrap succeeds but UDP cannot establish:
@@ -186,3 +198,5 @@ A v1 build is acceptable when all items below pass on real devices:
 4. Switch Wi‑Fi ↔ cellular (or simulate network change), return; reconnect succeeds.
 5. If host key changes, connection is blocked with a clear warning.
 6. If UDP is blocked, user sees an actionable explanation.
+7. Managed persistence host reconnects into the same app-managed tmux session after relaunch.
+8. If tmux setup is unavailable or fails, connection still succeeds in plain shell and shows retry setup warning.

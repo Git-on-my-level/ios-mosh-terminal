@@ -35,7 +35,7 @@ final class MockNetworkPathService: NetworkPathProviding {
 }
 
 final class MockMoshBootstrapper: MoshBootstrapping {
-    var bootstrapResult: Result<MoshConnectInfo, Error> = .failure(MoshBootstrapError.moshServerMissing)
+    var bootstrapResult: Result<MoshBootstrapResult, Error> = .failure(MoshBootstrapError.moshServerMissing)
     var bootstrapCallCount = 0
 
     func bootstrap(
@@ -43,7 +43,7 @@ final class MockMoshBootstrapper: MoshBootstrapping {
         privateKey: Data,
         passphrase: String?,
         hostKeyPrompter: SSHHostKeyPrompting
-    ) async throws -> MoshConnectInfo {
+    ) async throws -> MoshBootstrapResult {
         bootstrapCallCount += 1
         return try bootstrapResult.get()
     }

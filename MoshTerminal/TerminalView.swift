@@ -188,8 +188,16 @@ struct TerminalView: View {
                 VStack(spacing: 0) {
                     TerminalStatusBar(
                         state: currentState,
+                        persistenceBadgeText: viewModel.persistenceBadgeText,
+                        persistenceBadgeIsWarning: viewModel.persistenceBadgeIsWarning,
                         palette: palette
                     )
+                    if let persistenceWarning = viewModel.persistenceWarning {
+                        TerminalPersistenceBanner(
+                            warning: persistenceWarning,
+                            onRetrySetup: { viewModel.retryPersistenceSetup() }
+                        )
+                    }
                     if let failure = viewModel.failure {
                         TerminalErrorBanner(
                             failure: failure,
@@ -212,6 +220,20 @@ struct TerminalView: View {
                     },
                     secondaryButton: .cancel {
                         viewModel.respondToHostKeyPrompt(shouldTrust: false)
+                    }
+                )
+            }
+            .alert(item: $viewModel.tmuxSetupPrompt) { prompt in
+                Alert(
+                    title: Text("Enable Managed Persistence?"),
+                    message: Text(
+                        "tmux is missing on this host.\n\nInstall command:\n\(prompt.installCommand)\n\nInstall now?"
+                    ),
+                    primaryButton: .default(Text("Install")) {
+                        viewModel.respondToTmuxSetupPrompt(approveInstall: true)
+                    },
+                    secondaryButton: .cancel(Text("Not Now")) {
+                        viewModel.respondToTmuxSetupPrompt(approveInstall: false)
                     }
                 )
             }
@@ -844,6 +866,8 @@ private struct TerminalAccessoryRow: View {
 
 private struct TerminalStatusBar: View {
     let state: ConnectionManager.State
+    let persistenceBadgeText: String
+    let persistenceBadgeIsWarning: Bool
     let palette: AppTheme.TerminalPalette
     @Environment(\.colorScheme) private var colorScheme
 
@@ -862,6 +886,13 @@ private struct TerminalStatusBar: View {
                     .tint(statusColor)
             }
             Spacer()
+            Text(persistenceBadgeText)
+                .font(AppTheme.typography.caption)
+                .foregroundStyle(persistenceBadgeIsWarning ? colors.statusError : colors.secondaryText)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(persistenceBadgeIsWarning ? colors.statusError.opacity(0.15) : colors.surface)
+                .clipShape(Capsule())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -894,6 +925,40 @@ private struct TerminalStatusBar: View {
         default:
             return false
         }
+    }
+}
+
+private struct TerminalPersistenceBanner: View {
+    let warning: PersistenceWarning
+    let onRetrySetup: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(warning.title)
+                .font(.caption)
+                .bold()
+                .foregroundStyle(.white)
+            Text(warning.message)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.9))
+            if let installCommand = warning.installCommand {
+                Text(installCommand)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .textSelection(.enabled)
+            }
+            HStack(spacing: 8) {
+                Button(warning.actionTitle, action: onRetrySetup)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white.opacity(0.9))
+                Spacer()
+            }
+            .font(.caption2)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.92))
     }
 }
 

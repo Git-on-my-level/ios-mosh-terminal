@@ -29,6 +29,8 @@ final class ConnectionManager: ObservableObject {
     @Published private(set) var failure: ConnectionFailure?
     @Published private(set) var statesByHostId: [UUID: State] = [:]
     @Published private(set) var failuresByHostId: [UUID: ConnectionFailure] = [:]
+    @Published private(set) var persistenceOutcome: PersistenceOutcome?
+    @Published private(set) var persistenceOutcomesByHostId: [UUID: PersistenceOutcome] = [:]
 
     private let keyStore: PrivateKeyStoring
     private let hostRepository: HostPersisting
@@ -153,6 +155,7 @@ final class ConnectionManager: ObservableObject {
         activeHostId = host.id
         syncActivePublishedState()
         setFailure(nil, hostId: host.id)
+        initializePersistenceOutcomeForHostConfiguration(host)
 
         if state(for: host.id) == .connected, let engine = session.engine {
             attachEngine(engine, hostId: host.id, controller: controller)
@@ -176,6 +179,7 @@ final class ConnectionManager: ObservableObject {
             if clearSession {
                 statesByHostId[hostId] = nil
                 failuresByHostId[hostId] = nil
+                persistenceOutcomesByHostId[hostId] = nil
                 if activeHostId == hostId {
                     activeHostId = nil
                     syncActivePublishedState()
@@ -198,6 +202,7 @@ final class ConnectionManager: ObservableObject {
             sessions[hostId] = nil
             statesByHostId[hostId] = nil
             failuresByHostId[hostId] = nil
+            persistenceOutcomesByHostId[hostId] = nil
 
             if activeHostId == hostId {
                 activeHostId = nil
@@ -222,6 +227,40 @@ final class ConnectionManager: ObservableObject {
 
     func failure(for hostId: UUID) -> ConnectionFailure? {
         failuresByHostId[hostId]
+    }
+
+    func persistenceOutcome(for hostId: UUID) -> PersistenceOutcome? {
+        persistenceOutcomesByHostId[hostId]
+    }
+
+    func setTmuxSetupConsent(hostId: UUID, consent: TmuxSetupConsent) async {
+        guard var host = sessions[hostId]?.host else { return }
+        guard host.tmuxSetupConsent != consent else { return }
+        host.tmuxSetupConsent = consent
+        sessions[hostId]?.host = host
+
+        if consent == .declined,
+           case .fallbackPlainShell(reason: .tmuxMissingConsentRequired(let installCommand)) = persistenceOutcomesByHostId[hostId] {
+            setPersistenceOutcome(
+                .fallbackPlainShell(reason: .tmuxMissingConsentDeclined(installCommand: installCommand)),
+                hostId: hostId
+            )
+        }
+
+        do {
+            try await hostRepository.upsert(host)
+        } catch {
+            return
+        }
+    }
+
+    func retryPersistenceSetup(hostId: UUID) {
+        guard let session = sessions[hostId] else { return }
+        guard session.host.sessionPersistenceMode == .managedTmux else { return }
+        guard networkPathService.isSatisfied else { return }
+        guard appLifecycleService.state == .foreground else { return }
+        cancelConnectTask(hostId: hostId)
+        startConnection(hostId: hostId, isReconnect: false)
     }
 
     func clearFailure(hostId: UUID? = nil) {
@@ -307,6 +346,7 @@ final class ConnectionManager: ObservableObject {
     private func session(for host: HostProfile) -> SessionContext {
         if let existing = sessions[host.id] {
             existing.host = host
+            initializePersistenceOutcomeForHostConfiguration(host)
             return existing
         }
         let created = SessionContext(
@@ -315,6 +355,7 @@ final class ConnectionManager: ObservableObject {
             reconnectRandomUnit: reconnectRandomUnit
         )
         sessions[host.id] = created
+        initializePersistenceOutcomeForHostConfiguration(host)
         return created
     }
 
@@ -380,7 +421,7 @@ final class ConnectionManager: ObservableObject {
             if requiresPassphrase && passphrase == nil {
                 return
             }
-            let connectInfo = try await moshBootstrapper.bootstrap(
+            let bootstrapResult = try await moshBootstrapper.bootstrap(
                 host: host,
                 privateKey: privateKey,
                 passphrase: passphrase,
@@ -390,11 +431,12 @@ final class ConnectionManager: ObservableObject {
             logSSHBootstrap(success: true, errorDescription: nil)
 #endif
             guard session.connectToken == token else { return }
-            session.lastConnectInfo = connectInfo
+            session.lastConnectInfo = bootstrapResult.connectInfo
+            setPersistenceOutcome(bootstrapResult.persistenceOutcome, hostId: hostId)
             setState(.connectingUDP, hostId: hostId)
             _ = await attemptEngineStart(
                 hostId: hostId,
-                connectInfo: connectInfo,
+                connectInfo: bootstrapResult.connectInfo,
                 controller: controller,
                 waitForConnection: true,
                 token: token
@@ -709,14 +751,40 @@ final class ConnectionManager: ObservableObject {
         }
     }
 
+    private func initializePersistenceOutcomeForHostConfiguration(_ host: HostProfile) {
+        switch host.sessionPersistenceMode {
+        case .plainShell:
+            setPersistenceOutcome(
+                .fallbackPlainShell(reason: .hostPreferencePlainShell),
+                hostId: host.id
+            )
+        case .managedTmux:
+            if case .fallbackPlainShell(reason: .hostPreferencePlainShell) = persistenceOutcomesByHostId[host.id] {
+                persistenceOutcomesByHostId[host.id] = nil
+                if activeHostId == host.id {
+                    persistenceOutcome = nil
+                }
+            }
+        }
+    }
+
+    private func setPersistenceOutcome(_ outcome: PersistenceOutcome?, hostId: UUID) {
+        persistenceOutcomesByHostId[hostId] = outcome
+        if activeHostId == hostId {
+            persistenceOutcome = outcome
+        }
+    }
+
     private func syncActivePublishedState() {
         guard let activeHostId else {
             state = .idle
             failure = nil
+            persistenceOutcome = nil
             return
         }
         state = state(for: activeHostId)
         failure = failure(for: activeHostId)
+        persistenceOutcome = persistenceOutcome(for: activeHostId)
     }
 }
 

@@ -52,6 +52,8 @@ final class HostEditorViewModel: ObservableObject {
     @Published var username: String
     @Published var sshPortText: String
     @Published var selectedKeyId: String?
+    @Published var sessionPersistenceMode: SessionPersistenceMode
+    @Published var shouldPromptForTmuxSetupOnNextConnect = false
     @Published var keyOptions: [StoredPrivateKeyMetadata] = []
     @Published var alertMessage: String?
     @Published var hasAttemptedSave = false
@@ -73,6 +75,7 @@ final class HostEditorViewModel: ObservableObject {
         self.username = host?.username ?? ""
         self.sshPortText = String(host?.sshPort ?? 22)
         self.selectedKeyId = host?.keyRefId
+        self.sessionPersistenceMode = host?.sessionPersistenceMode ?? .managedTmux
     }
 
     var isEditing: Bool {
@@ -81,6 +84,12 @@ final class HostEditorViewModel: ObservableObject {
 
     var isFormValid: Bool {
         validate().isValid
+    }
+
+    var canResetTmuxSetupConsent: Bool {
+        guard isEditing else { return false }
+        guard sessionPersistenceMode == .managedTmux else { return false }
+        return existingHost?.tmuxSetupConsent == .declined
     }
 
     // MARK: - Inline field validation errors
@@ -153,6 +162,10 @@ final class HostEditorViewModel: ObservableObject {
         guard let portValue = result.sshPort, let keyRefId = result.keyRefId else {
             return
         }
+        var tmuxSetupConsent = existingHost?.tmuxSetupConsent ?? .unknown
+        if shouldPromptForTmuxSetupOnNextConnect {
+            tmuxSetupConsent = .unknown
+        }
         let host = HostProfile(
             id: existingHost?.id ?? UUID(),
             displayName: result.displayName,
@@ -160,7 +173,9 @@ final class HostEditorViewModel: ObservableObject {
             username: result.username,
             sshPort: portValue,
             keyRefId: keyRefId,
-            lastConnectedAt: existingHost?.lastConnectedAt
+            lastConnectedAt: existingHost?.lastConnectedAt,
+            sessionPersistenceMode: sessionPersistenceMode,
+            tmuxSetupConsent: tmuxSetupConsent
         )
         do {
             try await hostRepository.upsert(host)
@@ -266,6 +281,32 @@ struct HostEditorView: View {
                             .font(AppTheme.typography.caption)
                             .foregroundStyle(colors.secondaryText)
                     }
+                }
+                Toggle(
+                    isOn: Binding(
+                        get: { viewModel.sessionPersistenceMode == .managedTmux },
+                        set: { enabled in
+                            viewModel.sessionPersistenceMode = enabled ? .managedTmux : .plainShell
+                            if !enabled {
+                                viewModel.shouldPromptForTmuxSetupOnNextConnect = false
+                            }
+                        }
+                    )
+                ) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Managed persistence")
+                            .font(AppTheme.typography.body)
+                        Text("Use an app-managed tmux session to preserve long-running work across reconnects.")
+                            .font(AppTheme.typography.caption)
+                            .foregroundStyle(colors.secondaryText)
+                    }
+                }
+                if viewModel.canResetTmuxSetupConsent {
+                    Toggle(
+                        "Prompt tmux setup on next connect",
+                        isOn: $viewModel.shouldPromptForTmuxSetupOnNextConnect
+                    )
+                    .font(AppTheme.typography.body)
                 }
             } header: {
                 SectionHeader("Connection")

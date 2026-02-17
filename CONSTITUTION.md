@@ -20,6 +20,8 @@ Anything that does not directly support this is deferred.
 ## Article 4 — iOS constraints are reality, not bugs
 - Do **not** promise persistent background connections.
 - Assume the app will be suspended; design for rapid recovery on foreground.
+- Server-side persistence via app-managed tmux is allowed and encouraged.
+- Keep background policy explicit: no iOS keepalive; persistence must come from remote session management.
 - Battery and thermal limits matter more than theoretical uptime.
 
 ## Article 5 — Scope discipline is enforced

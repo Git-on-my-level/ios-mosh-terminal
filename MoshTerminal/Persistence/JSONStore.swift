@@ -9,7 +9,7 @@ struct StoreState: Codable, Equatable {
     var hosts: [HostProfile]
     var trustedHostKeys: [TrustedHostKey]
 
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     static func empty() -> StoreState {
         StoreState(schemaVersion: currentSchemaVersion, hosts: [], trustedHostKeys: [])
@@ -33,6 +33,17 @@ actor JSONStore {
         StoreMigration(fromVersion: 0, toVersion: 1) { state in
             var migrated = state
             migrated.schemaVersion = 1
+            return migrated
+        },
+        StoreMigration(fromVersion: 1, toVersion: 2) { state in
+            var migrated = state
+            migrated.hosts = migrated.hosts.map { host in
+                var updated = host
+                updated.sessionPersistenceMode = .managedTmux
+                updated.tmuxSetupConsent = .unknown
+                return updated
+            }
+            migrated.schemaVersion = 2
             return migrated
         }
     ]
