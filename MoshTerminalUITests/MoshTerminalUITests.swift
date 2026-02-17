@@ -99,7 +99,7 @@ final class MoshTerminalUITests: XCTestCase {
             "Expected seeded host 'Seed Host 1' to appear in the hosts list"
         )
 
-        let firstHostRow = app.buttons["host.row.00000000-0000-0000-0000-000000000001"]
+        var firstHostRow = app.buttons["host.row.00000000-0000-0000-0000-000000000001"]
         if !firstHostRow.exists {
             firstHostRow = app.staticTexts["Seed Host 1"]
         }
@@ -175,7 +175,7 @@ final class MoshTerminalUITests: XCTestCase {
         )
         settingsTab.tap()
 
-        let tipJarRow = app.staticTexts["Support Development"]
+        let tipJarRow = app.staticTexts["Tip Jar"]
         XCTAssertTrue(
             tipJarRow.waitForExistence(timeout: 5),
             "Expected Tip Jar row to exist in Settings"

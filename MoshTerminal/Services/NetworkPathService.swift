@@ -12,6 +12,7 @@ final class NetworkPathService: ObservableObject {
 
     private let monitor: NWPathMonitor
     private let queue: DispatchQueue
+    private var hasStartedMonitoring = false
 
     init(
         monitor: NWPathMonitor = NWPathMonitor(),
@@ -32,15 +33,20 @@ final class NetworkPathService: ObservableObject {
                 self.pathInfo = info
             }
         }
+    }
+
+    deinit {
+        monitor.cancel()
+    }
+
+    func startMonitoring() {
+        guard !hasStartedMonitoring else { return }
+        hasStartedMonitoring = true
 
         Task { @MainActor in
             StartupDiagnostics.shared.incrementNetworkMonitorStart()
         }
         monitor.start(queue: queue)
-    }
-
-    deinit {
-        monitor.cancel()
     }
 
     var isSatisfied: Bool {

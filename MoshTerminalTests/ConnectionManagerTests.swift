@@ -9,7 +9,8 @@ final class ConnectionManagerTests: XCTestCase {
         let host = makeHost()
         let bootstrapper = TestBootstrapper(results: [.success(makeBootstrapResult(connectInfo: makeConnectInfo()))])
         let engineFactory = TestEngineFactory(engines: [TestMoshEngine(behavior: .autoConnect)])
-        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+        let network = TestNetworkPathService(status: .satisfied)
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory, network: network)
 
         manager.connect(
             host: host,
@@ -24,6 +25,7 @@ final class ConnectionManagerTests: XCTestCase {
 
         XCTAssertEqual(bootstrapper.callCount, 1)
         XCTAssertEqual(engineFactory.createdEngines.first?.startCalls, 1)
+        XCTAssertEqual(network.startMonitoringCallCount, 1)
     }
 
     func testConnectPublishesPersistenceOutcomeFromBootstrap() async {
@@ -674,6 +676,7 @@ private final class TestAppLifecycleService: AppLifecycleProviding {
 
 private final class TestNetworkPathService: NetworkPathProviding {
     @Published private var pathInfo: NetworkPathService.PathInfo
+    private(set) var startMonitoringCallCount = 0
 
     init(status: NWPath.Status) {
         self.pathInfo = NetworkPathService.PathInfo(status: status, interfaceType: .wifi)
@@ -689,6 +692,10 @@ private final class TestNetworkPathService: NetworkPathProviding {
 
     func setStatus(_ status: NWPath.Status) {
         pathInfo = NetworkPathService.PathInfo(status: status, interfaceType: pathInfo.interfaceType)
+    }
+
+    func startMonitoring() {
+        startMonitoringCallCount += 1
     }
 }
 

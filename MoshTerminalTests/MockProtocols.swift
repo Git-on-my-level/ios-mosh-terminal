@@ -23,6 +23,7 @@ final class MockNetworkPathService: NetworkPathProviding {
     var isSatisfied: Bool = true
     let pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never>
     private let pathInfoSubject = PassthroughSubject<NetworkPathService.PathInfo, Never>()
+    private(set) var startMonitoringCallCount = 0
 
     init(isSatisfied: Bool = true) {
         self.isSatisfied = isSatisfied
@@ -31,6 +32,10 @@ final class MockNetworkPathService: NetworkPathProviding {
 
     func simulateNetworkStatus(status: NWPath.Status) {
         pathInfoSubject.send(NetworkPathService.PathInfo(status: status, interfaceType: nil))
+    }
+
+    func startMonitoring() {
+        startMonitoringCallCount += 1
     }
 }
 
