@@ -153,7 +153,9 @@ actor JSONStore {
     }
 
     static func defaultFileURL() -> URL {
-        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        guard let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            fatalError("Application Support directory unavailable")
+        }
         let bundleFolder = Bundle.main.bundleIdentifier ?? "MoshTerminal"
         return baseURL
             .appendingPathComponent(bundleFolder, isDirectory: true)

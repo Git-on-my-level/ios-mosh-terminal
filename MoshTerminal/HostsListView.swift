@@ -16,10 +16,10 @@ final class HostsListViewModel: ObservableObject {
         do {
             let loaded = try await hostRepository.all()
             hosts = loaded.sorted(by: HostsListViewModel.sortHosts)
-            StartupDiagnostics.shared.markHostsLoadEnd(hostCount: hosts.count)
+            StartupDiagnostics.shared.markHostsLoadEnd()
         } catch {
             alertMessage = error.localizedDescription
-            StartupDiagnostics.shared.markHostsLoadEnd(hostCount: 0)
+            StartupDiagnostics.shared.markHostsLoadEnd()
         }
     }
 

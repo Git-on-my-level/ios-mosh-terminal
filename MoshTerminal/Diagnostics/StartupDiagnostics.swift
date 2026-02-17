@@ -75,7 +75,7 @@ final class StartupDiagnostics: ObservableObject {
         save()
     }
 
-    func markHostsLoadEnd(hostCount: Int) {
+    func markHostsLoadEnd() {
         guard isEnabled else { return }
         snapshot.hostsLoadEndMs = currentRelativeMs()
         save()

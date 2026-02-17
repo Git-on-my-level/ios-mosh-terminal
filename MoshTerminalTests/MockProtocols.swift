@@ -74,9 +74,6 @@ final class MockPrivateKeyStore: PrivateKeyManaging {
 
     func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata? {
         if let result = metadataResult[keyRefId] {
-            if let error = result as? Error {
-                throw error
-            }
             return result
         }
         return keys.first { $0.id == keyRefId }
