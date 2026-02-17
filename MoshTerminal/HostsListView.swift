@@ -88,21 +88,16 @@ struct HostsListView: View {
                 .listRowSeparator(.hidden)
             } else {
                 ForEach(viewModel.hosts) { host in
-                    NavigationLink {
-                        TerminalView(
-                            host: host,
-                            dependencies: TerminalSessionDependencies(
-                                connectionManager: connectionManager
-                            )
-                        )
-                    } label: {
-                        CardRow(isActive: connectionManager.state(for: host.id).isActive) {
+                    let state = connectionManager.state(for: host.id)
+                    NavigationLink(value: host) {
+                        CardRow(isActive: state.isActive) {
                             HostRowView(
                                 host: host,
-                                connectionState: connectionManager.state(for: host.id),
+                                connectionState: state,
                                 persistenceOutcome: connectionManager.persistenceOutcome(for: host.id)
                             )
                         }
+                        .accessibilityIdentifier("host.row.\(host.id.uuidString)")
                     }
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -147,6 +142,14 @@ struct HostsListView: View {
                 }
                 .accessibilityLabel("Add Host")
             }
+        }
+        .navigationDestination(for: HostProfile.self) { host in
+            TerminalView(
+                host: host,
+                dependencies: TerminalSessionDependencies(
+                    connectionManager: connectionManager
+                )
+            )
         }
         .sheet(item: $editorContext) { context in
             NavigationStack {

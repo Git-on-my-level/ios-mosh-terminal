@@ -61,6 +61,78 @@ final class MoshTerminalUITests: XCTestCase {
         )
     }
 
+    func testNoTerminalInitOnColdLaunch() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["MOSH_DIAGNOSTICS"] = "1"
+        app.launchEnvironment["MOSH_EPHEMERAL_STORE"] = "1"
+        app.launchEnvironment["MOSH_SEED_HOSTS"] = "1"
+        app.launch()
+
+        let diagnosticsLabel = app.staticTexts["mosh.startup_diagnostics.json"]
+        XCTAssertTrue(
+            diagnosticsLabel.waitForExistence(timeout: 5),
+            "Expected startup diagnostics accessibility element to appear"
+        )
+
+        let initialJSON = diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertFalse(initialJSON.isEmpty, "Startup diagnostics JSON should not be empty")
+
+        var snapshot = try decodeDiagnosticsSnapshot(from: initialJSON)
+
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if let json = try? decodeDiagnosticsSnapshot(from: diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                snapshot = json
+                if snapshot.hostsLoadEndMs != nil && snapshot.rootViewAppearMs != nil {
+                    break
+                }
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+
+        XCTAssertEqual(snapshot.terminalViewInitCount, 0, "No TerminalView should be initialized on cold launch")
+        XCTAssertEqual(snapshot.terminalSessionControllerInitCount, 0, "No TerminalSessionController should be initialized on cold launch")
+
+        let seedHost1 = app.staticTexts["Seed Host 1"]
+        XCTAssertTrue(
+            seedHost1.waitForExistence(timeout: 5),
+            "Expected seeded host 'Seed Host 1' to appear in the hosts list"
+        )
+
+        let firstHostRow = app.buttons["host.row.00000000-0000-0000-0000-000000000001"]
+        if !firstHostRow.exists {
+            firstHostRow = app.staticTexts["Seed Host 1"]
+        }
+        XCTAssertTrue(
+            firstHostRow.waitForExistence(timeout: 5),
+            "Expected first seeded host row to exist"
+        )
+        firstHostRow.tap()
+
+        let afterNavigationDeadline = Date().addingTimeInterval(3)
+        var snapshotAfterNavigation = snapshot
+        while Date() < afterNavigationDeadline {
+            if let json = try? decodeDiagnosticsSnapshot(from: diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                snapshotAfterNavigation = json
+                if snapshotAfterNavigation.terminalViewInitCount >= 1 || snapshotAfterNavigation.terminalSessionControllerInitCount >= 1 {
+                    break
+                }
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+
+        XCTAssertGreaterThanOrEqual(
+            snapshotAfterNavigation.terminalViewInitCount,
+            1,
+            "TerminalView should be initialized after navigating to a host"
+        )
+        XCTAssertGreaterThanOrEqual(
+            snapshotAfterNavigation.terminalSessionControllerInitCount,
+            1,
+            "TerminalSessionController should be initialized after navigating to a host"
+        )
+    }
+
     private func decodeDiagnosticsSnapshot(from json: String) throws -> StartupDiagnosticsSnapshotPayload {
         let data = Data(json.utf8)
         _ = try JSONSerialization.jsonObject(with: data)
