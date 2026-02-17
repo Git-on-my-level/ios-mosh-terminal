@@ -18,9 +18,6 @@ struct MoshTerminalApp: App {
                 .environmentObject(tipJarStore)
                 .tint(AppTheme.tintColor)
                 .preferredColorScheme(settings.themeMode.preferredColorScheme)
-                .task {
-                    tipJarStore.start()
-                }
         }
     }
 }

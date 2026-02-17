@@ -133,6 +133,74 @@ final class MoshTerminalUITests: XCTestCase {
         )
     }
 
+    func testTipJarNotStartedOnColdLaunch() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["MOSH_DIAGNOSTICS"] = "1"
+        app.launchEnvironment["MOSH_EPHEMERAL_STORE"] = "1"
+        app.launchEnvironment["MOSH_SEED_HOSTS"] = "1"
+        app.launch()
+
+        let diagnosticsLabel = app.staticTexts["mosh.startup_diagnostics.json"]
+        XCTAssertTrue(
+            diagnosticsLabel.waitForExistence(timeout: 5),
+            "Expected startup diagnostics accessibility element to appear"
+        )
+
+        let initialJSON = diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertFalse(initialJSON.isEmpty, "Startup diagnostics JSON should not be empty")
+
+        var snapshot = try decodeDiagnosticsSnapshot(from: initialJSON)
+
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if let json = try? decodeDiagnosticsSnapshot(from: diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                snapshot = json
+                if snapshot.hostsLoadEndMs != nil && snapshot.rootViewAppearMs != nil {
+                    break
+                }
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+
+        XCTAssertEqual(
+            snapshot.tipJarStartCount,
+            0,
+            "TipJar should not start on cold launch"
+        )
+
+        let settingsTab = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(
+            settingsTab.waitForExistence(timeout: 5),
+            "Expected Settings tab to exist"
+        )
+        settingsTab.tap()
+
+        let tipJarRow = app.staticTexts["Support Development"]
+        XCTAssertTrue(
+            tipJarRow.waitForExistence(timeout: 5),
+            "Expected Tip Jar row to exist in Settings"
+        )
+        tipJarRow.tap()
+
+        let afterTipJarDeadline = Date().addingTimeInterval(5)
+        var snapshotAfterTipJar = snapshot
+        while Date() < afterTipJarDeadline {
+            if let json = try? decodeDiagnosticsSnapshot(from: diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                snapshotAfterTipJar = json
+                if snapshotAfterTipJar.tipJarStartCount >= 1 {
+                    break
+                }
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+
+        XCTAssertGreaterThanOrEqual(
+            snapshotAfterTipJar.tipJarStartCount,
+            1,
+            "TipJar should start after opening Tip Jar"
+        )
+    }
+
     private func decodeDiagnosticsSnapshot(from json: String) throws -> StartupDiagnosticsSnapshotPayload {
         let data = Data(json.utf8)
         _ = try JSONSerialization.jsonObject(with: data)
