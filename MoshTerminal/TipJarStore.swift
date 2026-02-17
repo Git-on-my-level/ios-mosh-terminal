@@ -46,6 +46,8 @@ final class TipJarStore: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
+        StartupDiagnostics.shared.incrementTipJarStart()
+
         transactionUpdatesTask = Task.detached {
             await TipJarTransactionObserver.observe(productIDs: self.productIDs)
         }

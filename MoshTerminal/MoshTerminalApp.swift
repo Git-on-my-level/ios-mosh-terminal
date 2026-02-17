@@ -6,6 +6,10 @@ struct MoshTerminalApp: App {
     @StateObject private var settings = AppSettings()
     @StateObject private var tipJarStore = TipJarStore()
 
+    init() {
+        StartupDiagnostics.shared.markAppInit()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -14,9 +18,6 @@ struct MoshTerminalApp: App {
                 .environmentObject(tipJarStore)
                 .tint(AppTheme.tintColor)
                 .preferredColorScheme(settings.themeMode.preferredColorScheme)
-                .task {
-                    tipJarStore.start()
-                }
         }
     }
 }
@@ -52,5 +53,11 @@ private struct RootView: View {
         }
         .toolbarBackground(colors.surface, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .overlay(alignment: .topLeading) {
+            StartupDiagnosticsReporterView()
+        }
+        .onAppear {
+            StartupDiagnostics.shared.markRootViewAppear()
+        }
     }
 }

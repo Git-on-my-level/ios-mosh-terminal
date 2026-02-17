@@ -32,6 +32,7 @@ struct TerminalView: View {
         _controller = StateObject(wrappedValue: controller)
         _viewModel = StateObject(wrappedValue: TerminalSessionViewModel(host: host, dependencies: dependencies, controller: controller))
         _connectionManager = ObservedObject(wrappedValue: dependencies.connectionManager)
+        StartupDiagnostics.shared.incrementTerminalViewInit()
     }
 
     var body: some View {

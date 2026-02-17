@@ -9,6 +9,11 @@ protocol AppLifecycleProviding: AnyObject {
 protocol NetworkPathProviding: AnyObject {
     var pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never> { get }
     var isSatisfied: Bool { get }
+    func startMonitoring()
+}
+
+extension NetworkPathProviding {
+    func startMonitoring() {}
 }
 
 protocol MoshBootstrapping {

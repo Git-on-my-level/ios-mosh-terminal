@@ -17,11 +17,20 @@ final class AppEnvironment: ObservableObject {
     let dependencies: Dependencies
 
     init(dependencies: Dependencies) {
+        StartupDiagnostics.shared.markAppEnvironmentInitStart()
         self.dependencies = dependencies
+        StartupDiagnostics.shared.markAppEnvironmentInitEnd()
     }
 
     init() {
-        let store = JSONStore()
+        StartupDiagnostics.shared.markAppEnvironmentInitStart()
+        let store: JSONStore
+        if ProcessInfo.processInfo.environment["MOSH_EPHEMERAL_STORE"] == "1" {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("moshterminal-store.json")
+            store = JSONStore(fileURL: tempURL, fileProtectionType: .complete, excludeFromBackup: false)
+        } else {
+            store = JSONStore()
+        }
         let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
         let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
         let keyStore = KeychainPrivateKeyStore()
@@ -49,6 +58,7 @@ final class AppEnvironment: ObservableObject {
             networkPathService: networkPathService,
             connectionManager: connectionManager
         )
+        StartupDiagnostics.shared.markAppEnvironmentInitEnd()
     }
 
     static func makePreviewDependencies() -> Dependencies {

@@ -23,6 +23,7 @@ final class MockNetworkPathService: NetworkPathProviding {
     var isSatisfied: Bool = true
     let pathInfoPublisher: AnyPublisher<NetworkPathService.PathInfo, Never>
     private let pathInfoSubject = PassthroughSubject<NetworkPathService.PathInfo, Never>()
+    private(set) var startMonitoringCallCount = 0
 
     init(isSatisfied: Bool = true) {
         self.isSatisfied = isSatisfied
@@ -31,6 +32,10 @@ final class MockNetworkPathService: NetworkPathProviding {
 
     func simulateNetworkStatus(status: NWPath.Status) {
         pathInfoSubject.send(NetworkPathService.PathInfo(status: status, interfaceType: nil))
+    }
+
+    func startMonitoring() {
+        startMonitoringCallCount += 1
     }
 }
 
@@ -69,9 +74,6 @@ final class MockPrivateKeyStore: PrivateKeyManaging {
 
     func metadata(keyRefId: String) throws -> StoredPrivateKeyMetadata? {
         if let result = metadataResult[keyRefId] {
-            if let error = result as? Error {
-                throw error
-            }
             return result
         }
         return keys.first { $0.id == keyRefId }

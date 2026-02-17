@@ -11,6 +11,11 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     @Published var isAltActive = false
     @Published var pendingOpenURL: URL?
 
+    override init() {
+        super.init()
+        StartupDiagnostics.shared.incrementTerminalSessionControllerInit()
+    }
+
     var terminalView: TerminalUIKitView?
     var onInput: (@Sendable (Data) -> Void)?
     var onSizeChange: (@Sendable (TerminalSize) -> Void)?

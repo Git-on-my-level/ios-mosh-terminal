@@ -375,6 +375,7 @@ final class ConnectionManager: ObservableObject {
 #if DEBUG
         logStartAttempt(isReconnect: isReconnect, hostId: hostId.uuidString)
 #endif
+        networkPathService.startMonitoring()
         session.connectTask = Task { [weak self] in
             await self?.runConnectionAttempt(hostId: hostId, isReconnect: isReconnect, token: token)
         }

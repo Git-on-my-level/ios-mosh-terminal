@@ -12,11 +12,14 @@ final class HostsListViewModel: ObservableObject {
     }
 
     func loadHosts() async {
+        StartupDiagnostics.shared.markHostsLoadStart()
         do {
             let loaded = try await hostRepository.all()
             hosts = loaded.sorted(by: HostsListViewModel.sortHosts)
+            StartupDiagnostics.shared.markHostsLoadEnd()
         } catch {
             alertMessage = error.localizedDescription
+            StartupDiagnostics.shared.markHostsLoadEnd()
         }
     }
 
@@ -85,21 +88,16 @@ struct HostsListView: View {
                 .listRowSeparator(.hidden)
             } else {
                 ForEach(viewModel.hosts) { host in
-                    NavigationLink {
-                        TerminalView(
-                            host: host,
-                            dependencies: TerminalSessionDependencies(
-                                connectionManager: connectionManager
-                            )
-                        )
-                    } label: {
-                        CardRow(isActive: connectionManager.state(for: host.id).isActive) {
+                    let state = connectionManager.state(for: host.id)
+                    NavigationLink(value: host) {
+                        CardRow(isActive: state.isActive) {
                             HostRowView(
                                 host: host,
-                                connectionState: connectionManager.state(for: host.id),
+                                connectionState: state,
                                 persistenceOutcome: connectionManager.persistenceOutcome(for: host.id)
                             )
                         }
+                        .accessibilityIdentifier("host.row.\(host.id.uuidString)")
                     }
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -144,6 +142,14 @@ struct HostsListView: View {
                 }
                 .accessibilityLabel("Add Host")
             }
+        }
+        .navigationDestination(for: HostProfile.self) { host in
+            TerminalView(
+                host: host,
+                dependencies: TerminalSessionDependencies(
+                    connectionManager: connectionManager
+                )
+            )
         }
         .sheet(item: $editorContext) { context in
             NavigationStack {
@@ -228,6 +234,12 @@ struct HostsListView: View {
 }
 
 private struct HostRowView: View {
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+
     let host: HostProfile
     let connectionState: ConnectionManager.State
     let persistenceOutcome: PersistenceOutcome?
@@ -237,9 +249,7 @@ private struct HostRowView: View {
         guard let date = host.lastConnectedAt else {
             return nil
         }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        let relative = formatter.localizedString(for: date, relativeTo: Date())
+        let relative = Self.relativeDateFormatter.localizedString(for: date, relativeTo: Date())
         return "Last connected \(relative)"
     }
 

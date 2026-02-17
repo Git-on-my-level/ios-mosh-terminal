@@ -89,10 +89,22 @@
 		F4F4F4F4F4F4F4F4F4F4F408 /* TrustedHostKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F407 /* TrustedHostKeysView.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F40A /* MoshRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */; };
 		F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */; };
+		D1D1D1D1D1D1D1D1D1D1D1D03 /* StartupDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D04 /* StartupDiagnosticsReporterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D11 /* StartupDiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */; };
+		E5E5E5E5E5E5E5E5E5E5E502 /* MoshTerminalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */; };
+		E5E5E5E5E5E5E5E5E5E5E512 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5E5E5E5E5E5E5E5E5E5E511 /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		C1C1C1C1C1C1C1C1C1C1C1F6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1A1A1A1A1A1A1A1A1A1A1B9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1A1A1A1A1A1A1A1A1A1A1B5;
+			remoteInfo = MoshTerminal;
+		};
+		E5E5E5E5E5E5E5E5E5E5E50A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A1A1A1A1A1A1A1A1A1A1A1B9 /* Project object */;
 			proxyType = 1;
@@ -157,6 +169,9 @@
 		E2E2E2E2E2E2E2E2E2E2E300 /* Frameworks/libssh2.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/libssh2.xcframework; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E310 /* Frameworks/libssl.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/libssl.xcframework; sourceTree = "<group>"; };
 		E2E2E2E2E2E2E2E2E2E2E320 /* Frameworks/libcrypto.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Frameworks/libcrypto.xcframework; sourceTree = "<group>"; };
+		E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshTerminalUITests.swift; sourceTree = "<group>"; };
+		E5E5E5E5E5E5E5E5E5E5E504 /* MoshTerminalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = MoshTerminalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5E5E5E5E5E5E5E5E5E5E511 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkPathService.swift; sourceTree = "<group>"; };
 		F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
@@ -177,6 +192,9 @@
 		F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = file.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F789644648F649058124AEA475E31280 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnostics.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsReporterView.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -206,6 +224,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E5E5E5E5E5E5E5E5E5E5E507 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E5E5E5E5E5E5E5E5E5E5E512 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -215,6 +241,7 @@
 				3FD9848A2F441F29008CCD20 /* LocalIAP.storekit */,
 				A1A1A1A1A1A1A1A1A1A1A1B3 /* MoshTerminal */,
 				C1C1C1C1C1C1C1C1C1C1C1E3 /* MoshTerminalTests */,
+				E5E5E5E5E5E5E5E5E5E5E503 /* MoshTerminalUITests */,
 				A1A1A1A1A1A1A1A1A1A1A1B4 /* Products */,
 				799D328B877F4E8683C00000 /* libz.tbd */,
 				E2E2E2E2E2E2E2E2E2E2E300 /* Frameworks/libssh2.xcframework */,
@@ -249,6 +276,7 @@
 				F3F3F3F3F3F3F3F3F3F3F303 /* TerminalSessionViewModel.swift */,
 				C6EC9BE9B0064F3AA5527163 /* LibSSH2AvailabilityGuard.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A3 /* Services */,
+				D1D1D1D1D1D1D1D1D1D1D1D05 /* Diagnostics */,
 				C1C1C1C1C1C1C1C1C1C1C1E1 /* Model */,
 				C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */,
 				D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */,
@@ -265,6 +293,7 @@
 			children = (
 				A1A1A1A1A1A1A1A1A1A1A1B0 /* MoshTerminal.app */,
 				C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */,
+				E5E5E5E5E5E5E5E5E5E5E504 /* MoshTerminalUITests.xctest */,
 			);
 			path = Products;
 			sourceTree = "<group>";
@@ -306,8 +335,17 @@
 				A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */,
 				7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */,
 				5887890B1C9820791F281160 /* ProtoCodecTests.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */,
 			);
 			path = MoshTerminalTests;
+			sourceTree = "<group>";
+		};
+		E5E5E5E5E5E5E5E5E5E5E503 /* MoshTerminalUITests */ = {
+			isa = PBXGroup;
+			children = (
+				E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */,
+			);
+			path = MoshTerminalUITests;
 			sourceTree = "<group>";
 		};
 		D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */ = {
@@ -344,6 +382,15 @@
 				E2E2E2E2E2E2E2E2E2E2E2B3 /* UnavailableSSHClient.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		D1D1D1D1D1D1D1D1D1D1D1D05 /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */,
+			);
+			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -393,6 +440,26 @@
 			productReference = C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		E5E5E5E5E5E5E5E5E5E5E505 /* MoshTerminalUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E5E5E5E5E5E5E5E5E5E5E50B /* Build configuration list for PBXNativeTarget "MoshTerminalUITests" */;
+			buildPhases = (
+				E5E5E5E5E5E5E5E5E5E5E506 /* Sources */,
+				E5E5E5E5E5E5E5E5E5E5E508 /* Resources */,
+				E5E5E5E5E5E5E5E5E5E5E507 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E5E5E5E5E5E5E5E5E5E5E509 /* PBXTargetDependency */,
+			);
+			name = MoshTerminalUITests;
+			packageProductDependencies = (
+			);
+			productName = MoshTerminalUITests;
+			productReference = E5E5E5E5E5E5E5E5E5E5E504 /* MoshTerminalUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -413,6 +480,10 @@
 					};
 					C1C1C1C1C1C1C1C1C1C1C1F4 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					E5E5E5E5E5E5E5E5E5E5E505 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A1A1A1A1A1A1A1A1A1A1A1B5;
 					};
 				};
 			};
@@ -435,6 +506,7 @@
 			targets = (
 				A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */,
 				C1C1C1C1C1C1C1C1C1C1C1F4 /* MoshTerminalTests */,
+				E5E5E5E5E5E5E5E5E5E5E505 /* MoshTerminalUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -455,6 +527,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				3FD9848B2F441F29008CCD20 /* LocalIAP.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E5E5E5E5E5E5E5E5E5E5E508 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -513,6 +592,8 @@
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D03 /* StartupDiagnostics.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D04 /* StartupDiagnosticsReporterView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -538,6 +619,15 @@
 				D0E4F5061728394A5B6C7E8F /* (null) in Sources */,
 				BC945E7D48B544DFB0A5050 /* (null) in Sources */,
 				1776D11099F64422A24D0357 /* (null) in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D11 /* StartupDiagnosticsTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E5E5E5E5E5E5E5E5E5E5E506 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E5E5E5E5E5E5E5E5E5E5E502 /* MoshTerminalUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -548,6 +638,11 @@
 			isa = PBXTargetDependency;
 			target = A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */;
 			targetProxy = C1C1C1C1C1C1C1C1C1C1C1F6 /* PBXContainerItemProxy */;
+		};
+		E5E5E5E5E5E5E5E5E5E5E509 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1A1A1A1A1A1A1A1A1A1A1B5 /* MoshTerminal */;
+			targetProxy = E5E5E5E5E5E5E5E5E5E5E50A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -825,6 +920,53 @@
 			};
 			name = Release;
 		};
+		E5E5E5E5E5E5E5E5E5E5E50C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = JVMXE5G542;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.scalingforever.MoshTerminalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MoshTerminal;
+			};
+			name = Debug;
+		};
+		E5E5E5E5E5E5E5E5E5E5E50D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = JVMXE5G542;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.scalingforever.MoshTerminalUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MoshTerminal;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -851,6 +993,15 @@
 			buildConfigurations = (
 				C1C1C1C1C1C1C1C1C1C1C1F8 /* Debug */,
 				C1C1C1C1C1C1C1C1C1C1C1F9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E5E5E5E5E5E5E5E5E5E5E50B /* Build configuration list for PBXNativeTarget "MoshTerminalUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E5E5E5E5E5E5E5E5E5E5E50C /* Debug */,
+				E5E5E5E5E5E5E5E5E5E5E50D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

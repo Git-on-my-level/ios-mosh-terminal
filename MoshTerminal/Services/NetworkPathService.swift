@@ -2,6 +2,7 @@ import Combine
 import Foundation
 import Network
 
+@MainActor
 final class NetworkPathService: ObservableObject {
     struct PathInfo: Equatable {
         let status: NWPath.Status
@@ -12,6 +13,7 @@ final class NetworkPathService: ObservableObject {
 
     private let monitor: NWPathMonitor
     private let queue: DispatchQueue
+    private var hasStartedMonitoring = false
 
     init(
         monitor: NWPathMonitor = NWPathMonitor(),
@@ -28,23 +30,31 @@ final class NetworkPathService: ObservableObject {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
             let info = PathInfo(status: path.status, interfaceType: Self.interfaceType(from: path))
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.pathInfo = info
             }
         }
-
-        monitor.start(queue: queue)
     }
 
     deinit {
         monitor.cancel()
     }
 
+    func startMonitoring() {
+        guard !hasStartedMonitoring else { return }
+        hasStartedMonitoring = true
+
+        Task { @MainActor in
+            StartupDiagnostics.shared.incrementNetworkMonitorStart()
+        }
+        monitor.start(queue: queue)
+    }
+
     var isSatisfied: Bool {
         pathInfo.status == .satisfied
     }
 
-    static func interfaceType(from path: NWPath) -> NWInterface.InterfaceType? {
+    nonisolated static func interfaceType(from path: NWPath) -> NWInterface.InterfaceType? {
         let interfaceTypes: [NWInterface.InterfaceType] = [.wifi, .cellular, .wiredEthernet, .loopback, .other]
         for interfaceType in interfaceTypes where path.usesInterfaceType(interfaceType) {
             return interfaceType
@@ -53,6 +63,7 @@ final class NetworkPathService: ObservableObject {
     }
 }
 
+@MainActor
 extension NetworkPathService: NetworkPathProviding {
     var pathInfoPublisher: AnyPublisher<PathInfo, Never> {
         $pathInfo.eraseToAnyPublisher()

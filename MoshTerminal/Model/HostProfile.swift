@@ -11,7 +11,7 @@ enum TmuxSetupConsent: String, Codable, Equatable, Sendable {
     case declined
 }
 
-struct HostProfile: Identifiable, Codable, Equatable {
+struct HostProfile: Identifiable, Codable, Equatable, Hashable, Sendable {
     let id: UUID
     var displayName: String
     var hostname: String
@@ -73,6 +73,10 @@ struct HostProfile: Identifiable, Codable, Equatable {
             TmuxSetupConsent.self,
             forKey: .tmuxSetupConsent
         ) ?? .unknown
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
