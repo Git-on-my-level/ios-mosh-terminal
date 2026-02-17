@@ -20,8 +20,8 @@
       "internalID" : "6B600557",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Optional tip. No additional features are unlocked.",
+          "displayName" : "Small Tip",
           "locale" : "en_US"
         }
       ],
@@ -35,8 +35,8 @@
       "internalID" : "6670C507",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Optional tip. No additional features are unlocked.",
+          "displayName" : "Medium Tip",
           "locale" : "en_US"
         }
       ],
@@ -50,8 +50,8 @@
       "internalID" : "FDF50155",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "",
+          "description" : "Optional tip. No additional features are unlocked.",
+          "displayName" : "Large Tip",
           "locale" : "en_US"
         }
       ],
