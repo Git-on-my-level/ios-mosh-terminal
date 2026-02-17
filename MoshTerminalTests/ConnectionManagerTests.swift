@@ -120,6 +120,44 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertEqual(hostRepository.upsertedHosts.last?.tmuxSetupConsent, .approved)
     }
 
+    func testDisconnectWithResetManagedSessionForcesFreshManagedBootstrap() async {
+        let host = makeHost()
+        let bootstrapper = TestBootstrapper(results: [
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 60001), outcome: .managedTmuxActive)),
+            .success(makeBootstrapResult(connectInfo: makeConnectInfo(port: 60002), outcome: .managedTmuxActive))
+        ])
+        let engineFactory = TestEngineFactory(engines: [
+            TestMoshEngine(behavior: .autoConnect),
+            TestMoshEngine(behavior: .autoConnect)
+        ])
+        let manager = makeManager(bootstrapper: bootstrapper, engineFactory: engineFactory)
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await awaitHostState(manager, hostId: host.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        await manager.disconnect(hostId: host.id, clearSession: true, resetManagedSession: true)
+
+        manager.connect(
+            host: host,
+            controller: TerminalSessionController(),
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+        )
+        await waitUntil(bootstrapper.callCount >= 2)
+        await awaitHostState(manager, hostId: host.id) { state in
+            if case .connected = state { return true }
+            return false
+        }
+
+        XCTAssertEqual(bootstrapper.resetManagedSessionFlags, [false, true])
+    }
+
     func testReconnectIgnoresRepeatedTriggersWhileConnecting() async {
         let host = makeHost()
         let bootstrapper = TestBootstrapper(results: [])
@@ -681,6 +719,7 @@ private final class TestHostRepository: HostPersisting {
 private final class TestBootstrapper: MoshBootstrapping {
     var results: [Result<MoshBootstrapResult, Error>]
     private(set) var callCount = 0
+    private(set) var resetManagedSessionFlags: [Bool] = []
     private var continuation: CheckedContinuation<MoshBootstrapResult, Error>?
 
     init(results: [Result<MoshBootstrapResult, Error>]) {
@@ -700,9 +739,15 @@ private final class TestBootstrapper: MoshBootstrapping {
         host: HostProfile,
         privateKey: Data,
         passphrase: String?,
-        hostKeyPrompter: SSHHostKeyPrompting
+        hostKeyPrompter: SSHHostKeyPrompting,
+        resetManagedSession: Bool
     ) async throws -> MoshBootstrapResult {
+        _ = host
+        _ = privateKey
+        _ = passphrase
+        _ = hostKeyPrompter
         callCount += 1
+        resetManagedSessionFlags.append(resetManagedSession)
         if !results.isEmpty {
             return try results.removeFirst().get()
         }

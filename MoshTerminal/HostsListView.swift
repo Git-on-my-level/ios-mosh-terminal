@@ -283,9 +283,7 @@ private struct HostRowView: View {
         guard host.lastConnectedAt != nil else { return false }
         guard host.tmuxSetupConsent != .declined else { return false }
 
-        guard let persistenceOutcome else {
-            return true
-        }
+        guard let persistenceOutcome else { return false }
         switch persistenceOutcome {
         case .managedTmuxActive:
             return true

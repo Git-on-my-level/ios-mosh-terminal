@@ -286,7 +286,7 @@ struct TerminalView: View {
         wantsReconnectPrompt = true
         controller.reset()
         terminalViewId = UUID()
-        viewModel.stop()
+        viewModel.stop(resetManagedSession: true)
     }
 
     private func handleFontSizeDelta(delta: Int) {

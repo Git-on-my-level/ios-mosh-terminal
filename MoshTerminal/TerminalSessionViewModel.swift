@@ -92,9 +92,13 @@ final class TerminalSessionViewModel: ObservableObject {
         connect()
     }
 
-    func stop() {
+    func stop(resetManagedSession: Bool = false) {
         Task {
-            await connectionManager.disconnect(hostId: host.id, clearSession: true)
+            await connectionManager.disconnect(
+                hostId: host.id,
+                clearSession: true,
+                resetManagedSession: resetManagedSession
+            )
         }
         if let continuation = hostKeyContinuation {
             hostKeyContinuation = nil

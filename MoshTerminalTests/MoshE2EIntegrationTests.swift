@@ -49,7 +49,8 @@ final class MoshE2EIntegrationTests: XCTestCase {
                 host: hostProfile,
                 privateKey: privateKey,
                 passphrase: nil,
-                hostKeyPrompter: hostKeyPrompter
+                hostKeyPrompter: hostKeyPrompter,
+                resetManagedSession: false
             )
         } catch let error as SSHClientError where error == .libraryUnavailable {
             XCTFail("libssh2 is unavailable in this build. Run scripts/build_xcframeworks.sh to build it.")

@@ -42,8 +42,10 @@ final class MockMoshBootstrapper: MoshBootstrapping {
         host: HostProfile,
         privateKey: Data,
         passphrase: String?,
-        hostKeyPrompter: SSHHostKeyPrompting
+        hostKeyPrompter: SSHHostKeyPrompting,
+        resetManagedSession: Bool
     ) async throws -> MoshBootstrapResult {
+        _ = resetManagedSession
         bootstrapCallCount += 1
         return try bootstrapResult.get()
     }

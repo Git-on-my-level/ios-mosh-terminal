@@ -73,7 +73,8 @@ final class MoshBootstrapperTests: XCTestCase {
             host: host,
             privateKey: Data("key".utf8),
             passphrase: nil,
-            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true },
+            resetManagedSession: false
         )
 
         XCTAssertEqual(result.persistenceOutcome, .managedTmuxActive)
@@ -109,7 +110,8 @@ final class MoshBootstrapperTests: XCTestCase {
             host: host,
             privateKey: Data("key".utf8),
             passphrase: nil,
-            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true },
+            resetManagedSession: false
         )
 
         XCTAssertEqual(
@@ -162,7 +164,8 @@ final class MoshBootstrapperTests: XCTestCase {
             host: host,
             privateKey: Data("key".utf8),
             passphrase: nil,
-            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true },
+            resetManagedSession: false
         )
 
         XCTAssertEqual(result.persistenceOutcome, .managedTmuxActive)
@@ -205,7 +208,8 @@ final class MoshBootstrapperTests: XCTestCase {
             host: host,
             privateKey: Data("key".utf8),
             passphrase: nil,
-            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true },
+            resetManagedSession: false
         )
 
         XCTAssertEqual(
@@ -236,7 +240,8 @@ final class MoshBootstrapperTests: XCTestCase {
             host: host,
             privateKey: Data("key".utf8),
             passphrase: nil,
-            hostKeyPrompter: SSHHostKeyPrompt { _ in true }
+            hostKeyPrompter: SSHHostKeyPrompt { _ in true },
+            resetManagedSession: false
         )
 
         XCTAssertEqual(result.persistenceOutcome, .fallbackPlainShell(reason: .hostPreferencePlainShell))

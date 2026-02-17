@@ -44,6 +44,7 @@ final class ConnectionManager: ObservableObject {
     private let reconnectRandomUnit: () -> Double
 
     private var sessions: [UUID: SessionContext] = [:]
+    private var hostsRequiringManagedSessionReset: Set<UUID> = []
 
     private var cancellables: Set<AnyCancellable> = []
 #if DEBUG
@@ -165,27 +166,34 @@ final class ConnectionManager: ObservableObject {
         startConnection(hostId: host.id, isReconnect: false)
     }
 
-    func disconnect(clearSession: Bool) async {
+    func disconnect(clearSession: Bool, resetManagedSession: Bool = false) async {
         guard let activeHostId else {
             state = .idle
             failure = nil
             return
         }
-        await disconnect(hostId: activeHostId, clearSession: clearSession)
+        await disconnect(hostId: activeHostId, clearSession: clearSession, resetManagedSession: resetManagedSession)
     }
 
-    func disconnect(hostId: UUID, clearSession: Bool) async {
+    func disconnect(hostId: UUID, clearSession: Bool, resetManagedSession: Bool = false) async {
         guard let session = sessions[hostId] else {
             if clearSession {
                 statesByHostId[hostId] = nil
                 failuresByHostId[hostId] = nil
                 persistenceOutcomesByHostId[hostId] = nil
+                hostsRequiringManagedSessionReset.remove(hostId)
                 if activeHostId == hostId {
                     activeHostId = nil
                     syncActivePublishedState()
                 }
             }
             return
+        }
+
+        if resetManagedSession && session.host.sessionPersistenceMode == .managedTmux {
+            hostsRequiringManagedSessionReset.insert(hostId)
+        } else if clearSession {
+            hostsRequiringManagedSessionReset.remove(hostId)
         }
 
         cancelConnectTask(hostId: hostId)
@@ -421,17 +429,22 @@ final class ConnectionManager: ObservableObject {
             if requiresPassphrase && passphrase == nil {
                 return
             }
+            let shouldResetManagedSession = hostsRequiringManagedSessionReset.contains(hostId)
             let bootstrapResult = try await moshBootstrapper.bootstrap(
                 host: host,
                 privateKey: privateKey,
                 passphrase: passphrase,
-                hostKeyPrompter: session.hostKeyPrompter
+                hostKeyPrompter: session.hostKeyPrompter,
+                resetManagedSession: shouldResetManagedSession
             )
 #if DEBUG
             logSSHBootstrap(success: true, errorDescription: nil)
 #endif
             guard session.connectToken == token else { return }
             session.lastConnectInfo = bootstrapResult.connectInfo
+            if bootstrapResult.persistenceOutcome == .managedTmuxActive {
+                hostsRequiringManagedSessionReset.remove(hostId)
+            }
             setPersistenceOutcome(bootstrapResult.persistenceOutcome, hostId: hostId)
             setState(.connectingUDP, hostId: hostId)
             _ = await attemptEngineStart(
@@ -601,6 +614,7 @@ final class ConnectionManager: ObservableObject {
             setState(.failed(message: mappedFailure.title), hostId: hostId)
             setFailure(mappedFailure, hostId: hostId)
             sessions[hostId]?.autoReconnectAllowed = mappedFailure.allowsRetry
+            sessions[hostId]?.reconnectOnLifecycle = false
 #if DEBUG
             logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? "Disconnected")
 #endif
@@ -618,6 +632,7 @@ final class ConnectionManager: ObservableObject {
             setState(.failed(message: mappedFailure.title), hostId: hostId)
             setFailure(mappedFailure, hostId: hostId)
             sessions[hostId]?.autoReconnectAllowed = mappedFailure.allowsRetry
+            sessions[hostId]?.reconnectOnLifecycle = false
 #if DEBUG
             logFailure(title: mappedFailure.title, errorDescription: mappedFailure.message ?? error.localizedDescription)
 #endif

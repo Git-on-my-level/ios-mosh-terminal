@@ -85,6 +85,11 @@ struct ManagedRemoteCommandBuilder {
         let sessionName = managedSessionName(for: hostId)
         return "mosh-server new -- tmux -u new-session -A -s \(sessionName)"
     }
+
+    static func resetManagedTmuxSessionCommand(for hostId: UUID) -> String {
+        let sessionName = managedSessionName(for: hostId)
+        return "tmux kill-session -t \(sessionName) >/dev/null 2>&1 || true"
+    }
 }
 
 final class MoshBootstrapper: Sendable {
@@ -98,7 +103,8 @@ final class MoshBootstrapper: Sendable {
         host: HostProfile,
         privateKey: Data,
         passphrase: String?,
-        hostKeyPrompter: SSHHostKeyPrompting
+        hostKeyPrompter: SSHHostKeyPrompting,
+        resetManagedSession: Bool
     ) async throws -> MoshBootstrapResult {
         let client = sshClientFactory(hostKeyPrompter)
         defer {
@@ -121,6 +127,9 @@ final class MoshBootstrapper: Sendable {
                 outcome: .fallbackPlainShell(reason: .hostPreferencePlainShell)
             )
         case .managedTmux:
+            if resetManagedSession {
+                _ = try? await client.execute(command: ManagedRemoteCommandBuilder.resetManagedTmuxSessionCommand(for: host.id))
+            }
             return try await bootstrapManagedTmux(client: client, host: host)
         }
     }

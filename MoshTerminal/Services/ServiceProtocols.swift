@@ -16,6 +16,7 @@ protocol MoshBootstrapping {
         host: HostProfile,
         privateKey: Data,
         passphrase: String?,
-        hostKeyPrompter: SSHHostKeyPrompting
+        hostKeyPrompter: SSHHostKeyPrompting,
+        resetManagedSession: Bool
     ) async throws -> MoshBootstrapResult
 }
