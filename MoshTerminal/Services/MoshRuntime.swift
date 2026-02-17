@@ -164,6 +164,9 @@ actor MoshRuntime: PredictionNetworkSnapshotProviding {
         let resizeHandler: (Int, Int) -> Void = { [weak self] cols, rows in
             Task { await self?.emitRemoteResize(cols: cols, rows: rows) }
         }
+#if DEBUG
+        let debugLogger = self.debugLogger
+#endif
         let echoAckUpdateHandler: (UInt64) -> Void = { [predictionNetworkStore] value in
             predictionNetworkStore.setEchoAck(value)
 #if DEBUG

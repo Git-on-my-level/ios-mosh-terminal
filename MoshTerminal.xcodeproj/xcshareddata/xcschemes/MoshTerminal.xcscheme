@@ -63,7 +63,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../Tips.storekit">
+         identifier = "../../LocalIAP.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction

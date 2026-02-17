@@ -32,6 +32,7 @@ final class TipJarStore: ObservableObject {
     private var hasStarted = false
     private var transactionUpdatesTask: Task<Void, Never>?
     private let productIDs: [String]
+    private var lastStoreKitContextDetails = "not collected"
 
     init(productIDs: [String]? = nil) {
         self.productIDs = productIDs ?? Self.resolveProductIDs()
@@ -55,7 +56,10 @@ final class TipJarStore: ObservableObject {
         loadState = .loading
 
         debugLog("Loading products for bundle=\(Bundle.main.bundleIdentifier ?? "nil"), ids=\(productIDs)")
-        debugLog("STOREKIT_CONFIG_PATH=\(ProcessInfo.processInfo.environment["STOREKIT_CONFIG_PATH"] ?? "not set")")
+        dumpStoreKitEnvVars()
+        let contextDetails = await collectStoreKitContextDetails()
+        lastStoreKitContextDetails = contextDetails
+        debugLog("StoreKit context: \(contextDetails)")
 
         do {
             let fetched = try await fetchProductsWithRetry()
@@ -225,10 +229,39 @@ final class TipJarStore: ObservableObject {
 #if DEBUG
         let bundleID = Bundle.main.bundleIdentifier ?? "nil"
         let storeKitPath = ProcessInfo.processInfo.environment["STOREKIT_CONFIG_PATH"] ?? "not set"
-        return "\n\nDebug: bundle=\(bundleID), STOREKIT_CONFIG_PATH=\(storeKitPath)"
+        return "\n\nDebug: bundle=\(bundleID), STOREKIT_CONFIG_PATH=\(storeKitPath), \(lastStoreKitContextDetails)"
 #else
         return ""
 #endif
+    }
+
+    private func dumpStoreKitEnvVars() {
+#if DEBUG
+        let env = ProcessInfo.processInfo.environment
+        let storeKitKeys = env.keys
+            .filter { $0.localizedCaseInsensitiveContains("store") || $0.localizedCaseInsensitiveContains("iap") || $0.localizedCaseInsensitiveContains("sk_") }
+            .sorted()
+        if storeKitKeys.isEmpty {
+            debugLog("ENV: No StoreKit/IAP env vars found. Dumping all env keys for reference:")
+            debugLog("ENV keys: \(env.keys.sorted().joined(separator: ", "))")
+        } else {
+            for key in storeKitKeys {
+                debugLog("ENV: \(key)=\(env[key] ?? "")")
+            }
+        }
+#endif
+    }
+
+    private func collectStoreKitContextDetails() async -> String {
+        var details: [String] = ["appTransactionCheck=skipped"]
+
+        if let storefront = await Storefront.current {
+            details.append("storefrontCountry=\(storefront.countryCode)")
+        } else {
+            details.append("storefrontCountry=unknown")
+        }
+
+        return details.joined(separator: ", ")
     }
 }
 
