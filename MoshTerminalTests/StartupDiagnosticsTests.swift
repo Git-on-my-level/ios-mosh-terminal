@@ -10,15 +10,13 @@ final class StartupDiagnosticsTests: XCTestCase {
         let originalEnv = ProcessInfo.processInfo.environment["MOSH_DIAGNOSTICS"]
         defer {
             if let originalEnv = originalEnv {
-                ProcessInfo.processInfo.setEnvironment(["MOSH_DIAGNOSTICS": originalEnv])
+                setEnvironmentVariable("MOSH_DIAGNOSTICS", value: originalEnv)
             } else {
-                var env = ProcessInfo.processInfo.environment
-                env.removeValue(forKey: "MOSH_DIAGNOSTICS")
-                ProcessInfo.processInfo.setEnvironment(env)
+                unsetEnvironmentVariable("MOSH_DIAGNOSTICS")
             }
         }
 
-        ProcessInfo.processInfo.setEnvironment(["MOSH_DIAGNOSTICS": "1"])
+        setEnvironmentVariable("MOSH_DIAGNOSTICS", value: "1")
 
         let snapshot = StartupDiagnosticsSnapshot(
             appInitMs: 10.5,
@@ -51,13 +49,19 @@ final class StartupDiagnosticsTests: XCTestCase {
     func testDiagnosticsDisabledByDefault() {
         let env = ProcessInfo.processInfo.environment
         if env["MOSH_DIAGNOSTICS"] == "1" {
-            var newEnv = env
-            newEnv.removeValue(forKey: "MOSH_DIAGNOSTICS")
-            ProcessInfo.processInfo.setEnvironment(newEnv)
+            unsetEnvironmentVariable("MOSH_DIAGNOSTICS")
         }
 
         let snapshot = StartupDiagnosticsSnapshot()
         XCTAssertNil(snapshot.appInitMs)
         XCTAssertEqual(snapshot.terminalViewInitCount, 0)
+    }
+
+    private func setEnvironmentVariable(_ name: String, value: String) {
+        XCTAssertEqual(setenv(name, value, 1), 0)
+    }
+
+    private func unsetEnvironmentVariable(_ name: String) {
+        XCTAssertEqual(unsetenv(name), 0)
     }
 }

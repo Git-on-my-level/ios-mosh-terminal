@@ -40,6 +40,16 @@
                ReferencedContainer = "container:MoshTerminal.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E5E5E5E5E5E5E5E5E5E5E505"
+               BuildableName = "MoshTerminalUITests.xctest"
+               BlueprintName = "MoshTerminalUITests"
+               ReferencedContainer = "container:MoshTerminal.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
