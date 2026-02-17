@@ -24,7 +24,13 @@ final class AppEnvironment: ObservableObject {
 
     init() {
         StartupDiagnostics.shared.markAppEnvironmentInitStart()
-        let store = JSONStore()
+        let store: JSONStore
+        if ProcessInfo.processInfo.environment["MOSH_EPHEMERAL_STORE"] == "1" {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("moshterminal-store.json")
+            store = JSONStore(fileURL: tempURL, fileProtectionType: .complete, excludeFromBackup: false)
+        } else {
+            store = JSONStore()
+        }
         let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
         let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
         let keyStore = KeychainPrivateKeyStore()

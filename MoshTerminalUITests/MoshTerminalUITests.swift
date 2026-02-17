@@ -8,6 +8,8 @@ final class MoshTerminalUITests: XCTestCase {
     func testLaunchEmitsStartupDiagnosticsJSON() throws {
         let app = XCUIApplication()
         app.launchEnvironment["MOSH_DIAGNOSTICS"] = "1"
+        app.launchEnvironment["MOSH_EPHEMERAL_STORE"] = "1"
+        app.launchEnvironment["MOSH_SEED_HOSTS"] = "1"
         app.launch()
 
         let diagnosticsLabel = app.staticTexts["mosh.startup_diagnostics.json"]
@@ -43,6 +45,19 @@ final class MoshTerminalUITests: XCTestCase {
         XCTAssertNotNil(
             latestSnapshot.hostsLoadEndMs,
             "hostsLoadEndMs should become non-nil within timeout"
+        )
+    }
+
+    func testSeededHostsAppearInHostsList() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["MOSH_EPHEMERAL_STORE"] = "1"
+        app.launchEnvironment["MOSH_SEED_HOSTS"] = "1"
+        app.launch()
+
+        let seedHost1 = app.staticTexts["Seed Host 1"]
+        XCTAssertTrue(
+            seedHost1.waitForExistence(timeout: 5),
+            "Expected seeded host 'Seed Host 1' to appear in the hosts list"
         )
     }
 

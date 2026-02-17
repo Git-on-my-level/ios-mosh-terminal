@@ -169,8 +169,39 @@ actor HostRepository {
     }
 
     func all() async throws -> [HostProfile] {
+        let shouldSeed = ProcessInfo.processInfo.environment["MOSH_SEED_HOSTS"] == "1"
+        if shouldSeed {
+            let state = try await store.load()
+            if state.hosts.isEmpty {
+                let seededHosts = Self.makeSeededHosts()
+                try await store.update { s in
+                    s.hosts = seededHosts
+                }
+            }
+        }
         let state = try await store.load()
         return state.hosts
+    }
+
+    private static func makeSeededHosts() -> [HostProfile] {
+        [
+            HostProfile(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                displayName: "Seed Host 1",
+                hostname: "example.com",
+                username: "mosh",
+                sshPort: 22,
+                keyRefId: "seed-key-1"
+            ),
+            HostProfile(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+                displayName: "Seed Host 2",
+                hostname: "example.org",
+                username: "mosh",
+                sshPort: 22,
+                keyRefId: "seed-key-2"
+            ),
+        ]
     }
 
     func upsert(_ host: HostProfile) async throws {
