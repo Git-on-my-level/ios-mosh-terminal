@@ -17,10 +17,13 @@ final class AppEnvironment: ObservableObject {
     let dependencies: Dependencies
 
     init(dependencies: Dependencies) {
+        StartupDiagnostics.shared.markAppEnvironmentInitStart()
         self.dependencies = dependencies
+        StartupDiagnostics.shared.markAppEnvironmentInitEnd()
     }
 
     init() {
+        StartupDiagnostics.shared.markAppEnvironmentInitStart()
         let store = JSONStore()
         let trustedHostKeyRepository = TrustedHostKeyRepository(store: store)
         let sshClientFactory = DefaultSSHClientFactory.make(repository: trustedHostKeyRepository)
@@ -49,6 +52,7 @@ final class AppEnvironment: ObservableObject {
             networkPathService: networkPathService,
             connectionManager: connectionManager
         )
+        StartupDiagnostics.shared.markAppEnvironmentInitEnd()
     }
 
     static func makePreviewDependencies() -> Dependencies {

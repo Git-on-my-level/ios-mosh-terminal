@@ -89,6 +89,9 @@
 		F4F4F4F4F4F4F4F4F4F4F408 /* TrustedHostKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F407 /* TrustedHostKeysView.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F40A /* MoshRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */; };
 		F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */; };
+		D1D1D1D1D1D1D1D1D1D1D1D03 /* StartupDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D04 /* StartupDiagnosticsReporterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D11 /* StartupDiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -177,6 +180,9 @@
 		F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = file.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F789644648F649058124AEA475E31280 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnostics.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsReporterView.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -249,6 +255,7 @@
 				F3F3F3F3F3F3F3F3F3F3F303 /* TerminalSessionViewModel.swift */,
 				C6EC9BE9B0064F3AA5527163 /* LibSSH2AvailabilityGuard.swift */,
 				F2F2F2F2F2F2F2F2F2F2F2A3 /* Services */,
+				D1D1D1D1D1D1D1D1D1D1D1D05 /* Diagnostics */,
 				C1C1C1C1C1C1C1C1C1C1C1E1 /* Model */,
 				C1C1C1C1C1C1C1C1C1C1C1E2 /* Persistence */,
 				D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */,
@@ -306,6 +313,7 @@
 				A7E6B7A2F6F14E3F9C1C2D3E /* MoshRuntimeKeepaliveTests.swift */,
 				7EE2D1DEB21FDD85BA3FEB12 /* PacketCodecTests.swift */,
 				5887890B1C9820791F281160 /* ProtoCodecTests.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */,
 			);
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
@@ -344,6 +352,15 @@
 				E2E2E2E2E2E2E2E2E2E2E2B3 /* UnavailableSSHClient.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		D1D1D1D1D1D1D1D1D1D1D1D05 /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */,
+			);
+			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -513,6 +530,8 @@
 				C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */,
 				D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D03 /* StartupDiagnostics.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D04 /* StartupDiagnosticsReporterView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -538,6 +557,7 @@
 				D0E4F5061728394A5B6C7E8F /* (null) in Sources */,
 				BC945E7D48B544DFB0A5050 /* (null) in Sources */,
 				1776D11099F64422A24D0357 /* (null) in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D11 /* StartupDiagnosticsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

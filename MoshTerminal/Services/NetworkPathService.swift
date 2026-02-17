@@ -33,6 +33,9 @@ final class NetworkPathService: ObservableObject {
             }
         }
 
+        Task { @MainActor in
+            StartupDiagnostics.shared.incrementNetworkMonitorStart()
+        }
         monitor.start(queue: queue)
     }
 

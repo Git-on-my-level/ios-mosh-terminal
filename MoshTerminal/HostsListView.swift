@@ -12,11 +12,14 @@ final class HostsListViewModel: ObservableObject {
     }
 
     func loadHosts() async {
+        StartupDiagnostics.shared.markHostsLoadStart()
         do {
             let loaded = try await hostRepository.all()
             hosts = loaded.sorted(by: HostsListViewModel.sortHosts)
+            StartupDiagnostics.shared.markHostsLoadEnd(hostCount: hosts.count)
         } catch {
             alertMessage = error.localizedDescription
+            StartupDiagnostics.shared.markHostsLoadEnd(hostCount: 0)
         }
     }
 
