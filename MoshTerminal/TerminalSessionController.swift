@@ -48,6 +48,10 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
 
     private weak var altBufferPanGesture: UIPanGestureRecognizer?
     private var altBufferScrollOffset: CGFloat = 0
+    private var scrollCommandCount: Int = 0
+    private let maxScrollCommandsPerGesture: Int = 50
+    private var lastScrollDirectionChangeTime: Date = .distantPast
+    private let scrollDirectionChangeDebounceMs: Int = 50
 
     private var pendingOutputData = Data()
     private var pendingOutputFlush: DispatchWorkItem?
@@ -84,6 +88,8 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         }
         altBufferPanGesture = nil
         altBufferScrollOffset = 0
+        scrollCommandCount = 0
+        lastScrollDirectionChangeTime = .distantPast
 
         pendingOutputFlush?.cancel()
         pendingOutputFlush = nil
@@ -257,6 +263,10 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     func sizeChanged(source: TerminalUIKitView, newCols: Int, newRows: Int) {
         let size = TerminalSize(cols: newCols, rows: newRows)
         currentSize = size
+        
+        altBufferScrollOffset = 0
+        scrollCommandCount = 0
+        
         if let pending = pendingRemoteResize {
             pendingRemoteResize = nil
             if pending == size {
@@ -458,30 +468,52 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         switch gesture.state {
         case .began:
             altBufferScrollOffset = 0
+            scrollCommandCount = 0
+            lastScrollDirectionChangeTime = .distantPast
         case .changed:
+            guard scrollCommandCount < maxScrollCommandsPerGesture else { return }
+            
+            let now = Date()
+            let elapsedMs = Int(now.timeIntervalSince(lastScrollDirectionChangeTime) * 1000)
+            if elapsedMs < scrollDirectionChangeDebounceMs && scrollCommandCount > 0 {
+                return
+            }
+            
             let translation = gesture.translation(in: terminalView)
             gesture.setTranslation(.zero, in: terminalView)
             
+            let previousOffset = altBufferScrollOffset
             altBufferScrollOffset += translation.y
             
             let scrollPixelsPerPage: CGFloat = 200
             let scrollThreshold: CGFloat = 40
             
             if altBufferScrollOffset <= -scrollThreshold {
+                if previousOffset > -scrollThreshold {
+                    lastScrollDirectionChangeTime = now
+                }
                 let pagesToScroll = Int(-altBufferScrollOffset / scrollPixelsPerPage)
-                for _ in 0..<pagesToScroll {
+                let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
+                for _ in 0..<commandsToSend {
                     terminalView.pageUp()
+                    scrollCommandCount += 1
                 }
                 altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
             } else if altBufferScrollOffset >= scrollThreshold {
+                if previousOffset < scrollThreshold {
+                    lastScrollDirectionChangeTime = now
+                }
                 let pagesToScroll = Int(altBufferScrollOffset / scrollPixelsPerPage)
-                for _ in 0..<pagesToScroll {
+                let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
+                for _ in 0..<commandsToSend {
                     terminalView.pageDown()
+                    scrollCommandCount += 1
                 }
                 altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
             }
         case .ended, .cancelled:
             altBufferScrollOffset = 0
+            scrollCommandCount = 0
         default:
             break
         }
