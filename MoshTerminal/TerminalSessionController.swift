@@ -492,7 +492,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
                 if previousOffset > -scrollThreshold {
                     lastScrollDirectionChangeTime = now
                 }
-                let pagesToScroll = Int(-altBufferScrollOffset / scrollPixelsPerPage)
+                let pagesToScroll = max(1, Int(-altBufferScrollOffset / scrollPixelsPerPage))
                 let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
                 for _ in 0..<commandsToSend {
                     terminalView.pageUp()
@@ -503,7 +503,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
                 if previousOffset < scrollThreshold {
                     lastScrollDirectionChangeTime = now
                 }
-                let pagesToScroll = Int(altBufferScrollOffset / scrollPixelsPerPage)
+                let pagesToScroll = max(1, Int(altBufferScrollOffset / scrollPixelsPerPage))
                 let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
                 for _ in 0..<commandsToSend {
                     terminalView.pageDown()
