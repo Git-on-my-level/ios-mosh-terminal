@@ -47,10 +47,10 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     private var lastSizeSentToEngine: TerminalSize?
 
     private weak var altBufferPanGesture: UIPanGestureRecognizer?
-    private var altBufferScrollOffset: CGFloat = 0
-    private var scrollCommandCount: Int = 0
+    fileprivate var altBufferScrollOffset: CGFloat = 0
+    fileprivate var scrollCommandCount: Int = 0
     private let maxScrollCommandsPerGesture: Int = 50
-    private var lastScrollDirectionChangeTime: Date = .distantPast
+    fileprivate var lastScrollDirectionChangeTime: Date = .distantPast
     private let scrollDirectionChangeDebounceMs: Int = 50
 
     private var pendingOutputData = Data()
