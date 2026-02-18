@@ -6,7 +6,7 @@ import UIKit
 typealias TerminalUIKitView = SwiftTerm.TerminalView
 
 @MainActor
-final class TerminalSessionController: NSObject, ObservableObject, @preconcurrency TerminalViewDelegate, UIScrollViewDelegate {
+final class TerminalSessionController: NSObject, ObservableObject, @preconcurrency TerminalViewDelegate, UIScrollViewDelegate, UIGestureRecognizerDelegate {
     @Published var isCtrlActive = false
     @Published var isAltActive = false
     @Published var pendingOpenURL: URL?
@@ -457,8 +457,24 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         }
         let gesture = UIPanGestureRecognizer(target: self, action: #selector(handleAltBufferPagingPan(_:)))
         gesture.cancelsTouchesInView = false
+        gesture.delegate = self
         terminalView.addGestureRecognizer(gesture)
         altBufferPanGesture = gesture
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer === altBufferPanGesture else { return true }
+        guard let terminalView else { return false }
+        // Only intercept pan gestures while SwiftTerm indicates no native scroll thumb,
+        // which corresponds to alternate-screen TUIs where we emulate page up/down.
+        return terminalView.scrollThumbsize == 0
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        gestureRecognizer === altBufferPanGesture || otherGestureRecognizer === altBufferPanGesture
     }
 
     @objc private func handleAltBufferPagingPan(_ gesture: UIPanGestureRecognizer) {
