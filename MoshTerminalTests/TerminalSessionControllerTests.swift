@@ -140,4 +140,45 @@ final class TerminalSessionControllerTests: XCTestCase {
 
         XCTAssertEqual(captured, Data([0x06])) // Ctrl+F
     }
+
+    // MARK: - tmux Scroll State Tests
+
+    func testResetClearsAltBufferScrollOffset() {
+        let controller = TerminalSessionController()
+        controller.altBufferScrollOffset = 100.5
+
+        controller.reset()
+
+        XCTAssertEqual(controller.altBufferScrollOffset, 0)
+    }
+
+    func testResetClearsScrollCommandCount() {
+        let controller = TerminalSessionController()
+        controller.scrollCommandCount = 25
+
+        controller.reset()
+
+        XCTAssertEqual(controller.scrollCommandCount, 0)
+    }
+
+    func testResetClearsLastScrollDirectionChangeTime() {
+        let controller = TerminalSessionController()
+        controller.lastScrollDirectionChangeTime = Date()
+
+        controller.reset()
+
+        XCTAssertEqual(controller.lastScrollDirectionChangeTime, .distantPast)
+    }
+
+    func testAltBufferScrollOffsetInitializedToZero() {
+        let controller = TerminalSessionController()
+
+        XCTAssertEqual(controller.altBufferScrollOffset, 0)
+    }
+
+    func testScrollCommandCountInitializedToZero() {
+        let controller = TerminalSessionController()
+
+        XCTAssertEqual(controller.scrollCommandCount, 0)
+    }
 }

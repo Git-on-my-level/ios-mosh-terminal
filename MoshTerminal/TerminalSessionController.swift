@@ -47,6 +47,11 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     private var lastSizeSentToEngine: TerminalSize?
 
     private weak var altBufferPanGesture: UIPanGestureRecognizer?
+    fileprivate var altBufferScrollOffset: CGFloat = 0
+    fileprivate var scrollCommandCount: Int = 0
+    private let maxScrollCommandsPerGesture: Int = 50
+    fileprivate var lastScrollDirectionChangeTime: Date = .distantPast
+    private let scrollDirectionChangeDebounceMs: Int = 50
 
     private var pendingOutputData = Data()
     private var pendingOutputFlush: DispatchWorkItem?
@@ -82,6 +87,9 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
             view.removeGestureRecognizer(gesture)
         }
         altBufferPanGesture = nil
+        altBufferScrollOffset = 0
+        scrollCommandCount = 0
+        lastScrollDirectionChangeTime = .distantPast
 
         pendingOutputFlush?.cancel()
         pendingOutputFlush = nil
@@ -255,6 +263,10 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     func sizeChanged(source: TerminalUIKitView, newCols: Int, newRows: Int) {
         let size = TerminalSize(cols: newCols, rows: newRows)
         currentSize = size
+        
+        altBufferScrollOffset = 0
+        scrollCommandCount = 0
+        
         if let pending = pendingRemoteResize {
             pendingRemoteResize = nil
             if pending == size {
@@ -451,22 +463,59 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
 
     @objc private func handleAltBufferPagingPan(_ gesture: UIPanGestureRecognizer) {
         guard let terminalView else { return }
-        // In SwiftTerm, alternate buffer disables scrollback and reports thumb size 0.
-        // When that happens, map vertical swipe/pan into PageUp/PageDown escape sequences.
         guard terminalView.scrollThumbsize == 0 else { return }
-        guard gesture.state == .ended else { return }
 
-        let translation = gesture.translation(in: terminalView)
-        let velocity = gesture.velocity(in: terminalView)
-        gesture.setTranslation(.zero, in: terminalView)
-
-        // Trigger on either a meaningful swipe distance or a fast flick.
-        let threshold: CGFloat = 40
-        let velocityThreshold: CGFloat = 600
-        if translation.y <= -threshold || velocity.y <= -velocityThreshold {
-            terminalView.pageUp()
-        } else if translation.y >= threshold || velocity.y >= velocityThreshold {
-            terminalView.pageDown()
+        switch gesture.state {
+        case .began:
+            altBufferScrollOffset = 0
+            scrollCommandCount = 0
+            lastScrollDirectionChangeTime = .distantPast
+        case .changed:
+            guard scrollCommandCount < maxScrollCommandsPerGesture else { return }
+            
+            let now = Date()
+            let elapsedMs = Int(now.timeIntervalSince(lastScrollDirectionChangeTime) * 1000)
+            if elapsedMs < scrollDirectionChangeDebounceMs && scrollCommandCount > 0 {
+                return
+            }
+            
+            let translation = gesture.translation(in: terminalView)
+            gesture.setTranslation(.zero, in: terminalView)
+            
+            let previousOffset = altBufferScrollOffset
+            altBufferScrollOffset += translation.y
+            
+            let scrollPixelsPerPage: CGFloat = 200
+            let scrollThreshold: CGFloat = 40
+            
+            if altBufferScrollOffset <= -scrollThreshold {
+                if previousOffset > -scrollThreshold {
+                    lastScrollDirectionChangeTime = now
+                }
+                let pagesToScroll = max(1, Int(-altBufferScrollOffset / scrollPixelsPerPage))
+                let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
+                for _ in 0..<commandsToSend {
+                    terminalView.pageUp()
+                    scrollCommandCount += 1
+                }
+                altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
+            } else if altBufferScrollOffset >= scrollThreshold {
+                if previousOffset < scrollThreshold {
+                    lastScrollDirectionChangeTime = now
+                }
+                let pagesToScroll = max(1, Int(altBufferScrollOffset / scrollPixelsPerPage))
+                let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
+                for _ in 0..<commandsToSend {
+                    terminalView.pageDown()
+                    scrollCommandCount += 1
+                }
+                altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
+            }
+        case .ended, .cancelled:
+            altBufferScrollOffset = 0
+            scrollCommandCount = 0
+        default:
+            break
         }
     }
 }
