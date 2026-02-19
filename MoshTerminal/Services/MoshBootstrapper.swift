@@ -83,7 +83,13 @@ struct ManagedRemoteCommandBuilder {
 
     static func managedTmuxLaunchCommand(for hostId: UUID) -> String {
         let sessionName = managedSessionName(for: hostId)
-        return "mosh-server new -- tmux -u new-session -A -s \(sessionName)"
+        // The \\; in this Swift literal becomes \; in the SSH exec command string.
+        // The remote shell treats \; as an escaped semicolon (literal ; argument, not a
+        // command separator), so mosh-server receives it in its argv and passes it to tmux
+        // as its own command separator. tmux then runs two commands:
+        //   1. new-session -A -s <name>   (create or attach)
+        //   2. set -g mouse on             (enable mouse for scroll gesture support)
+        return "mosh-server new -- tmux -u new-session -A -s \(sessionName) \\; set -g mouse on"
     }
 
     static func resetManagedTmuxSessionCommand(for hostId: UUID) -> String {

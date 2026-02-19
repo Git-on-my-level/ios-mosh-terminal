@@ -44,7 +44,13 @@ struct TerminalView: View {
         )
         let colors = AppTheme.colors(for: colorScheme)
         let currentState = connectionState
-        TerminalContainerView(controller: controller, fontSize: settings.fontSize, palette: palette, isKeyboardVisible: keyboardObserver.isKeyboardVisible)
+        TerminalContainerView(
+            controller: controller,
+            fontSize: settings.fontSize,
+            palette: palette,
+            isKeyboardVisible: keyboardObserver.isKeyboardVisible,
+            prefersRemotePaging: prefersRemotePaging
+        )
             .id(terminalViewId)
             .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in
                 clipboardHasString = UIPasteboard.general.hasStrings
@@ -335,6 +341,19 @@ struct TerminalView: View {
             break
         }
     }
+
+    private var prefersRemotePaging: Bool {
+        guard host.sessionPersistenceMode == .managedTmux else { return false }
+        switch viewModel.persistenceOutcome {
+        case .managedTmuxActive:
+            return true
+        case .fallbackPlainShell:
+            return false
+        case nil:
+            // Before bootstrap completes we default to managed-tmux behavior for tmux-first hosts.
+            return true
+        }
+    }
 }
 
 #if DEBUG
@@ -428,6 +447,7 @@ private struct TerminalContainerView: UIViewRepresentable {
     let fontSize: Double
     let palette: AppTheme.TerminalPalette
     let isKeyboardVisible: Bool
+    let prefersRemotePaging: Bool
 
     func makeUIView(context: Context) -> TerminalViewportContainerUIKitView {
         let terminalView: TerminalUIKitView
@@ -443,6 +463,7 @@ private struct TerminalContainerView: UIViewRepresentable {
         }
         terminalView.terminalDelegate = context.coordinator
         applyPalette(palette, to: terminalView)
+        controller.setPrefersRemotePaging(prefersRemotePaging)
         controller.attach(view: terminalView)
         installPinchRecognizerIfNeeded(on: terminalView)
         let overlayView = installPredictionOverlay(in: terminalView, controller: controller, replaceExisting: reusedView)
@@ -471,6 +492,7 @@ private struct TerminalContainerView: UIViewRepresentable {
 
     func updateUIView(_ container: TerminalViewportContainerUIKitView, context: Context) {
         guard let terminalView = container.terminalView else { return }
+        controller.setPrefersRemotePaging(prefersRemotePaging)
         if controller.terminalView !== terminalView {
             controller.attach(view: terminalView)
         }

@@ -52,6 +52,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     private let maxScrollCommandsPerGesture: Int = 50
     fileprivate var lastScrollDirectionChangeTime: Date = .distantPast
     private let scrollDirectionChangeDebounceMs: Int = 50
+    private var prefersRemotePaging: Bool = false
 
     private var pendingOutputData = Data()
     private var pendingOutputFlush: DispatchWorkItem?
@@ -125,10 +126,17 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         view.delegate = self
         predictionCoordinator.terminalView = view
         installAltBufferPagingGestureIfNeeded(in: view)
+        refreshScrollInteractionMode()
     }
 
     func attachPredictionNetworkProvider(_ provider: PredictionNetworkSnapshotProviding?) {
         predictionCoordinator.predictionNetworkProvider = provider
+    }
+
+    func setPrefersRemotePaging(_ enabled: Bool) {
+        guard prefersRemotePaging != enabled else { return }
+        prefersRemotePaging = enabled
+        refreshScrollInteractionMode()
     }
 
     func setPredictionDisplayPreference(_ preference: PredictionDisplayPreference) {
@@ -263,10 +271,11 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     func sizeChanged(source: TerminalUIKitView, newCols: Int, newRows: Int) {
         let size = TerminalSize(cols: newCols, rows: newRows)
         currentSize = size
-        
+
         altBufferScrollOffset = 0
         scrollCommandCount = 0
-        
+        refreshScrollInteractionMode()
+
         if let pending = pendingRemoteResize {
             pendingRemoteResize = nil
             if pending == size {
@@ -391,7 +400,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         }
         guard !pendingOutputData.isEmpty else { return }
 
-        let preserveOffset = isUserScrolledAwayFromBottom
+        let preserveOffset = isUserScrolledAwayFromBottom && !shouldUseRemotePaging(with: terminalView)
         let preservedOffset = lastUserContentOffset ?? terminalView.contentOffset
 
         let count = pendingOutputData.count
@@ -403,6 +412,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
 
         isAdjustingScrollOffset = preserveOffset
         terminalView.feed(byteArray: outputBuffer[..<count])
+        refreshScrollInteractionMode()
         predictionCoordinator.handleConfirmedOutputApplied()
 
         if preserveOffset {
@@ -416,6 +426,28 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
             return byte & 0x1F
         }
         return nil
+    }
+
+    private func refreshScrollInteractionMode() {
+        guard let terminalView else { return }
+        let usesRemotePaging = shouldUseRemotePaging(with: terminalView)
+        let nativeScrollEnabled = !usesRemotePaging
+
+        if terminalView.isScrollEnabled != nativeScrollEnabled {
+            terminalView.isScrollEnabled = nativeScrollEnabled
+        }
+        terminalView.alwaysBounceVertical = nativeScrollEnabled
+        terminalView.bounces = nativeScrollEnabled
+        terminalView.showsVerticalScrollIndicator = nativeScrollEnabled
+
+        if usesRemotePaging {
+            isUserScrolledAwayFromBottom = false
+            lastUserContentOffset = nil
+        }
+    }
+
+    private func shouldUseRemotePaging(with terminalView: TerminalUIKitView) -> Bool {
+        prefersRemotePaging || terminalView.scrollThumbsize == 0
     }
 
     // MARK: - UIScrollViewDelegate
@@ -465,9 +497,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer === altBufferPanGesture else { return true }
         guard let terminalView else { return false }
-        // Only intercept pan gestures while SwiftTerm indicates no native scroll thumb,
-        // which corresponds to alternate-screen TUIs where we emulate page up/down.
-        return terminalView.scrollThumbsize == 0
+        return shouldUseRemotePaging(with: terminalView)
     }
 
     func gestureRecognizer(
@@ -479,7 +509,7 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
 
     @objc private func handleAltBufferPagingPan(_ gesture: UIPanGestureRecognizer) {
         guard let terminalView else { return }
-        guard terminalView.scrollThumbsize == 0 else { return }
+        guard shouldUseRemotePaging(with: terminalView) else { return }
 
         switch gesture.state {
         case .began:
@@ -503,26 +533,29 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
             
             let scrollPixelsPerPage: CGFloat = 200
             let scrollThreshold: CGFloat = 40
-            
-            if altBufferScrollOffset <= -scrollThreshold {
-                if previousOffset > -scrollThreshold {
-                    lastScrollDirectionChangeTime = now
-                }
-                let pagesToScroll = max(1, Int(-altBufferScrollOffset / scrollPixelsPerPage))
-                let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
-                for _ in 0..<commandsToSend {
-                    terminalView.pageUp()
-                    scrollCommandCount += 1
-                }
-                altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
-            } else if altBufferScrollOffset >= scrollThreshold {
+
+            // Match native iOS scroll direction:
+            // dragging down should reveal older content (tmux PageUp),
+            // dragging up should reveal newer content (tmux PageDown).
+            if altBufferScrollOffset >= scrollThreshold {
                 if previousOffset < scrollThreshold {
                     lastScrollDirectionChangeTime = now
                 }
                 let pagesToScroll = max(1, Int(altBufferScrollOffset / scrollPixelsPerPage))
                 let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
                 for _ in 0..<commandsToSend {
-                    terminalView.pageDown()
+                    sendRemoteWheelUp(at: gesture.location(in: terminalView))
+                    scrollCommandCount += 1
+                }
+                altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
+            } else if altBufferScrollOffset <= -scrollThreshold {
+                if previousOffset > -scrollThreshold {
+                    lastScrollDirectionChangeTime = now
+                }
+                let pagesToScroll = max(1, Int(-altBufferScrollOffset / scrollPixelsPerPage))
+                let commandsToSend = min(pagesToScroll, maxScrollCommandsPerGesture - scrollCommandCount)
+                for _ in 0..<commandsToSend {
+                    sendRemoteWheelDown(at: gesture.location(in: terminalView))
                     scrollCommandCount += 1
                 }
                 altBufferScrollOffset = fmod(altBufferScrollOffset, scrollPixelsPerPage)
@@ -533,5 +566,31 @@ final class TerminalSessionController: NSObject, ObservableObject, @preconcurren
         default:
             break
         }
+    }
+
+    private func sendRemoteWheelUp(at location: CGPoint) {
+        sendRemoteWheel(button: 4, at: location)
+    }
+
+    private func sendRemoteWheelDown(at location: CGPoint) {
+        sendRemoteWheel(button: 5, at: location)
+    }
+
+    private func sendRemoteWheel(button: Int, at location: CGPoint) {
+        guard let terminalView else { return }
+        let terminal = terminalView.getTerminal()
+
+        let width = max(terminalView.bounds.width, 1)
+        let height = max(terminalView.bounds.height, 1)
+        let cols = max(currentSize.cols, 1)
+        let rows = max(currentSize.rows, 1)
+
+        let normalizedX = min(max(location.x / width, 0), 0.999)
+        let normalizedY = min(max(location.y / height, 0), 0.999)
+        let gridX = min(max(Int(normalizedX * CGFloat(cols)), 0), cols - 1)
+        let gridY = min(max(Int(normalizedY * CGFloat(rows)), 0), rows - 1)
+
+        let flags = terminal.encodeButton(button: button, release: false, shift: false, meta: false, control: false)
+        terminal.sendEvent(buttonFlags: flags, x: gridX, y: gridY)
     }
 }
