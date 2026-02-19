@@ -50,7 +50,10 @@
 		C1C1C1C1C1C1C1C1C1C1C1D3 /* JSONStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C3 /* JSONStore.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1D4 /* JSONStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */; };
 		D0E4F5061728394A5B6C7E8F /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D1D1D1D1D1D1D1D1D1D1D1D03 /* StartupDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D04 /* StartupDiagnosticsReporterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* KeyManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */; };
+		D1D1D1D1D1D1D1D1D1D1D1D11 /* StartupDiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D2 /* KeychainPrivateKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D3 /* SSHPrivateKeyValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */; };
 		D1D1D1D1D1D1D1D1D1D1D1D4 /* SSHPrivateKeyValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1E5 /* SSHPrivateKeyValidatorTests.swift */; };
@@ -71,6 +74,8 @@
 		E2E2E2E2E2E2E2E2E2E2E401 /* Frameworks/libssh2.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E300 /* Frameworks/libssh2.xcframework */; };
 		E2E2E2E2E2E2E2E2E2E2E402 /* Frameworks/libssl.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E310 /* Frameworks/libssl.xcframework */; };
 		E2E2E2E2E2E2E2E2E2E2E403 /* Frameworks/libcrypto.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E2E2E2E2E2E2E2E2E2E320 /* Frameworks/libcrypto.xcframework */; };
+		E5E5E5E5E5E5E5E5E5E5E502 /* MoshTerminalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */; };
+		E5E5E5E5E5E5E5E5E5E5E512 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5E5E5E5E5E5E5E5E5E5E511 /* XCTest.framework */; };
 		F2F2F2F2F2F2F2F2F2F2F2B1 /* AppLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A1 /* AppLifecycleService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B2 /* NetworkPathService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A2 /* NetworkPathService.swift */; };
 		F2F2F2F2F2F2F2F2F2F2F2B3 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F2F2F2F2F2F2F2F2F2F2A4 /* ConnectionManager.swift */; };
@@ -89,11 +94,6 @@
 		F4F4F4F4F4F4F4F4F4F4F408 /* TrustedHostKeysView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F407 /* TrustedHostKeysView.swift */; };
 		F4F4F4F4F4F4F4F4F4F4F40A /* MoshRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F4F4F4F4F4F4F4F4F4F409 /* MoshRuntime.swift */; };
 		F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */; };
-		D1D1D1D1D1D1D1D1D1D1D1D03 /* StartupDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */; };
-		D1D1D1D1D1D1D1D1D1D1D1D04 /* StartupDiagnosticsReporterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */; };
-		D1D1D1D1D1D1D1D1D1D1D1D11 /* StartupDiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */; };
-		E5E5E5E5E5E5E5E5E5E5E502 /* MoshTerminalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */; };
-		E5E5E5E5E5E5E5E5E5E5E512 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5E5E5E5E5E5E5E5E5E5E511 /* XCTest.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -154,6 +154,9 @@
 		C1C1C1C1C1C1C1C1C1C1C1C4 /* JSONStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONStoreTests.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C1C5 /* MoshTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = MoshTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6EC9BE9B0064F3AA5527163 /* LibSSH2AvailabilityGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibSSH2AvailabilityGuard.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnostics.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsReporterView.swift; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsTests.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E1 /* KeyManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManagementView.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E2 /* KeychainPrivateKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainPrivateKeyStore.swift; sourceTree = "<group>"; };
 		D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHPrivateKeyValidator.swift; sourceTree = "<group>"; };
@@ -192,9 +195,6 @@
 		F6F6F6F6F6F6F6F6F6F6F6F6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = file.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F789644648F649058124AEA475E31280 /* Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Bridging-Header.h"; sourceTree = "<group>"; };
 		FCE6ECFFF687451EB1224BE5 /* MoshClientCoreUtilTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoshClientCoreUtilTests.swift; sourceTree = "<group>"; };
-		D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnostics.swift; sourceTree = "<group>"; };
-		D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsReporterView.swift; sourceTree = "<group>"; };
-		D1D1D1D1D1D1D1D1D1D1D1D10 /* StartupDiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupDiagnosticsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -235,6 +235,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3F4ECDA72F4633E800B8D884 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				E5E5E5E5E5E5E5E5E5E5E511 /* XCTest.framework */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		A1A1A1A1A1A1A1A1A1A1A1B2 = {
 			isa = PBXGroup;
 			children = (
@@ -248,6 +256,7 @@
 				E2E2E2E2E2E2E2E2E2E2E310 /* Frameworks/libssl.xcframework */,
 				E2E2E2E2E2E2E2E2E2E2E320 /* Frameworks/libcrypto.xcframework */,
 				3F63A1BE2F28F98800ACE2AA /* .gitignore */,
+				3F4ECDA72F4633E800B8D884 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -340,12 +349,13 @@
 			path = MoshTerminalTests;
 			sourceTree = "<group>";
 		};
-		E5E5E5E5E5E5E5E5E5E5E503 /* MoshTerminalUITests */ = {
+		D1D1D1D1D1D1D1D1D1D1D1D05 /* Diagnostics */ = {
 			isa = PBXGroup;
 			children = (
-				E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */,
+				D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */,
 			);
-			path = MoshTerminalUITests;
+			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 		D1D1D1D1D1D1D1D1D1D1D1E4 /* Security */ = {
@@ -355,6 +365,14 @@
 				D1D1D1D1D1D1D1D1D1D1D1E3 /* SSHPrivateKeyValidator.swift */,
 			);
 			path = Security;
+			sourceTree = "<group>";
+		};
+		E5E5E5E5E5E5E5E5E5E5E503 /* MoshTerminalUITests */ = {
+			isa = PBXGroup;
+			children = (
+				E5E5E5E5E5E5E5E5E5E5E501 /* MoshTerminalUITests.swift */,
+			);
+			path = MoshTerminalUITests;
 			sourceTree = "<group>";
 		};
 		F2F2F2F2F2F2F2F2F2F2F2A3 /* Services */ = {
@@ -382,15 +400,6 @@
 				E2E2E2E2E2E2E2E2E2E2E2B3 /* UnavailableSSHClient.swift */,
 			);
 			path = Services;
-			sourceTree = "<group>";
-		};
-		D1D1D1D1D1D1D1D1D1D1D1D05 /* Diagnostics */ = {
-			isa = PBXGroup;
-			children = (
-				D1D1D1D1D1D1D1D1D1D1D1D01 /* StartupDiagnostics.swift */,
-				D1D1D1D1D1D1D1D1D1D1D1D02 /* StartupDiagnosticsReporterView.swift */,
-			);
-			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -656,7 +665,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JVMXE5G542;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -674,7 +683,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1;
 				"OTHER_CFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
 					"-fmodule-map-file=$(SRCROOT)/MoshTerminal/Dependencies/libssh2-ios.modulemap",
@@ -706,7 +715,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JVMXE5G542;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -724,7 +733,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1;
 				"OTHER_CFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
 					"-fmodule-map-file=$(SRCROOT)/MoshTerminal/Dependencies/libssh2-ios.modulemap",
