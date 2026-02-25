@@ -19,18 +19,10 @@ struct TipJarView: View {
                             .font(AppTheme.typography.caption)
                             .foregroundStyle(colors.secondaryText)
 
-                        Text("Your support helps fund the development of this and other apps!")
-                            .font(AppTheme.typography.caption)
-                            .foregroundStyle(colors.secondaryText)
-
-                        Text("Check out the code, git the repository a star, or contribute a feature at:")
+                        Text("Your support helps fund open source development of this project.")
                             .font(AppTheme.typography.caption)
                             .foregroundStyle(colors.secondaryText)
                     }
-
-                    Link("github.com/Git-on-my-level/ios-mosh-terminal", destination: URL(string: "https://github.com/Git-on-my-level/ios-mosh-terminal")!)
-                        .font(AppTheme.typography.caption)
-                        .padding(.top, 1)
                 }
                 .padding(.vertical, 4)
             }

@@ -43,6 +43,18 @@ struct AboutView: View {
                 } label: {
                     AppRowLabel("Tip Jar", systemImage: "heart")
                 }
+
+                HStack {
+                    AppRowLabel("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    Spacer()
+                    Text("View on GitHub")
+                        .font(AppTheme.typography.caption)
+                        .foregroundStyle(colors.secondaryText)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    openSourceCode()
+                }
             }
 
             Section {
@@ -77,6 +89,10 @@ struct AboutView: View {
         return URL(string: rawValue)
     }
 
+    private var sourceCodeURL: URL? {
+        URL(string: "https://github.com/Git-on-my-level/ios-mosh-terminal")
+    }
+
     private func openSupport() {
         if let supportEmail {
             var components = URLComponents()
@@ -94,6 +110,11 @@ struct AboutView: View {
         if let supportURL {
             openURL(supportURL)
         }
+    }
+
+    private func openSourceCode() {
+        guard let sourceCodeURL else { return }
+        openURL(sourceCodeURL)
     }
 }
 
