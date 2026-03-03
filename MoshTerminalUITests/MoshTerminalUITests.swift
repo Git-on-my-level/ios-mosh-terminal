@@ -177,36 +177,38 @@ final class MoshTerminalUITests: XCTestCase {
             "TipJar should not start on cold launch"
         )
 
-        let settingsTab = app.tabBars.buttons["Settings"]
-        XCTAssertTrue(
-            settingsTab.waitForExistence(timeout: 5),
-            "Expected Settings tab to exist"
+        openSettings(in: app)
+        XCTAssertFalse(
+            tipJarRowExistsInSettings(app),
+            "Tip Jar row should be hidden while the feature is disabled"
         )
-        settingsTab.tap()
 
-        let tipJarRow = app.staticTexts["Tip Jar"]
-        XCTAssertTrue(
-            tipJarRow.waitForExistence(timeout: 5),
-            "Expected Tip Jar row to exist in Settings"
-        )
-        tipJarRow.tap()
-
-        let afterTipJarDeadline = Date().addingTimeInterval(5)
-        var snapshotAfterTipJar = snapshot
-        while Date() < afterTipJarDeadline {
+        let afterSettingsDeadline = Date().addingTimeInterval(3)
+        var snapshotAfterSettings = snapshot
+        while Date() < afterSettingsDeadline {
             if let json = try? decodeDiagnosticsSnapshot(from: diagnosticsLabel.label.trimmingCharacters(in: .whitespacesAndNewlines)) {
-                snapshotAfterTipJar = json
-                if snapshotAfterTipJar.tipJarStartCount >= 1 {
-                    break
-                }
+                snapshotAfterSettings = json
             }
             RunLoop.current.run(until: Date().addingTimeInterval(0.1))
         }
 
-        XCTAssertGreaterThanOrEqual(
-            snapshotAfterTipJar.tipJarStartCount,
-            1,
-            "TipJar should start after opening Tip Jar"
+        XCTAssertEqual(
+            snapshotAfterSettings.tipJarStartCount,
+            0,
+            "TipJar should remain stopped when the feature is hidden"
+        )
+    }
+
+    func testTipJarHiddenWhenFeatureDisabled() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["MOSH_EPHEMERAL_STORE"] = "1"
+        app.launchEnvironment["MOSH_SEED_HOSTS"] = "1"
+        app.launch()
+
+        openSettings(in: app)
+        XCTAssertFalse(
+            tipJarRowExistsInSettings(app),
+            "Tip Jar row should be hidden while the feature is disabled"
         )
     }
 
@@ -214,6 +216,32 @@ final class MoshTerminalUITests: XCTestCase {
         let data = Data(json.utf8)
         _ = try JSONSerialization.jsonObject(with: data)
         return try JSONDecoder().decode(StartupDiagnosticsSnapshotPayload.self, from: data)
+    }
+
+    private func openSettings(in app: XCUIApplication) {
+        let settingsTab = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(
+            settingsTab.waitForExistence(timeout: 5),
+            "Expected Settings tab to exist"
+        )
+        settingsTab.tap()
+    }
+
+    private func tipJarRowExistsInSettings(_ app: XCUIApplication) -> Bool {
+        let tipJarRow = app.cells.containing(.staticText, identifier: "Tip Jar").firstMatch
+        let settingsTable = app.tables.firstMatch
+
+        if !tipJarRow.waitForExistence(timeout: 1) {
+            for _ in 0..<8 where !tipJarRow.exists {
+                if settingsTable.exists {
+                    settingsTable.swipeUp()
+                } else {
+                    app.swipeUp()
+                }
+            }
+        }
+
+        return tipJarRow.exists
     }
 }
 

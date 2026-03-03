@@ -1,6 +1,11 @@
 import Foundation
 import StoreKit
 
+enum TipJarFeatureFlag {
+    // Temporarily disabled while App Review IAP availability is being stabilized.
+    static let isEnabled = false
+}
+
 @MainActor
 final class TipJarStore: ObservableObject {
     struct TipJarAlert: Identifiable {
@@ -17,12 +22,14 @@ final class TipJarStore: ObservableObject {
     }
 
     private static let tipTiers = ["tip.small", "tip.medium", "tip.large"]
+    private static let productIDsOverrideEnvKey = "MOSH_TIP_JAR_PRODUCT_IDS"
     private static let fallbackPrefixes = [
         "com.scalingforever.MoshTerminal",
         "com.scalingforever.moshterminal",
     ]
     private static let maxProductLoadAttempts = 3
     private static let retryBaseDelayNanoseconds: UInt64 = 500_000_000
+    private static let unavailableMessage = "Tips are currently unavailable."
 
     @Published private(set) var products: [Product] = []
     @Published private(set) var loadState: LoadState = .idle
@@ -66,9 +73,7 @@ final class TipJarStore: ObservableObject {
         do {
             let fetched = try await fetchProductsWithRetry()
             guard !fetched.isEmpty else {
-                loadState = .failed(
-                    "No tip products were returned. Expected IDs: \(productIDs.joined(separator: ", "))\(debugFailureDetails())"
-                )
+                loadState = .failed(Self.unavailableMessage)
                 debugLog("No products returned after all attempts.")
                 return
             }
@@ -84,7 +89,7 @@ final class TipJarStore: ObservableObject {
             loadState = .idle
             debugLog("Load cancelled")
         } catch {
-            loadState = .failed("StoreKit error: \(error.localizedDescription)")
+            loadState = .failed(Self.unavailableMessage)
             debugLog("StoreKit error: \(error.localizedDescription)")
         }
     }
@@ -133,17 +138,17 @@ final class TipJarStore: ObservableObject {
     }
 
     private static func resolveProductIDs() -> [String] {
+        if let envIDs = ProcessInfo.processInfo.environment[productIDsOverrideEnvKey] {
+            let idsFromEnvironment = parseProductIDs(from: envIDs)
+            if !idsFromEnvironment.isEmpty {
+                return idsFromEnvironment
+            }
+        }
+
         if let configuredIDs = Bundle.main.object(forInfoDictionaryKey: "TIP_JAR_PRODUCT_IDS") as? [String] {
-            let trimmed = configuredIDs
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
+            let trimmed = sanitizeProductIDs(configuredIDs)
             if !trimmed.isEmpty {
-                var deduped: [String] = []
-                var seen = Set<String>()
-                for id in trimmed where seen.insert(id).inserted {
-                    deduped.append(id)
-                }
-                return deduped
+                return trimmed
             }
         }
 
@@ -167,6 +172,24 @@ final class TipJarStore: ObservableObject {
             }
         }
         return productIDs
+    }
+
+    private static func parseProductIDs(from value: String) -> [String] {
+        sanitizeProductIDs(
+            value
+                .split { $0 == "," || $0 == "\n" || $0 == "\t" }
+                .map(String.init)
+        )
+    }
+
+    private static func sanitizeProductIDs(_ ids: [String]) -> [String] {
+        var deduped: [String] = []
+        var seen = Set<String>()
+        for id in ids.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) }) where !id.isEmpty {
+            guard seen.insert(id).inserted else { continue }
+            deduped.append(id)
+        }
+        return deduped
     }
 
     private func fetchProductsWithRetry() async throws -> [Product] {

@@ -72,16 +72,18 @@ struct SettingsView: View {
                 SectionHeader("About")
             }
 
-            Section {
-                NavigationLink {
-                    TipJarView()
-                } label: {
-                    AppRowLabel("Tip Jar", systemImage: "heart")
+            if TipJarFeatureFlag.isEnabled {
+                Section {
+                    NavigationLink {
+                        TipJarView()
+                    } label: {
+                        AppRowLabel("Tip Jar", systemImage: "heart")
+                    }
+                } header: {
+                    SectionHeader("Support Development")
+                } footer: {
+                    Text("Optional tip. No additional features are unlocked.")
                 }
-            } header: {
-                SectionHeader("Support Development")
-            } footer: {
-                Text("Optional tip. No additional features are unlocked.")
             }
 
 #if DEBUG

@@ -38,10 +38,12 @@ struct AboutView: View {
                     openSupport()
                 }
 
-                NavigationLink {
-                    TipJarView()
-                } label: {
-                    AppRowLabel("Tip Jar", systemImage: "heart")
+                if TipJarFeatureFlag.isEnabled {
+                    NavigationLink {
+                        TipJarView()
+                    } label: {
+                        AppRowLabel("Tip Jar", systemImage: "heart")
+                    }
                 }
 
                 HStack {
