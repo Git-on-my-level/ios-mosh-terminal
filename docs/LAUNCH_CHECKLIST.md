@@ -43,15 +43,6 @@ Prepare the following before submitting:
   - If you create one, ensure it states "no data collection"
 - [ ] **Contact Email** (required): Email address for Apple/Apple Review to contact you
   - Use a monitored email address associated with your Apple Developer account
-- [ ] **In-App Purchases** (optional): Tip Jar consumables created and submitted
-  - Product IDs must match the app code and StoreKit config:
-    - `com.scalingforever.MoshTerminal.tip.small`
-    - `com.scalingforever.MoshTerminal.tip.medium`
-    - `com.scalingforever.MoshTerminal.tip.large`
-  - For the first submission that includes IAPs, open the app version page and add all tip products in **In-App Purchases and Subscriptions** before pressing **Submit for Review**
-  - Confirm each tip is at least **Waiting for Review** and assigned to the same app version you are submitting
-  - Ensure Paid Applications agreement, banking, and tax forms are active in App Store Connect
-  - Local testing config: `Tips.storekit`
 
 ### App Information
 
@@ -183,7 +174,6 @@ Before submitting for review:
 - [ ] Support URL and contact email are valid and accessible
 - [ ] Build has been tested on at least one physical device
 - [ ] No critical bugs remain in TestFlight feedback
-- [ ] Tip Jar products are visible in TestFlight/Sandbox (if tip feature is shown in Settings)
 
 ### Submission Tips
 

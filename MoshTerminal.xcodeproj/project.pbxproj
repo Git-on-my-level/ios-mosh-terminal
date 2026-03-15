@@ -13,8 +13,6 @@
 		1776D11099F64422A24D0357 /* (null) in Sources */ = {isa = PBXBuildFile; };
 		1AB459535CE46863FA6D7E24 /* TransportSenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */; };
 		33D9F5CF57D872FF5F8A655D /* ProtoCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5887890B1C9820791F281160 /* ProtoCodecTests.swift */; };
-		3FD9848B2F441F29008CCD20 /* LocalIAP.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 3FD9848A2F441F29008CCD20 /* LocalIAP.storekit */; };
-		3FD9848C2F441F29008CCD20 /* LocalIAP.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 3FD9848A2F441F29008CCD20 /* LocalIAP.storekit */; };
 		57FDDBAD7F1848398CD3BA4A /* ConnectionFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */; };
 		67ADC61164BA4F348F78265D /* ReconnectBackoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */; };
 		74BCF1FED6F14F2BB1B9A388 /* Licenses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E508C0249C443DB5EBB2E5 /* Licenses.swift */; };
@@ -120,7 +118,6 @@
 		1A4AA31FC73E213299AA30FE /* TransportSenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportSenderTests.swift; sourceTree = "<group>"; };
 		2DF9C3DDFEAB48459B4BB3FB /* ReconnectBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectBackoff.swift; sourceTree = "<group>"; };
 		3F63A1BE2F28F98800ACE2AA /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
-		3FD9848A2F441F29008CCD20 /* LocalIAP.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = LocalIAP.storekit; sourceTree = "<group>"; };
 		419F6FB9E4C14697A66F8256 /* ConnectionFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFailure.swift; sourceTree = "<group>"; };
 		5887890B1C9820791F281160 /* ProtoCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtoCodecTests.swift; sourceTree = "<group>"; };
 		69AEA3EBE6351D74413B5551 /* PersistenceProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceProtocols.swift; sourceTree = "<group>"; };
@@ -246,7 +243,6 @@
 		A1A1A1A1A1A1A1A1A1A1A1B2 = {
 			isa = PBXGroup;
 			children = (
-				3FD9848A2F441F29008CCD20 /* LocalIAP.storekit */,
 				A1A1A1A1A1A1A1A1A1A1A1B3 /* MoshTerminal */,
 				C1C1C1C1C1C1C1C1C1C1C1E3 /* MoshTerminalTests */,
 				E5E5E5E5E5E5E5E5E5E5E503 /* MoshTerminalUITests */,
@@ -481,11 +477,6 @@
 				TargetAttributes = {
 					A1A1A1A1A1A1A1A1A1A1A1B5 = {
 						CreatedOnToolsVersion = 16.0;
-						SystemCapabilities = {
-							com.apple.InAppPurchase = {
-								enabled = 1;
-							};
-						};
 					};
 					C1C1C1C1C1C1C1C1C1C1C1F4 = {
 						CreatedOnToolsVersion = 16.0;
@@ -525,7 +516,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3FD9848C2F441F29008CCD20 /* LocalIAP.storekit in Resources */,
 				A1A1A1A1A1A1A1A1A1A1A1AD /* Assets.xcassets in Resources */,
 				F6F6F6F6F6F6F6F6F6F6F6F7 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -535,7 +525,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3FD9848B2F441F29008CCD20 /* LocalIAP.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,12 +22,6 @@
 	<string>Used to connect to servers on your local network.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>TIP_JAR_PRODUCT_IDS</key>
-	<array>
-		<string>com.scalingforever.MoshTerminal.tip.small</string>
-		<string>com.scalingforever.MoshTerminal.tip.medium</string>
-		<string>com.scalingforever.MoshTerminal.tip.large</string>
-	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

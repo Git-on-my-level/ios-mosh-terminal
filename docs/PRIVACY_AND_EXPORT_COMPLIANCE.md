@@ -10,7 +10,6 @@ All data remains on-device:
 - SSH host configurations are stored locally in the app's container
 - SSH private keys are stored in the iOS Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` (device-only, unlocked-only)
 - Terminal session data is not logged or transmitted to any third-party servers
-- Optional in-app tips are processed by Apple (StoreKit); the app does not log or transmit purchase events
 - No analytics or crash reporting is included
 
 ## Third-Party SDKs
